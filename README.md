@@ -77,7 +77,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | Role | Email | Password | Access / Role |
 |:---:|:---:|:---:|:---:|
 | 🎓 **Student** | `student@vitstudent.ac.in` | `password123` | 9,000 Monthly Credits & Digital Ordering |
-| 🧑‍🍳 **Chef** | `vitchef775@gmail.com` | `password123` | Kitchen Queue & Stock Toggler |
+| 🧑‍🍳 **Chef** | `<chef-email>` *(Configured in `CHEF_EMAIL` env)* | `password123` | Kitchen Queue & Stock Toggler |
 | 👑 **Admin** | `admin@campus.edu` | `password123` | Full Campus Administration & Analytics |
 
 ---

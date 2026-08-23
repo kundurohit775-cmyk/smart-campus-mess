@@ -24,6 +24,7 @@ router.post('/login', async (req, res, next) => {
     const cleanEmail = email.trim().toLowerCase();
 
     // Check in Admins / Chefs first
+    const configuredChef = (config.chefEmail || '').trim().toLowerCase();
     const admin = await db.get('SELECT * FROM admins WHERE LOWER(email) = ?', cleanEmail);
     if (admin) {
       const match = await bcrypt.compare(password, admin.password_hash);
@@ -32,9 +33,9 @@ router.post('/login', async (req, res, next) => {
       }
 
       let effectiveRole = admin.role;
-      if (effectiveRole === 'chef' && cleanEmail !== config.chefEmail.trim().toLowerCase()) {
+      if (effectiveRole === 'chef' && (!configuredChef || cleanEmail !== configuredChef)) {
         return res.status(403).json({
-          error: `Chef access is strictly restricted to ${config.chefEmail}.`
+          error: 'Forbidden: Chef access is restricted.'
         });
       }
 
@@ -51,7 +52,10 @@ router.post('/login', async (req, res, next) => {
           id: admin.admin_id,
           name: admin.name,
           email: admin.email,
-          role: effectiveRole
+          role: effectiveRole,
+          isChef: effectiveRole === 'chef',
+          isAdmin: effectiveRole === 'admin',
+          isStudent: effectiveRole === 'student'
         }
       });
     }
@@ -190,6 +194,9 @@ router.post('/register', async (req, res, next) => {
         phone,
         roomNumber,
         role: 'student',
+        isChef: false,
+        isAdmin: false,
+        isStudent: true,
         credits: {
           remaining: credits.remaining_credits,
           used: credits.used_credits,
@@ -206,7 +213,7 @@ router.post('/register', async (req, res, next) => {
 /**
  * POST /api/auth-helpers/otp/send
  * Body: { phone }
- * Sends 6-digit OTP via SMS (Rate limited: 3 reqs / 10 min)
+ * Dispatches 6-digit OTP code to registered mobile phone
  */
 router.post('/otp/send', async (req, res, next) => {
   try {
@@ -262,6 +269,9 @@ router.get('/me', authenticateToken, async (req, res, next) => {
           phone: student.phone,
           roomNumber: student.room_number,
           role: 'student',
+          isChef: false,
+          isAdmin: false,
+          isStudent: true,
           credits: {
             remaining: credits.remaining_credits,
             used: credits.used_credits,
@@ -273,12 +283,16 @@ router.get('/me', authenticateToken, async (req, res, next) => {
     }
 
     const admin = await db.get('SELECT admin_id, name, email, role FROM admins WHERE admin_id = ?', req.user.id);
+    const effectiveRole = req.user.role;
     return res.json({
       user: {
         id: admin.admin_id,
         name: admin.name,
         email: admin.email,
-        role: admin.role
+        role: effectiveRole,
+        isChef: effectiveRole === 'chef',
+        isAdmin: effectiveRole === 'admin',
+        isStudent: effectiveRole === 'student'
       }
     });
   } catch (err) {

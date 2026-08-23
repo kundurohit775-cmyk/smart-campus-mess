@@ -4,11 +4,12 @@ import { config } from '../config/config.js';
 import db from '../db/database.js';
 
 /**
- * Normalizes role to ensure ONLY the hardcoded config.chefEmail can ever have the 'chef' role.
+ * Normalizes role to ensure ONLY the environment-configured CHEF_EMAIL can ever have the 'chef' role.
  */
 function sanitizeRole(role, email) {
   const cleanEmail = (email || '').trim().toLowerCase();
-  const isChef = cleanEmail === config.chefEmail.trim().toLowerCase();
+  const configuredChefEmail = (config.chefEmail || '').trim().toLowerCase();
+  const isChef = Boolean(configuredChefEmail) && cleanEmail === configuredChefEmail;
 
   if (isChef) {
     return 'chef';
@@ -35,6 +36,9 @@ export async function authenticateToken(req, res, next) {
           name: session.user.name,
           email: session.user.email,
           role: effectiveRole,
+          isChef: effectiveRole === 'chef',
+          isAdmin: effectiveRole === 'admin',
+          isStudent: effectiveRole === 'student',
           roomNumber: session.user.roomNumber || '',
           phone: session.user.phone || ''
         };
@@ -65,6 +69,9 @@ export async function authenticateToken(req, res, next) {
             name: user.name,
             email: user.email,
             role: effectiveRole,
+            isChef: effectiveRole === 'chef',
+            isAdmin: effectiveRole === 'admin',
+            isStudent: effectiveRole === 'student',
             roomNumber: user.roomNumber || '',
             phone: user.phone || ''
           };
@@ -84,6 +91,9 @@ export async function authenticateToken(req, res, next) {
             name: decoded.name,
             email: decoded.email,
             role: effectiveRole,
+            isChef: effectiveRole === 'chef',
+            isAdmin: effectiveRole === 'admin',
+            isStudent: effectiveRole === 'student',
             roomNumber: decoded.roomNumber || ''
           };
           return next();
@@ -100,7 +110,10 @@ export async function authenticateToken(req, res, next) {
           id: admin.admin_id,
           name: admin.name,
           email: admin.email,
-          role: effectiveRole
+          role: effectiveRole,
+          isChef: effectiveRole === 'chef',
+          isAdmin: effectiveRole === 'admin',
+          isStudent: effectiveRole === 'student'
         };
         return next();
       }
@@ -113,7 +126,10 @@ export async function authenticateToken(req, res, next) {
           name: student.name,
           email: student.email,
           roomNumber: student.room_number,
-          role: 'student'
+          role: 'student',
+          isChef: false,
+          isAdmin: false,
+          isStudent: true
         };
         return next();
       }
@@ -136,7 +152,8 @@ export function requireRole(...allowedRoles) {
     }
 
     const cleanEmail = (req.user.email || '').trim().toLowerCase();
-    const isChef = cleanEmail === config.chefEmail.trim().toLowerCase();
+    const configuredChefEmail = (config.chefEmail || '').trim().toLowerCase();
+    const isChef = Boolean(configuredChefEmail) && cleanEmail === configuredChefEmail;
 
     // If endpoint requires chef access:
     if (allowedRoles.includes('chef')) {
@@ -145,7 +162,7 @@ export function requireRole(...allowedRoles) {
         return next();
       }
       return res.status(403).json({
-        error: `Forbidden: Chef access is strictly restricted to ${config.chefEmail}. Your email: ${req.user.email}`
+        error: 'Forbidden: Chef access is restricted to authorized chef accounts.'
       });
     }
 

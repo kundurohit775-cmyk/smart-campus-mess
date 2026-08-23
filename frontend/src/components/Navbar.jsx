@@ -15,17 +15,15 @@ import {
   Coins
 } from 'lucide-react';
 
-import { CHEF_EMAIL, isChefEmail } from '../config/constants';
-
 export function Navbar({ activeTab, setActiveTab }) {
   const { user, logout } = useAuth();
   const { totalItemCount, setIsOpen } = useCart();
 
   if (!user) return null;
 
-  const isStudent = user.role === 'student' || (user.role === 'chef' && !isChefEmail(user.email));
-  const isChef = user.role === 'chef' && isChefEmail(user.email);
-  const isAdmin = user.role === 'admin';
+  const isStudent = user.role === 'student' || user.isStudent;
+  const isChef = user.role === 'chef' || user.isChef;
+  const isAdmin = user.role === 'admin' || user.isAdmin;
 
   const remainingCredits = user?.credits?.remaining ?? 9000;
   const isLowBalance = remainingCredits < 500;

@@ -4,7 +4,11 @@ import { config } from '../config/config.js';
 
 export async function migrateChefEmail() {
   console.log('🔄 Running Chef Email Database Migration...');
-  const targetChefEmail = (config.chefEmail || 'vitchef775@gmail.com').trim().toLowerCase();
+  const targetChefEmail = (process.env.CHEF_EMAIL || config.chefEmail || '').trim().toLowerCase();
+  if (!targetChefEmail) {
+    console.warn('⚠️ No CHEF_EMAIL provided in environment variables. Skipping chef record migration.');
+    return;
+  }
 
   try {
     const passwordHash = await bcrypt.hash('password123', 10);
@@ -28,7 +32,7 @@ export async function migrateChefEmail() {
       WHERE role = 'chef' AND LOWER(email) != $1
     `, [targetChefEmail]);
 
-    // 4. Provision or update Better Auth "user" and "account" tables for vitchef775@gmail.com
+    // 4. Provision or update Better Auth "user" and "account" tables for targetChefEmail
     const chefUserRow = await db.pool.query('SELECT id FROM "user" WHERE LOWER(email) = $1', [targetChefEmail]);
     let chefUserId;
     if (chefUserRow.rows.length === 0) {
