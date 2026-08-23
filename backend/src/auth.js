@@ -15,12 +15,18 @@ pool.on('error', (err) => {
 export const auth = betterAuth({
   database: pool,
   secret: config.betterAuthSecret,
-  baseURL: config.betterAuthUrl,
+  baseURL: process.env.BETTER_AUTH_URL || config.betterAuthUrl || 'http://localhost:5050',
   trustedOrigins: [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5050',
-    'http://127.0.0.1:5050'
+    'http://127.0.0.1:5050',
+    'https://smart-campus-mess.onrender.com',
+    'https://*.onrender.com',
+    'https://*.vercel.app',
+    'https://*.netlify.app',
+    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL.replace(/\/+$/, '')] : []),
+    ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL.replace(/\/+$/, '')] : [])
   ],
   emailAndPassword: {
     enabled: true,

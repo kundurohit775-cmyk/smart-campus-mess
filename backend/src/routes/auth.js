@@ -141,6 +141,29 @@ router.post('/register', async (req, res, next) => {
     
     const studentId = result.lastInsertRowid;
 
+    // Dual-sync into Better Auth user & account tables for complete interoperability
+    try {
+      const authUserId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      await db.pool.query(`
+        INSERT INTO "user" (id, name, email, "emailVerified", "createdAt", "updatedAt", role, "roomNumber", phone)
+        VALUES ($1, $2, $3, TRUE, NOW(), NOW(), 'student', $4, $5)
+        ON CONFLICT (email) DO NOTHING
+      `, [authUserId, name.trim(), cleanEmail, roomNumber || 'Hostel', phone || '']);
+
+      const userRow = await db.pool.query('SELECT id FROM "user" WHERE email = $1', [cleanEmail]);
+      if (userRow.rows.length > 0) {
+        const uId = userRow.rows[0].id;
+        const accId = `acc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        await db.pool.query(`
+          INSERT INTO "account" (id, "userId", "accountId", "providerId", password, "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, 'credential', $4, NOW(), NOW())
+          ON CONFLICT (id) DO NOTHING
+        `, [accId, uId, cleanEmail, passwordHash]);
+      }
+    } catch (e) {
+      console.warn('Better Auth user/account table sync warning:', e.message);
+    }
+
     // Initialize monthly 9,000 credit allowance
     const credits = await creditService.getOrCreateMonthlyCredits(studentId);
 
