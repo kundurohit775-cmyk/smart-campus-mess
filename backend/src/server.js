@@ -42,9 +42,16 @@ app.post('/api/auth/sign-up/email', express.json(), (req, res, next) => {
   const email = (req.body?.email || '').trim().toLowerCase();
   const role = req.body?.role || 'student';
   const configuredChef = (config.chefEmail || '').trim().toLowerCase();
+  const configuredAdmin = (config.adminEmail || '').trim().toLowerCase();
+
   if (role === 'chef' && (!configuredChef || email !== configuredChef)) {
     return res.status(403).json({
       error: 'Forbidden: Chef registration is restricted.'
+    });
+  }
+  if (role === 'admin' && (!configuredAdmin || email !== configuredAdmin)) {
+    return res.status(403).json({
+      error: 'Forbidden: Admin registration is restricted.'
     });
   }
   if (role === 'student' && !email.endsWith('@vitstudent.ac.in')) {
@@ -60,9 +67,12 @@ app.post('/api/auth/sign-in/email', express.json(), async (req, res, next) => {
   try {
     const email = (req.body?.email || '').trim().toLowerCase();
     const configuredChef = (config.chefEmail || '').trim().toLowerCase();
+    const configuredAdmin = (config.adminEmail || '').trim().toLowerCase();
+
     const isChef = Boolean(configuredChef) && email === configuredChef;
+    const isAdmin = Boolean(configuredAdmin) && email === configuredAdmin;
     
-    // Exempt admin and authorized chef accounts
+    // Exempt authorized admin and authorized chef accounts
     const admin = await db.get('SELECT admin_id, role FROM admins WHERE LOWER(email) = ?', email);
     if (admin) {
       if (admin.role === 'chef' && !isChef) {
@@ -70,10 +80,15 @@ app.post('/api/auth/sign-in/email', express.json(), async (req, res, next) => {
           error: 'Forbidden: Chef access is restricted.'
         });
       }
+      if (admin.role === 'admin' && !isAdmin) {
+        return res.status(403).json({
+          error: 'Forbidden: Admin access is restricted.'
+        });
+      }
       return next();
     }
 
-    if (isChef) {
+    if (isChef || isAdmin) {
       return next();
     }
 

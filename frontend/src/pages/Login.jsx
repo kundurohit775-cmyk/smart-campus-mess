@@ -469,12 +469,18 @@ export function Login() {
 
               <button
                 type="button"
-                onClick={() => { setLoginMethod('password'); handleQuickDemoLogin('admin@campus.edu', 'password123'); }}
+                onClick={() => {
+                  setLoginMethod('password');
+                  setIsRegister(false);
+                  setPassword('password123');
+                  showToast('Enter your configured ADMIN_EMAIL to sign in as Admin.', 'info', 4000);
+                }}
                 className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-purple-500 hover:bg-purple-50/50 transition text-center group"
+                title="Enter the email configured in ADMIN_EMAIL environment variable"
               >
                 <ShieldCheck className="w-5 h-5 text-purple-600 group-hover:scale-110 transition" />
                 <span className="text-xs font-bold text-slate-800 mt-1">Admin</span>
-                <span className="text-[10px] text-slate-400">Full Access</span>
+                <span className="text-[10px] text-slate-400">Management</span>
               </button>
             </div>
           </div>

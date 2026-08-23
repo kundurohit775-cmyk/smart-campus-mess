@@ -28,15 +28,16 @@ export async function seedPostgres() {
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
-    // Insert Admin and Chef (Chef email loaded from CHEF_EMAIL environment variable)
+    // Insert Admin and Chef (Loaded from ADMIN_EMAIL & CHEF_EMAIL environment variables)
+    const adminEmail = (process.env.ADMIN_EMAIL || 'admin@campus.internal').trim().toLowerCase();
     const chefEmail = (process.env.CHEF_EMAIL || 'chef@campus.internal').trim().toLowerCase();
     await client.query(`
       INSERT INTO admins (name, email, password_hash, role)
       VALUES 
-        ('Admin Sarah Jenkins', 'admin@campus.edu', $1, 'admin'),
-        ('Head Chef Marco Rossi', $2, $1, 'chef')
+        ('Admin Sarah Jenkins', $2, $1, 'admin'),
+        ('Head Chef Marco Rossi', $3, $1, 'chef')
       ON CONFLICT (email) DO NOTHING
-    `, [passwordHash, chefEmail]);
+    `, [passwordHash, adminEmail, chefEmail]);
 
     // Insert Demo Students
     const studentRes = await client.query(`

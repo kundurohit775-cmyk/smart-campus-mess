@@ -25,6 +25,7 @@ router.post('/login', async (req, res, next) => {
 
     // Check in Admins / Chefs first
     const configuredChef = (config.chefEmail || '').trim().toLowerCase();
+    const configuredAdmin = (config.adminEmail || '').trim().toLowerCase();
     const admin = await db.get('SELECT * FROM admins WHERE LOWER(email) = ?', cleanEmail);
     if (admin) {
       const match = await bcrypt.compare(password, admin.password_hash);
@@ -36,6 +37,12 @@ router.post('/login', async (req, res, next) => {
       if (effectiveRole === 'chef' && (!configuredChef || cleanEmail !== configuredChef)) {
         return res.status(403).json({
           error: 'Forbidden: Chef access is restricted.'
+        });
+      }
+
+      if (effectiveRole === 'admin' && (!configuredAdmin || cleanEmail !== configuredAdmin)) {
+        return res.status(403).json({
+          error: 'Forbidden: Admin access is restricted.'
         });
       }
 

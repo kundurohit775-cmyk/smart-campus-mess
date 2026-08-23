@@ -4,18 +4,24 @@ import { config } from '../config/config.js';
 import db from '../db/database.js';
 
 /**
- * Normalizes role to ensure ONLY the environment-configured CHEF_EMAIL can ever have the 'chef' role.
+ * Normalizes role to ensure ONLY environment-configured CHEF_EMAIL and ADMIN_EMAIL can ever have privileged roles.
  */
 function sanitizeRole(role, email) {
   const cleanEmail = (email || '').trim().toLowerCase();
   const configuredChefEmail = (config.chefEmail || '').trim().toLowerCase();
-  const isChef = Boolean(configuredChefEmail) && cleanEmail === configuredChefEmail;
+  const configuredAdminEmail = (config.adminEmail || '').trim().toLowerCase();
 
+  const isChef = Boolean(configuredChefEmail) && cleanEmail === configuredChefEmail;
+  const isAdmin = Boolean(configuredAdminEmail) && cleanEmail === configuredAdminEmail;
+
+  if (isAdmin) {
+    return 'admin';
+  }
   if (isChef) {
     return 'chef';
   }
-  // If role is set to chef on an unauthorized email, demote to student
-  if (role === 'chef') {
+  // If role is set to chef or admin on an unauthorized email, demote to student
+  if (role === 'chef' || role === 'admin') {
     return 'student';
   }
   return role || 'student';
@@ -143,7 +149,7 @@ export async function authenticateToken(req, res, next) {
 }
 
 /**
- * Role-gating middleware with strict single-email enforcement for chef role.
+ * Role-gating middleware with strict single-email enforcement for chef and admin roles.
  */
 export function requireRole(...allowedRoles) {
   return (req, res, next) => {
@@ -153,16 +159,28 @@ export function requireRole(...allowedRoles) {
 
     const cleanEmail = (req.user.email || '').trim().toLowerCase();
     const configuredChefEmail = (config.chefEmail || '').trim().toLowerCase();
-    const isChef = Boolean(configuredChefEmail) && cleanEmail === configuredChefEmail;
+    const configuredAdminEmail = (config.adminEmail || '').trim().toLowerCase();
 
-    // If endpoint requires chef access:
-    if (allowedRoles.includes('chef')) {
-      const isAdmin = req.user.role === 'admin';
-      if (isChef || (allowedRoles.includes('admin') && isAdmin)) {
+    const isChef = Boolean(configuredChefEmail) && cleanEmail === configuredChefEmail;
+    const isAdmin = Boolean(configuredAdminEmail) && cleanEmail === configuredAdminEmail;
+
+    // Check admin-only routes
+    if (allowedRoles.includes('admin') && !allowedRoles.includes('student') && !allowedRoles.includes('chef')) {
+      if (isAdmin || req.user.role === 'admin') {
         return next();
       }
       return res.status(403).json({
-        error: 'Forbidden: Chef access is restricted to authorized chef accounts.'
+        error: 'Forbidden: Admin access is restricted.'
+      });
+    }
+
+    // Check chef-allowed routes
+    if (allowedRoles.includes('chef')) {
+      if (isChef || req.user.role === 'chef' || (allowedRoles.includes('admin') && (isAdmin || req.user.role === 'admin'))) {
+        return next();
+      }
+      return res.status(403).json({
+        error: 'Forbidden: Chef access is restricted.'
       });
     }
 
