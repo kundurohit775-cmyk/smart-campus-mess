@@ -1,13 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import pg from 'pg';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './auth.js';
 import { config } from './config/config.js';
 import db from './db/database.js';
-import { seedDatabase } from './db/seed.js';
-import { syncSqliteFromNeon } from './db/sync_sqlite_from_neon.js';
+import { seedPostgres } from './db/seed_postgres.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 import authRoutes from './routes/auth.js';
@@ -18,7 +16,7 @@ import adminRoutes from './routes/admin.js';
 
 const app = express();
 
-// Middlewares
+// Middlewares & CORS
 const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
@@ -31,7 +29,7 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(null, true); // Permissive for local development
+      callback(null, true); // Permissive for production & preview domains
     }
   },
   credentials: true,
@@ -52,22 +50,26 @@ app.post('/api/auth/sign-up/email', express.json(), (req, res, next) => {
 });
 
 // Validate VIT student email for student sign-in before Better Auth processing
-app.post('/api/auth/sign-in/email', express.json(), (req, res, next) => {
-  const email = (req.body?.email || '').trim().toLowerCase();
-  
-  // Exempt admin and chef accounts
-  const admin = db.prepare('SELECT admin_id FROM admins WHERE LOWER(email) = ?').get(email);
-  if (admin) {
-    return next();
-  }
+app.post('/api/auth/sign-in/email', express.json(), async (req, res, next) => {
+  try {
+    const email = (req.body?.email || '').trim().toLowerCase();
+    
+    // Exempt admin and chef accounts
+    const admin = await db.get('SELECT admin_id FROM admins WHERE LOWER(email) = ?', email);
+    if (admin) {
+      return next();
+    }
 
-  // Student accounts MUST end with @vitstudent.ac.in
-  if (!email.endsWith('@vitstudent.ac.in')) {
-    return res.status(403).json({
-      error: 'Only VIT student email addresses (@vitstudent.ac.in) are allowed to sign in.'
-    });
+    // Student accounts MUST end with @vitstudent.ac.in
+    if (!email.endsWith('@vitstudent.ac.in')) {
+      return res.status(403).json({
+        error: 'Only VIT student email addresses (@vitstudent.ac.in) are allowed to sign in.'
+      });
+    }
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 });
 
 // Mount Better Auth handler for /api/auth routes
@@ -81,29 +83,23 @@ app.get('/api/health', async (req, res) => {
   let neonStatus = 'disconnected';
   let neonInfo = null;
 
-  if (config.databaseUrl && config.databaseUrl.startsWith('postgresql://')) {
-    try {
-      const pool = new pg.Pool({
-        connectionString: config.databaseUrl,
-        ssl: { rejectUnauthorized: false }
-      });
-      const check = await pool.query('SELECT current_database() as db, version() as ver, COUNT(*) as dishes FROM menu_items');
-      neonStatus = 'connected';
-      neonInfo = {
-        database: check.rows[0].db,
-        postgresVersion: check.rows[0].ver.split(' ')[0] + ' ' + check.rows[0].ver.split(' ')[1],
-        menuItemsCount: parseInt(check.rows[0].dishes, 10)
-      };
-      await pool.end();
-    } catch (e) {
-      neonStatus = `error: ${e.message}`;
-    }
+  try {
+    const check = await db.query('SELECT current_database() as db, version() as ver, COUNT(*) as dishes FROM menu_items');
+    neonStatus = 'connected';
+    neonInfo = {
+      database: check.rows[0].db,
+      postgresVersion: check.rows[0].ver.split(' ')[0] + ' ' + check.rows[0].ver.split(' ')[1],
+      menuItemsCount: parseInt(check.rows[0].dishes, 10)
+    };
+  } catch (e) {
+    neonStatus = `error: ${e.message}`;
   }
 
   res.json({
     status: 'online',
     app: 'Smart Campus Mess Management System',
     authProvider: 'Better Auth',
+    database: 'Neon PostgreSQL',
     neonPostgreSQL: {
       status: neonStatus,
       info: neonInfo
@@ -130,37 +126,23 @@ async function initializeAndStart() {
     console.log('🔄 INITIALIZING SMART CAMPUS MESS API SERVER...');
     console.log('----------------------------------------------------');
 
-    // 1. Check & Verify Live Neon PostgreSQL Connection and sync
-    if (config.databaseUrl && config.databaseUrl.startsWith('postgresql://')) {
-      try {
-        const pool = new pg.Pool({
-          connectionString: config.databaseUrl,
-          ssl: { rejectUnauthorized: false }
-        });
-        const res = await pool.query('SELECT NOW() as now, current_database() as db, version() as ver');
-        const dishCount = await pool.query('SELECT COUNT(*) as count FROM menu_items');
-        console.log('🐘 Live Neon PostgreSQL Connection: ✅ CONNECTED');
-        console.log(`   Database: ${res.rows[0].db}`);
-        console.log(`   PostgreSQL Version: ${res.rows[0].ver.split(' ')[0]} ${res.rows[0].ver.split(' ')[1]}`);
-        console.log(`   Neon Menu Dishes Loaded: ${dishCount.rows[0].count}`);
-        await pool.end();
+    // 1. Verify Live Neon PostgreSQL Connection
+    const res = await db.query('SELECT NOW() as now, current_database() as db, version() as ver');
+    const dishCount = await db.query('SELECT COUNT(*) as count FROM menu_items');
+    console.log('🐘 Live Neon PostgreSQL: ✅ CONNECTED');
+    console.log(`   Database: ${res.rows[0].db}`);
+    console.log(`   Version: ${res.rows[0].ver.split(' ')[0]} ${res.rows[0].ver.split(' ')[1]}`);
+    console.log(`   Menu Dishes in DB: ${dishCount.rows[0].count}`);
 
-        // Sync Neon items to local SQLite for instant cross-compatibility
-        await syncSqliteFromNeon();
-      } catch (neonErr) {
-        console.warn('⚠️ Neon PostgreSQL connection check error:', neonErr.message);
-      }
+    // 2. Ensure initial seed data exists in Neon PostgreSQL
+    if (parseInt(dishCount.rows[0].count, 10) === 0) {
+      console.log('🌱 Seeding initial Neon PostgreSQL dishes and demo accounts...');
+      await seedPostgres();
     }
 
-    // 2. Initialize Local Storage Fallback & Seed if needed
-    const studentCount = db.prepare('SELECT COUNT(*) as count FROM students').get().count;
-    if (studentCount === 0) {
-      console.log('📦 Database is empty. Running initial seed...');
-      await seedDatabase();
-    }
-
-    const server = app.listen(config.port, () => {
-      console.log(`🚀 API Server listening on: http://localhost:${config.port}`);
+    const port = process.env.PORT || config.port || 5050;
+    const server = app.listen(port, () => {
+      console.log(`🚀 API Server listening on: http://localhost:${port}`);
       console.log(`🛡️ Better Auth URL: ${config.betterAuthUrl}`);
       console.log('----------------------------------------------------');
     });

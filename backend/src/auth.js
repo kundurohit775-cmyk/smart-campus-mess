@@ -1,34 +1,19 @@
 import { betterAuth } from 'better-auth';
 import pg from 'pg';
-import Database from 'better-sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { config } from './config/config.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Configure PostgreSQL pool for Better Auth
+const pool = new pg.Pool({
+  connectionString: config.databaseUrl,
+  ssl: { rejectUnauthorized: false }
+});
 
-// Configure database for Better Auth
-let authDatabase;
-
-if (config.databaseUrl && config.databaseUrl.startsWith('postgresql://') && !config.databaseUrl.includes('sample_pass')) {
-  // Production / Remote Neon PostgreSQL
-  const pool = new pg.Pool({
-    connectionString: config.databaseUrl,
-    ssl: { rejectUnauthorized: false }
-  });
-  pool.on('error', (err) => {
-    console.warn('⚠️ Better Auth PG pool error (non-fatal):', err.message);
-  });
-  authDatabase = pool;
-} else {
-  // Local SQLite database fallback
-  const dbFile = path.resolve(__dirname, '../mess_management.db');
-  authDatabase = new Database(dbFile);
-}
+pool.on('error', (err) => {
+  console.warn('⚠️ Better Auth PG pool error (non-fatal):', err.message);
+});
 
 export const auth = betterAuth({
-  database: authDatabase,
+  database: pool,
   secret: config.betterAuthSecret,
   baseURL: config.betterAuthUrl,
   trustedOrigins: [

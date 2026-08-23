@@ -1,55 +1,26 @@
 import express from 'express';
-import pg from 'pg';
 import db from '../db/database.js';
-import { config } from '../config/config.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
-let pgPool = null;
-if (config.databaseUrl && config.databaseUrl.startsWith('postgresql://') && !config.databaseUrl.includes('sample_pass')) {
-  pgPool = new pg.Pool({
-    connectionString: config.databaseUrl,
-    ssl: { rejectUnauthorized: false }
-  });
-}
-
 /**
  * GET /api/menu
- * Public or Authenticated: Returns all active menu items with live available stock from Neon PostgreSQL or SQLite.
+ * Public or Authenticated: Returns all active menu items with live available stock from Neon PostgreSQL.
  */
 router.get('/', async (req, res, next) => {
   try {
-    let items = [];
-
-    if (pgPool) {
-      try {
-        const result = await pgPool.query(`
-          SELECT item_id, item_name, category, price, description, image_url, available_quantity, is_active,
-                 (CASE WHEN available_quantity <= 0 THEN 1 ELSE 0 END) as is_sold_out
-          FROM menu_items
-          WHERE is_active = 1
-          ORDER BY category ASC, item_name ASC
-        `);
-        items = result.rows;
-      } catch (pgErr) {
-        console.warn('⚠️ Postgres menu query error, falling back to local DB:', pgErr.message);
-      }
-    }
-
-    if (items.length === 0) {
-      items = db.prepare(`
-        SELECT item_id, item_name, category, price, description, image_url, available_quantity, is_active,
-               (CASE WHEN available_quantity <= 0 THEN 1 ELSE 0 END) as is_sold_out
-        FROM menu_items
-        WHERE is_active = 1
-        ORDER BY category ASC, item_name ASC
-      `).all();
-    }
+    const result = await db.query(`
+      SELECT item_id, item_name, category, price, description, image_url, available_quantity, is_active,
+             (CASE WHEN available_quantity <= 0 THEN 1 ELSE 0 END) as is_sold_out
+      FROM menu_items
+      WHERE is_active = 1
+      ORDER BY category ASC, item_name ASC
+    `);
 
     res.json({
-      items,
-      count: items.length
+      items: result.rows,
+      count: result.rows.length
     });
   } catch (err) {
     next(err);
@@ -65,14 +36,7 @@ router.patch('/:itemId/toggle-stock', authenticateToken, requireRole('chef', 'ad
     const itemId = parseInt(req.params.itemId, 10);
     const { available_quantity } = req.body;
 
-    let currentItem = null;
-    if (pgPool) {
-      const r = await pgPool.query('SELECT * FROM menu_items WHERE item_id = $1', [itemId]);
-      currentItem = r.rows[0];
-    }
-    if (!currentItem) {
-      currentItem = db.prepare('SELECT * FROM menu_items WHERE item_id = ?').get(itemId);
-    }
+    const currentItem = await db.get('SELECT * FROM menu_items WHERE item_id = ?', itemId);
 
     if (!currentItem) {
       return res.status(404).json({ error: 'Menu item not found.' });
@@ -85,11 +49,7 @@ router.patch('/:itemId/toggle-stock', authenticateToken, requireRole('chef', 'ad
       newQty = currentItem.available_quantity > 0 ? 0 : 30;
     }
 
-    // Update in both Neon & SQLite
-    if (pgPool) {
-      await pgPool.query('UPDATE menu_items SET available_quantity = $1 WHERE item_id = $2', [newQty, itemId]);
-    }
-    db.prepare('UPDATE menu_items SET available_quantity = ? WHERE item_id = ?').run(newQty, itemId);
+    await db.run('UPDATE menu_items SET available_quantity = ? WHERE item_id = ?', newQty, itemId);
 
     res.json({
       message: `Stock updated for ${currentItem.item_name}`,

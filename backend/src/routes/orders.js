@@ -5,14 +5,14 @@ import { orderService } from '../services/orderService.js';
 
 const router = express.Router();
 
-function resolveStudentId(user) {
+async function resolveStudentId(user) {
   if (!user) return null;
-  let student = db.prepare('SELECT student_id FROM students WHERE student_id = ? OR email = ?').get(user.id, user.email);
+  let student = await db.get('SELECT student_id FROM students WHERE student_id = ? OR email = ?', user.id, user.email);
   if (!student) {
-    const res = db.prepare(`
+    const res = await db.run(`
       INSERT INTO students (name, email, phone, password_hash, room_number, status) 
       VALUES (?, ?, ?, 'better-auth', ?, 'active')
-    `).run(user.name || 'Student', user.email, user.phone || '', user.roomNumber || 'Hostel');
+    `, user.name || 'Student', user.email, user.phone || '', user.roomNumber || 'Hostel');
     return res.lastInsertRowid;
   }
   return student.student_id;
@@ -23,16 +23,16 @@ function resolveStudentId(user) {
  * Places an order with atomic transaction credit deduction and stock check.
  * Body: { items: [{ itemId: 1, quantity: 2 }] }
  */
-router.post('/', authenticateToken, requireRole('student'), (req, res, next) => {
+router.post('/', authenticateToken, requireRole('student'), async (req, res, next) => {
   try {
-    const studentId = resolveStudentId(req.user);
+    const studentId = await resolveStudentId(req.user);
     const { items } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Cart is empty. Please add items to place an order.' });
     }
 
-    const orderResult = orderService.placeOrder(studentId, items);
+    const orderResult = await orderService.placeOrder(studentId, items);
 
     res.status(201).json({
       message: `Order #${orderResult.orderId} placed successfully! Token: ${orderResult.pickupToken}`,
@@ -49,18 +49,18 @@ router.post('/', authenticateToken, requireRole('student'), (req, res, next) => 
  * - Students receive their own orders
  * - Chef / Admin receive all incoming orders (with optional ?status= query)
  */
-router.get('/', authenticateToken, (req, res, next) => {
+router.get('/', authenticateToken, async (req, res, next) => {
   try {
     const { status } = req.query;
 
     if (req.user.role === 'student') {
-      const studentId = resolveStudentId(req.user);
-      const orders = orderService.getOrdersByStudentId(studentId);
+      const studentId = await resolveStudentId(req.user);
+      const orders = await orderService.getOrdersByStudentId(studentId);
       return res.json({ orders });
     }
 
     // Chef and Admin
-    const orders = orderService.getAllOrders(status);
+    const orders = await orderService.getAllOrders(status);
     return res.json({ orders });
   } catch (err) {
     next(err);
@@ -71,10 +71,10 @@ router.get('/', authenticateToken, (req, res, next) => {
  * GET /api/orders/:orderId
  * Fetches single order details
  */
-router.get('/:orderId', authenticateToken, (req, res, next) => {
+router.get('/:orderId', authenticateToken, async (req, res, next) => {
   try {
     const orderId = parseInt(req.params.orderId, 10);
-    const order = orderService.getOrderById(orderId);
+    const order = await orderService.getOrderById(orderId);
 
     if (!order) {
       return res.status(404).json({ error: 'Order not found.' });
@@ -82,7 +82,7 @@ router.get('/:orderId', authenticateToken, (req, res, next) => {
 
     // Students can only view their own order
     if (req.user.role === 'student') {
-      const studentId = resolveStudentId(req.user);
+      const studentId = await resolveStudentId(req.user);
       if (order.student_id !== studentId) {
         return res.status(403).json({ error: 'Access denied to this order.' });
       }
@@ -99,7 +99,7 @@ router.get('/:orderId', authenticateToken, (req, res, next) => {
  * Chef or Admin moves order through the workflow:
  * Pending -> Accepted -> Preparing -> Ready -> Completed
  */
-router.patch('/:orderId/status', authenticateToken, requireRole('chef', 'admin'), (req, res, next) => {
+router.patch('/:orderId/status', authenticateToken, requireRole('chef', 'admin'), async (req, res, next) => {
   try {
     const orderId = parseInt(req.params.orderId, 10);
     const { status } = req.body;
@@ -108,7 +108,7 @@ router.patch('/:orderId/status', authenticateToken, requireRole('chef', 'admin')
       return res.status(400).json({ error: 'Status is required.' });
     }
 
-    const updatedOrder = orderService.updateOrderStatus(orderId, status);
+    const updatedOrder = await orderService.updateOrderStatus(orderId, status);
 
     res.json({
       message: `Order #${orderId} status updated to "${status}".`,
@@ -124,13 +124,13 @@ router.patch('/:orderId/status', authenticateToken, requireRole('chef', 'admin')
  * Cancels an order. STRICTLY allowed only if status is "Pending".
  * Atomically refunds credits and restores inventory.
  */
-router.patch('/:orderId/cancel', authenticateToken, (req, res, next) => {
+router.patch('/:orderId/cancel', authenticateToken, async (req, res, next) => {
   try {
     const orderId = parseInt(req.params.orderId, 10);
     const isStaff = req.user.role === 'admin' || req.user.role === 'chef';
-    const studentId = resolveStudentId(req.user);
+    const studentId = await resolveStudentId(req.user);
 
-    const result = orderService.cancelOrder(orderId, studentId, isStaff);
+    const result = await orderService.cancelOrder(orderId, studentId, isStaff);
 
     res.json({
       message: `Order #${orderId} successfully cancelled. ${result.refundedAmount} credits refunded to your account.`,

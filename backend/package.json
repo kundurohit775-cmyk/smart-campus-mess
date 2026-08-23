@@ -7,13 +7,12 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "seed": "node src/db/seed.js",
+    "seed": "node src/db/seed_postgres.js",
     "test": "node test/api-test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "better-auth": "^1.7.1",
-    "better-sqlite3": "^11.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

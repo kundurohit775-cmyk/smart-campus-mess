@@ -24,7 +24,7 @@ router.post('/login', async (req, res, next) => {
     const cleanEmail = email.trim().toLowerCase();
 
     // Check in Admins / Chefs first
-    const admin = db.prepare('SELECT * FROM admins WHERE LOWER(email) = ?').get(cleanEmail);
+    const admin = await db.get('SELECT * FROM admins WHERE LOWER(email) = ?', cleanEmail);
     if (admin) {
       const match = await bcrypt.compare(password, admin.password_hash);
       if (!match) {
@@ -57,7 +57,7 @@ router.post('/login', async (req, res, next) => {
     }
 
     // Check in Students
-    const student = db.prepare('SELECT * FROM students WHERE LOWER(email) = ?').get(cleanEmail);
+    const student = await db.get('SELECT * FROM students WHERE LOWER(email) = ?', cleanEmail);
     if (student) {
       if (student.status !== 'active') {
         return res.status(403).json({ error: 'Account is deactivated. Please contact campus admin.' });
@@ -68,7 +68,7 @@ router.post('/login', async (req, res, next) => {
         return res.status(401).json({ error: 'Invalid email or password.' });
       }
 
-      const credits = creditService.getOrCreateMonthlyCredits(student.student_id);
+      const credits = await creditService.getOrCreateMonthlyCredits(student.student_id);
 
       const token = jwt.sign(
         { id: student.student_id, email: student.email, role: 'student', name: student.name },
@@ -125,8 +125,8 @@ router.post('/register', async (req, res, next) => {
     }
 
     // 2. Check if email already exists
-    const existingStudent = db.prepare('SELECT student_id FROM students WHERE LOWER(email) = ?').get(cleanEmail);
-    const existingAdmin = db.prepare('SELECT admin_id FROM admins WHERE LOWER(email) = ?').get(cleanEmail);
+    const existingStudent = await db.get('SELECT student_id FROM students WHERE LOWER(email) = ?', cleanEmail);
+    const existingAdmin = await db.get('SELECT admin_id FROM admins WHERE LOWER(email) = ?', cleanEmail);
 
     if (existingStudent || existingAdmin) {
       return res.status(400).json({ error: 'An account with this email already exists.' });
@@ -134,21 +134,15 @@ router.post('/register', async (req, res, next) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const registerTx = db.transaction(() => {
-      const insert = db.prepare(`
-        INSERT INTO students (name, email, phone, password_hash, room_number, status)
-        VALUES (?, ?, ?, ?, ?, 'active')
-      `);
-      const result = insert.run(name.trim(), cleanEmail, phone || '', passwordHash, roomNumber || '');
-      const studentId = result.lastInsertRowid;
+    const result = await db.run(`
+      INSERT INTO students (name, email, phone, password_hash, room_number, status)
+      VALUES (?, ?, ?, ?, ?, 'active')
+    `, name.trim(), cleanEmail, phone || '', passwordHash, roomNumber || '');
+    
+    const studentId = result.lastInsertRowid;
 
-      // Initialize monthly 9,000 credit allowance
-      const credits = creditService.getOrCreateMonthlyCredits(studentId);
-
-      return { studentId, credits };
-    });
-
-    const { studentId, credits } = registerTx();
+    // Initialize monthly 9,000 credit allowance
+    const credits = await creditService.getOrCreateMonthlyCredits(studentId);
 
     const token = jwt.sign(
       { id: studentId, email: cleanEmail, role: 'student', name: name.trim() },
@@ -224,11 +218,11 @@ router.post('/otp/verify', async (req, res, next) => {
  * GET /api/auth-helpers/me
  * Retrieves active authenticated user details
  */
-router.get('/me', authenticateToken, (req, res, next) => {
+router.get('/me', authenticateToken, async (req, res, next) => {
   try {
     if (req.user.role === 'student') {
-      const student = db.prepare('SELECT student_id, name, email, phone, room_number FROM students WHERE student_id = ?').get(req.user.id);
-      const credits = creditService.getOrCreateMonthlyCredits(req.user.id);
+      const student = await db.get('SELECT student_id, name, email, phone, room_number FROM students WHERE student_id = ?', req.user.id);
+      const credits = await creditService.getOrCreateMonthlyCredits(req.user.id);
 
       return res.json({
         user: {
@@ -248,7 +242,7 @@ router.get('/me', authenticateToken, (req, res, next) => {
       });
     }
 
-    const admin = db.prepare('SELECT admin_id, name, email, role FROM admins WHERE admin_id = ?').get(req.user.id);
+    const admin = await db.get('SELECT admin_id, name, email, role FROM admins WHERE admin_id = ?', req.user.id);
     return res.json({
       user: {
         id: admin.admin_id,

@@ -12,55 +12,57 @@ router.use(authenticateToken, requireRole('admin'));
  * GET /api/admin/analytics
  * Summary statistics & insights for dashboard
  */
-router.get('/analytics', (req, res, next) => {
+router.get('/analytics', async (req, res, next) => {
   try {
-    const totalStudents = db.prepare("SELECT COUNT(*) as count FROM students WHERE status = 'active'").get().count;
+    const totalStudentsRow = await db.get("SELECT COUNT(*) as count FROM students WHERE status = 'active'");
+    const totalStudents = totalStudentsRow ? parseInt(totalStudentsRow.count, 10) : 0;
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    
-    const ordersTodayRow = db.prepare(`
+    const ordersTodayRow = await db.get(`
       SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total_credits
       FROM orders 
-      WHERE DATE(order_time) = DATE('now', 'localtime') AND order_status != 'Cancelled'
-    `).get();
+      WHERE DATE(order_time) = CURRENT_DATE AND order_status != 'Cancelled'
+    `);
 
-    const pendingOrdersCount = db.prepare(`
+    const pendingOrdersRow = await db.get(`
       SELECT COUNT(*) as count 
       FROM orders 
       WHERE order_status IN ('Pending', 'Accepted', 'Preparing')
-    `).get().count;
+    `);
+    const pendingOrdersCount = pendingOrdersRow ? parseInt(pendingOrdersRow.count, 10) : 0;
 
-    const completedOrdersCount = db.prepare(`
+    const completedOrdersRow = await db.get(`
       SELECT COUNT(*) as count 
       FROM orders 
       WHERE order_status = 'Completed'
-    `).get().count;
+    `);
+    const completedOrdersCount = completedOrdersRow ? parseInt(completedOrdersRow.count, 10) : 0;
 
     // Top ordered dishes
-    const topItems = db.prepare(`
+    const topItems = await db.all(`
       SELECT m.item_name, m.category, SUM(oi.quantity) as total_sold, SUM(oi.subtotal) as total_revenue
       FROM order_items oi
       JOIN menu_items m ON oi.item_id = m.item_id
       JOIN orders o ON oi.order_id = o.order_id
       WHERE o.order_status != 'Cancelled'
-      GROUP BY m.item_id
+      GROUP BY m.item_id, m.item_name, m.category
       ORDER BY total_sold DESC
       LIMIT 5
-    `).all();
+    `);
 
     // Low credit students count
-    const lowCreditStudents = db.prepare(`
+    const lowCreditRow = await db.get(`
       SELECT COUNT(*) as count 
       FROM credits c
       JOIN students s ON c.student_id = s.student_id
       WHERE c.remaining_credits < 500 AND s.status = 'active'
-    `).get().count;
+    `);
+    const lowCreditStudents = lowCreditRow ? parseInt(lowCreditRow.count, 10) : 0;
 
     res.json({
       analytics: {
         totalStudents,
-        ordersToday: ordersTodayRow.count,
-        creditsUsedToday: ordersTodayRow.total_credits,
+        ordersToday: ordersTodayRow ? parseInt(ordersTodayRow.count, 10) : 0,
+        creditsUsedToday: ordersTodayRow ? parseInt(ordersTodayRow.total_credits, 10) : 0,
         pendingOrders: pendingOrdersCount,
         completedOrders: completedOrdersCount,
         lowCreditStudents,
@@ -76,13 +78,13 @@ router.get('/analytics', (req, res, next) => {
  * GET /api/admin/students
  * List all students with current month balance
  */
-router.get('/students', (req, res, next) => {
+router.get('/students', async (req, res, next) => {
   try {
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
-    const students = db.prepare(`
+    const students = await db.all(`
       SELECT s.student_id, s.name, s.email, s.phone, s.room_number, s.status, s.created_at,
              COALESCE(c.remaining_credits, 9000) as remaining_credits,
              COALESCE(c.used_credits, 0) as used_credits,
@@ -90,7 +92,7 @@ router.get('/students', (req, res, next) => {
       FROM students s
       LEFT JOIN credits c ON s.student_id = c.student_id AND c.month = ? AND c.year = ?
       ORDER BY s.student_id ASC
-    `).all(currentMonth, currentYear);
+    `, currentMonth, currentYear);
 
     res.json({ students });
   } catch (err) {
@@ -102,13 +104,13 @@ router.get('/students', (req, res, next) => {
  * PATCH /api/admin/students/:studentId/credits
  * Modify credits: action = 'reset' (to 9000) OR 'adjust' (by amount)
  */
-router.patch('/students/:studentId/credits', (req, res, next) => {
+router.patch('/students/:studentId/credits', async (req, res, next) => {
   try {
     const studentId = parseInt(req.params.studentId, 10);
     const { action, amount, reason } = req.body;
 
     if (action === 'reset') {
-      const result = creditService.resetMonthlyCredits(studentId);
+      const result = await creditService.resetMonthlyCredits(studentId);
       return res.json({
         message: `Student #${studentId} credits reset to 9,000`,
         credits: result
@@ -120,7 +122,7 @@ router.patch('/students/:studentId/credits', (req, res, next) => {
       if (isNaN(adjAmount)) {
         return res.status(400).json({ error: 'Adjustment amount must be a number.' });
       }
-      const result = creditService.adjustStudentCredits(studentId, adjAmount, reason);
+      const result = await creditService.adjustStudentCredits(studentId, adjAmount, reason);
       return res.json({
         message: `Student #${studentId} credits adjusted by ${adjAmount}`,
         credits: result
@@ -137,9 +139,9 @@ router.patch('/students/:studentId/credits', (req, res, next) => {
  * GET /api/admin/menu
  * List all menu items including stock & active status
  */
-router.get('/menu', (req, res, next) => {
+router.get('/menu', async (req, res, next) => {
   try {
-    const items = db.prepare('SELECT * FROM menu_items ORDER BY item_id DESC').all();
+    const items = await db.all('SELECT * FROM menu_items ORDER BY item_id DESC');
     res.json({ items });
   } catch (err) {
     next(err);
@@ -150,7 +152,7 @@ router.get('/menu', (req, res, next) => {
  * POST /api/admin/menu
  * Create a new menu item
  */
-router.post('/menu', (req, res, next) => {
+router.post('/menu', async (req, res, next) => {
   try {
     const { item_name, category, price, description, image_url, available_quantity } = req.body;
 
@@ -160,21 +162,12 @@ router.post('/menu', (req, res, next) => {
 
     const defaultImg = image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
 
-    const insert = db.prepare(`
+    const result = await db.run(`
       INSERT INTO menu_items (item_name, category, price, description, image_url, available_quantity, is_active)
       VALUES (?, ?, ?, ?, ?, ?, 1)
-    `);
+    `, item_name.trim(), category.trim(), parseInt(price, 10), description || '', defaultImg, parseInt(available_quantity || 0, 10));
 
-    const result = insert.run(
-      item_name.trim(),
-      category.trim(),
-      parseInt(price, 10),
-      description || '',
-      defaultImg,
-      parseInt(available_quantity || 0, 10)
-    );
-
-    const newItem = db.prepare('SELECT * FROM menu_items WHERE item_id = ?').get(result.lastInsertRowid);
+    const newItem = await db.get('SELECT * FROM menu_items WHERE item_id = ?', result.lastInsertRowid);
 
     res.status(201).json({
       message: `Menu item "${newItem.item_name}" created successfully.`,
@@ -189,17 +182,17 @@ router.post('/menu', (req, res, next) => {
  * PATCH /api/admin/menu/:itemId
  * Update an existing menu item
  */
-router.patch('/menu/:itemId', (req, res, next) => {
+router.patch('/menu/:itemId', async (req, res, next) => {
   try {
     const itemId = parseInt(req.params.itemId, 10);
     const { item_name, category, price, description, image_url, available_quantity, is_active } = req.body;
 
-    const existing = db.prepare('SELECT * FROM menu_items WHERE item_id = ?').get(itemId);
+    const existing = await db.get('SELECT * FROM menu_items WHERE item_id = ?', itemId);
     if (!existing) {
       return res.status(404).json({ error: 'Menu item not found.' });
     }
 
-    db.prepare(`
+    await db.run(`
       UPDATE menu_items 
       SET item_name = COALESCE(?, item_name),
           category = COALESCE(?, category),
@@ -209,7 +202,7 @@ router.patch('/menu/:itemId', (req, res, next) => {
           available_quantity = COALESCE(?, available_quantity),
           is_active = COALESCE(?, is_active)
       WHERE item_id = ?
-    `).run(
+    `,
       item_name ? item_name.trim() : null,
       category ? category.trim() : null,
       price !== undefined ? parseInt(price, 10) : null,
@@ -220,7 +213,7 @@ router.patch('/menu/:itemId', (req, res, next) => {
       itemId
     );
 
-    const updated = db.prepare('SELECT * FROM menu_items WHERE item_id = ?').get(itemId);
+    const updated = await db.get('SELECT * FROM menu_items WHERE item_id = ?', itemId);
 
     res.json({
       message: `Menu item "${updated.item_name}" updated.`,
@@ -233,14 +226,14 @@ router.patch('/menu/:itemId', (req, res, next) => {
 
 /**
  * DELETE /api/admin/menu/:itemId
- * Soft-delete or hard-delete menu item
+ * Soft-delete menu item
  */
-router.delete('/menu/:itemId', (req, res, next) => {
+router.delete('/menu/:itemId', async (req, res, next) => {
   try {
     const itemId = parseInt(req.params.itemId, 10);
 
     // Soft delete to protect relational integrity with order_items
-    db.prepare('UPDATE menu_items SET is_active = 0 WHERE item_id = ?').run(itemId);
+    await db.run('UPDATE menu_items SET is_active = 0 WHERE item_id = ?', itemId);
 
     res.json({ message: `Menu item #${itemId} deactivated.` });
   } catch (err) {
@@ -252,27 +245,26 @@ router.delete('/menu/:itemId', (req, res, next) => {
  * GET /api/admin/orders
  * List all orders
  */
-router.get('/orders', (req, res, next) => {
+router.get('/orders', async (req, res, next) => {
   try {
-    const orders = db.prepare(`
+    const orders = await db.all(`
       SELECT o.*, s.name as student_name, s.email as student_email, s.room_number
       FROM orders o
       JOIN students s ON o.student_id = s.student_id
       ORDER BY o.order_id DESC
       LIMIT 100
-    `).all();
-
-    const getItems = db.prepare(`
-      SELECT oi.*, m.item_name, m.category
-      FROM order_items oi
-      JOIN menu_items m ON oi.item_id = m.item_id
-      WHERE oi.order_id = ?
     `);
 
-    const result = orders.map(o => ({
-      ...o,
-      items: getItems.all(o.order_id)
-    }));
+    const result = [];
+    for (const o of orders) {
+      const items = await db.all(`
+        SELECT oi.*, m.item_name, m.category
+        FROM order_items oi
+        JOIN menu_items m ON oi.item_id = m.item_id
+        WHERE oi.order_id = ?
+      `, o.order_id);
+      result.push({ ...o, items });
+    }
 
     res.json({ orders: result });
   } catch (err) {
@@ -284,9 +276,9 @@ router.get('/orders', (req, res, next) => {
  * GET /api/admin/transactions
  * List all campus credit transactions
  */
-router.get('/transactions', (req, res, next) => {
+router.get('/transactions', async (req, res, next) => {
   try {
-    const transactions = db.prepare(`
+    const transactions = await db.all(`
       SELECT t.*, s.name as student_name, s.email as student_email, s.room_number,
              o.pickup_token, o.order_status
       FROM transactions t
@@ -294,7 +286,7 @@ router.get('/transactions', (req, res, next) => {
       LEFT JOIN orders o ON t.order_id = o.order_id
       ORDER BY t.transaction_id DESC
       LIMIT 150
-    `).all();
+    `);
 
     res.json({ transactions });
   } catch (err) {
