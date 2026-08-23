@@ -41,6 +41,11 @@ app.use(cors({
 app.post('/api/auth/sign-up/email', express.json(), (req, res, next) => {
   const email = (req.body?.email || '').trim().toLowerCase();
   const role = req.body?.role || 'student';
+  if (role === 'chef' && email !== config.chefEmail.trim().toLowerCase()) {
+    return res.status(403).json({
+      error: `Only ${config.chefEmail} is authorized to register as chef.`
+    });
+  }
   if (role === 'student' && !email.endsWith('@vitstudent.ac.in')) {
     return res.status(400).json({
       error: 'Only VIT student email addresses (@vitstudent.ac.in) are allowed to register.'
@@ -53,10 +58,20 @@ app.post('/api/auth/sign-up/email', express.json(), (req, res, next) => {
 app.post('/api/auth/sign-in/email', express.json(), async (req, res, next) => {
   try {
     const email = (req.body?.email || '').trim().toLowerCase();
+    const isChef = email === config.chefEmail.trim().toLowerCase();
     
-    // Exempt admin and chef accounts
-    const admin = await db.get('SELECT admin_id FROM admins WHERE LOWER(email) = ?', email);
+    // Exempt admin and authorized chef accounts
+    const admin = await db.get('SELECT admin_id, role FROM admins WHERE LOWER(email) = ?', email);
     if (admin) {
+      if (admin.role === 'chef' && !isChef) {
+        return res.status(403).json({
+          error: `Chef access is strictly restricted to ${config.chefEmail}.`
+        });
+      }
+      return next();
+    }
+
+    if (isChef) {
       return next();
     }
 

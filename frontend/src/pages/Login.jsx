@@ -55,7 +55,12 @@ export function Login() {
       const res = await sendOtp(otpPhone);
       setOtpSent(true);
       setCountdown(300);
-      showToast(res.message || 'OTP verification code sent via SMS to your mobile.', 'success');
+      if (res.devCode) {
+        setOtpCode(res.devCode);
+        showToast(`Twilio Trial: Unverified number. Test OTP: ${res.devCode}`, 'info', 8000);
+      } else {
+        showToast(res.message || 'OTP verification code sent via SMS to your mobile.', 'success');
+      }
     } catch (err) {
       showToast(err.message || 'Failed to send OTP SMS', 'error');
     } finally {
@@ -448,12 +453,12 @@ export function Login() {
 
               <button
                 type="button"
-                onClick={() => { setLoginMethod('password'); handleQuickDemoLogin('chef@campus.edu', 'password123'); }}
+                onClick={() => { setLoginMethod('password'); handleQuickDemoLogin('vitchef775@gmail.com', 'password123'); }}
                 className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition text-center group"
               >
                 <ChefHat className="w-5 h-5 text-amber-600 group-hover:scale-110 transition" />
                 <span className="text-xs font-bold text-slate-800 mt-1">Chef</span>
-                <span className="text-[10px] text-slate-400">Kitchen</span>
+                <span className="text-[10px] text-slate-400">vitchef775</span>
               </button>
 
               <button

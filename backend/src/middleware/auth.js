@@ -3,6 +3,23 @@ import { auth } from '../auth.js';
 import { config } from '../config/config.js';
 import db from '../db/database.js';
 
+/**
+ * Normalizes role to ensure ONLY the hardcoded config.chefEmail can ever have the 'chef' role.
+ */
+function sanitizeRole(role, email) {
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const isChef = cleanEmail === config.chefEmail.trim().toLowerCase();
+
+  if (isChef) {
+    return 'chef';
+  }
+  // If role is set to chef on an unauthorized email, demote to student
+  if (role === 'chef') {
+    return 'student';
+  }
+  return role || 'student';
+}
+
 export async function authenticateToken(req, res, next) {
   try {
     // 1. Try Better Auth Session retrieval via headers
@@ -12,11 +29,12 @@ export async function authenticateToken(req, res, next) {
       });
 
       if (session && session.user) {
+        const effectiveRole = sanitizeRole(session.user.role, session.user.email);
         req.user = {
           id: session.user.id,
           name: session.user.name,
           email: session.user.email,
-          role: session.user.role || 'student',
+          role: effectiveRole,
           roomNumber: session.user.roomNumber || '',
           phone: session.user.phone || ''
         };
@@ -41,11 +59,12 @@ export async function authenticateToken(req, res, next) {
         const sRes = await db.pool.query(sessionQuery, [token]);
         if (sRes.rows.length > 0) {
           const user = sRes.rows[0];
+          const effectiveRole = sanitizeRole(user.role, user.email);
           req.user = {
             id: user.userId,
             name: user.name,
             email: user.email,
-            role: user.role || 'student',
+            role: effectiveRole,
             roomNumber: user.roomNumber || '',
             phone: user.phone || ''
           };
@@ -58,12 +77,13 @@ export async function authenticateToken(req, res, next) {
       // 3. Try JWT verification
       try {
         const decoded = jwt.verify(token, config.jwtSecret);
-        if (decoded && decoded.role) {
+        if (decoded && (decoded.role || decoded.email)) {
+          const effectiveRole = sanitizeRole(decoded.role, decoded.email);
           req.user = {
             id: decoded.id,
             name: decoded.name,
             email: decoded.email,
-            role: decoded.role,
+            role: effectiveRole,
             roomNumber: decoded.roomNumber || ''
           };
           return next();
@@ -72,7 +92,20 @@ export async function authenticateToken(req, res, next) {
         // continue
       }
 
-      // 4. Try looking up student in PostgreSQL
+      // 4. Try looking up in admins table
+      const admin = await db.get('SELECT admin_id, name, email, role FROM admins WHERE admin_id = ? OR email = ?', token, token);
+      if (admin) {
+        const effectiveRole = sanitizeRole(admin.role, admin.email);
+        req.user = {
+          id: admin.admin_id,
+          name: admin.name,
+          email: admin.email,
+          role: effectiveRole
+        };
+        return next();
+      }
+
+      // 5. Try looking up student in PostgreSQL
       const student = await db.get('SELECT student_id, name, email, room_number, status FROM students WHERE student_id = ? OR email = ?', token, token);
       if (student && student.status === 'active') {
         req.user = {
@@ -81,17 +114,6 @@ export async function authenticateToken(req, res, next) {
           email: student.email,
           roomNumber: student.room_number,
           role: 'student'
-        };
-        return next();
-      }
-
-      const admin = await db.get('SELECT admin_id, name, email, role FROM admins WHERE admin_id = ? OR email = ?', token, token);
-      if (admin) {
-        req.user = {
-          id: admin.admin_id,
-          name: admin.name,
-          email: admin.email,
-          role: admin.role
         };
         return next();
       }
@@ -104,16 +126,35 @@ export async function authenticateToken(req, res, next) {
   }
 }
 
+/**
+ * Role-gating middleware with strict single-email enforcement for chef role.
+ */
 export function requireRole(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized. Please login.' });
     }
+
+    const cleanEmail = (req.user.email || '').trim().toLowerCase();
+    const isChef = cleanEmail === config.chefEmail.trim().toLowerCase();
+
+    // If endpoint requires chef access:
+    if (allowedRoles.includes('chef')) {
+      const isAdmin = req.user.role === 'admin';
+      if (isChef || (allowedRoles.includes('admin') && isAdmin)) {
+        return next();
+      }
+      return res.status(403).json({
+        error: `Forbidden: Chef access is strictly restricted to ${config.chefEmail}. Your email: ${req.user.email}`
+      });
+    }
+
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         error: `Forbidden: Access restricted to [${allowedRoles.join(', ')}]. Your role: ${req.user.role}`
       });
     }
+
     next();
   };
 }

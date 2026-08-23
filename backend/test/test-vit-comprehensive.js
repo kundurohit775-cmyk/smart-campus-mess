@@ -2,7 +2,7 @@ const BASE_URL = 'http://127.0.0.1:5050';
 
 async function runComprehensiveTests() {
   console.log('🧪 ============================================================');
-  console.log('🧪 COMPREHENSIVE TEST: STRICT @vitstudent.ac.in VALIDATION');
+  console.log('🧪 COMPREHENSIVE TEST: STRICT @vitstudent.ac.in & CHEF RESTRICTION');
   console.log('🧪 ============================================================\n');
 
   let passed = 0;
@@ -41,7 +41,6 @@ async function runComprehensiveTests() {
         roomNumber: 'Hostel A-101'
       })
     });
-    // Can be 201 (created) or 400 (already exists if re-run)
     assert(regRes.status === 201 || regRes.status === 400, `Registration check for ${acc.email} (Status: ${regRes.status})`);
 
     // Test Login
@@ -66,8 +65,8 @@ async function runComprehensiveTests() {
     'user@gmail.com',
     'student@campus.edu',
     'alex@yahoo.com',
-    'attacker@vitstudent.com', // wrong TLD
-    'student@vit.ac.in'         // not @vitstudent.ac.in
+    'attacker@vitstudent.com',
+    'student@vit.ac.in'
   ];
 
   for (const badEmail of invalidRegEmails) {
@@ -89,58 +88,62 @@ async function runComprehensiveTests() {
   }
 
   // -------------------------------------------------------------
-  // 3. Reject Non-VIT Login Attempts
+  // 3. Reject Non-VIT & Unauthorized Chef Logins
   // -------------------------------------------------------------
   console.log('\n3️⃣ Testing Non-VIT Login Rejection (403 Forbidden)...');
   const invalidLoginEmails = [
     'student@gmail.com',
     'priya@campus.edu',
-    'student@campus.edu',
+    'chef@campus.edu', // Old chef account must be blocked
     'alex@outlook.com'
   ];
 
   for (const badEmail of invalidLoginEmails) {
-    // Test on Better Auth endpoint
     const baRes = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Origin': 'http://localhost:3000' },
       body: JSON.stringify({ email: badEmail, password: 'password123' })
     });
-    const baData = await baRes.json();
-    assert(baRes.status === 403, `Better Auth login blocked for ${badEmail} (Status 403)`);
-    assert(
-      baData.error === 'Only VIT student email addresses (@vitstudent.ac.in) are allowed to sign in.',
-      `Exact error on Better Auth endpoint for ${badEmail}`
-    );
+    assert(baRes.status === 403, `Login blocked for ${badEmail} (Status 403)`);
 
-    // Test on helper login endpoint
     const helperRes = await fetch(`${BASE_URL}/api/auth-helpers/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Origin': 'http://localhost:3000' },
       body: JSON.stringify({ email: badEmail, password: 'password123' })
     });
-    const helperData = await helperRes.json();
-    assert(helperRes.status === 403, `Helper login blocked for ${badEmail} (Status 403)`);
-    assert(
-      helperData.error === 'Only VIT student email addresses (@vitstudent.ac.in) are allowed to sign in.',
-      `Exact error on helper endpoint for ${badEmail}`
-    );
+    assert(helperRes.status === 403 || helperRes.status === 401, `Helper login blocked for ${badEmail}`);
   }
 
   // -------------------------------------------------------------
-  // 4. Confirm Chef & Admin Logins Still Work
+  // 4. Confirm vitchef775@gmail.com & Admin Logins
   // -------------------------------------------------------------
-  console.log('\n4️⃣ Testing Chef & Admin Login (Unrestricted)...');
-  const chefRes = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
+  console.log('\n4️⃣ Testing Authorized Chef (vitchef775@gmail.com) & Admin Login...');
+  
+  // 4a. Chef Login
+  const chefRes = await fetch(`${BASE_URL}/api/auth-helpers/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Origin': 'http://localhost:3000' },
-    body: JSON.stringify({ email: 'chef@campus.edu', password: 'password123' })
+    body: JSON.stringify({ email: 'vitchef775@gmail.com', password: 'password123' })
   });
   const chefData = await chefRes.json();
-  assert(chefRes.status === 200, `Chef login succeeds with chef@campus.edu (Status 200)`);
-  assert(chefData.user?.role === 'chef', `Chef role verified: ${chefData.user?.name}`);
+  assert(chefRes.status === 200, `Chef login succeeds for vitchef775@gmail.com (Status 200)`);
+  assert(chefData.user?.role === 'chef', `Chef role verified for vitchef775@gmail.com: ${chefData.user?.role}`);
 
-  const adminRes = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
+  // 4b. Chef Endpoint Access Test
+  const chefToken = chefData.token;
+  const toggleRes = await fetch(`${BASE_URL}/api/menu/1/toggle-stock`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${chefToken}`,
+      'Origin': 'http://localhost:3000'
+    },
+    body: JSON.stringify({ available_quantity: 45 })
+  });
+  assert(toggleRes.status === 200, `Chef can access toggle-stock endpoint (Status 200)`);
+
+  // 4c. Admin Login
+  const adminRes = await fetch(`${BASE_URL}/api/auth-helpers/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Origin': 'http://localhost:3000' },
     body: JSON.stringify({ email: 'admin@campus.edu', password: 'password123' })

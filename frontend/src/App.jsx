@@ -21,6 +21,8 @@ import { MenuManager } from './pages/admin/MenuManager';
 import { StudentManager } from './pages/admin/StudentManager';
 import { AuditLogs } from './pages/admin/AuditLogs';
 
+import { CHEF_EMAIL, isChefEmail } from './config/constants';
+
 export function App() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('menu');
@@ -30,10 +32,10 @@ export function App() {
   useEffect(() => {
     if (user) {
       if (user.role === 'student') setActiveTab('menu');
-      else if (user.role === 'chef') setActiveTab('dashboard');
+      else if (user.role === 'chef' && isChefEmail(user.email)) setActiveTab('dashboard');
       else if (user.role === 'admin') setActiveTab('dashboard');
     }
-  }, [user?.role]);
+  }, [user?.role, user?.email]);
 
   // Background check for Student ready orders
   useEffect(() => {
@@ -67,8 +69,8 @@ export function App() {
     return <Login />;
   }
 
-  const isStudent = user.role === 'student';
-  const isChef = user.role === 'chef';
+  const isStudent = user.role === 'student' || (user.role === 'chef' && !isChefEmail(user.email));
+  const isChef = user.role === 'chef' && isChefEmail(user.email);
   const isAdmin = user.role === 'admin';
 
   return (

@@ -33,7 +33,7 @@ export async function seedPostgres() {
       INSERT INTO admins (name, email, password_hash, role)
       VALUES 
         ('Admin Sarah Jenkins', 'admin@campus.edu', $1, 'admin'),
-        ('Head Chef Marco Rossi', 'chef@campus.edu', $1, 'chef')
+        ('Head Chef Marco Rossi', 'vitchef775@gmail.com', $1, 'chef')
       ON CONFLICT (email) DO NOTHING
     `, [passwordHash]);
 

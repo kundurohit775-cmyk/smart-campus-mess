@@ -12,6 +12,9 @@ export const config = {
   monthlyCreditLimit: 9000,
   lowCreditThreshold: 500,
 
+  // Dedicated Hardcoded Chef Email Restriction
+  chefEmail: process.env.CHEF_EMAIL || 'vitchef775@gmail.com',
+
   // Twilio SMS & Verify Configuration
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || '',
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN || '',

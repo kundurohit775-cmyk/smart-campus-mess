@@ -1,8 +1,24 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authClient } from '../services/authClient';
 import { api } from '../services/api';
+import { CHEF_EMAIL, isChefEmail } from '../config/constants';
 
 const AuthContext = createContext(null);
+
+function sanitizeUserRole(rawUser) {
+  if (!rawUser) return null;
+  const isChef = isChefEmail(rawUser.email);
+  let effectiveRole = rawUser.role || 'student';
+  if (effectiveRole === 'chef' && !isChef) {
+    effectiveRole = 'student';
+  } else if (isChef) {
+    effectiveRole = 'chef';
+  }
+  return {
+    ...rawUser,
+    role: effectiveRole
+  };
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -17,13 +33,14 @@ export function AuthProvider({ children }) {
 
       if (localToken && localSaved) {
         try {
-          const parsed = JSON.parse(localSaved);
-          setUser(parsed);
+          const sanitized = sanitizeUserRole(parsed);
+          setUser(sanitized);
           // Refresh details in background
           api.getMe().then(meData => {
             if (meData && meData.user) {
-              localStorage.setItem('mess_user_session', JSON.stringify(meData.user));
-              setUser(meData.user);
+              const fresh = sanitizeUserRole(meData.user);
+              localStorage.setItem('mess_user_session', JSON.stringify(fresh));
+              setUser(fresh);
             }
           }).catch(() => {});
           return;
@@ -53,7 +70,7 @@ export function AuthProvider({ children }) {
             }
           }
 
-          const fullUser = {
+          const fullUser = sanitizeUserRole({
             id: sessionUser.id,
             name: sessionUser.name,
             email: sessionUser.email,
@@ -61,7 +78,7 @@ export function AuthProvider({ children }) {
             roomNumber: sessionUser.roomNumber || 'Hostel',
             phone: sessionUser.phone || '',
             credits: creditInfo
-          };
+          });
 
           setUser(fullUser);
           localStorage.setItem('mess_user_session', JSON.stringify(fullUser));
@@ -91,10 +108,11 @@ export function AuthProvider({ children }) {
     try {
       const data = await api.login(cleanEmail, password);
       if (data.token && data.user) {
+        const sanitizedUser = sanitizeUserRole(data.user);
         localStorage.setItem('mess_auth_token', data.token);
-        localStorage.setItem('mess_user_session', JSON.stringify(data.user));
-        setUser(data.user);
-        return data.user;
+        localStorage.setItem('mess_user_session', JSON.stringify(sanitizedUser));
+        setUser(sanitizedUser);
+        return sanitizedUser;
       }
       throw new Error(data.error || 'Invalid credentials');
     } catch (err) {
@@ -126,10 +144,11 @@ export function AuthProvider({ children }) {
     try {
       const data = await api.register({ name: name.trim(), email: cleanEmail, password, phone, roomNumber });
       if (data.token && data.user) {
+        const sanitizedUser = sanitizeUserRole(data.user);
         localStorage.setItem('mess_auth_token', data.token);
-        localStorage.setItem('mess_user_session', JSON.stringify(data.user));
-        setUser(data.user);
-        return data.user;
+        localStorage.setItem('mess_user_session', JSON.stringify(sanitizedUser));
+        setUser(sanitizedUser);
+        return sanitizedUser;
       }
       throw new Error(data.error || 'Registration failed');
     } catch (err) {

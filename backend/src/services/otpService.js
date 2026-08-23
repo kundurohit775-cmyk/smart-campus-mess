@@ -42,12 +42,14 @@ export const otpService = {
     `, formattedPhone, otpHash, expiresAt);
 
     // 4. Send SMS via Twilio / MSG91
-    await smsService.sendOtpSms(formattedPhone, otpCode);
+    const smsResult = await smsService.sendOtpSms(formattedPhone, otpCode);
 
     return {
       success: true,
-      message: `OTP sent successfully to ${formattedPhone}. Valid for 5 minutes.`,
+      message: smsResult?.message || `OTP sent successfully to ${formattedPhone}. Valid for 5 minutes.`,
       phone: formattedPhone,
+      isTrialUnverified: smsResult?.isTrialUnverified || false,
+      devCode: smsResult?.devCode || null,
       expiresAt
     };
   },

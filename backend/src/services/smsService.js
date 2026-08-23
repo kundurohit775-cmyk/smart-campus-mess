@@ -33,6 +33,17 @@ export const smsService = {
         return { success: true, provider: 'twilio-verify', sid: verification.sid, status: verification.status };
       } catch (err) {
         console.error('❌ Twilio Verify delivery failed:', err.message);
+        // Catch Twilio Trial limitation: Trial accounts can only send SMS to numbers verified in Twilio Console
+        if (err.code === 21608 || err.code === 572002 || err.message?.includes('unverified')) {
+          console.warn(`⚠️ [Twilio Trial Restriction] ${formattedPhone} is not verified in Twilio Console. (To send real SMS to this number, add it at: https://console.twilio.com/us1/develop/phone-numbers/manage/verified or upgrade to paid). Generated OTP: ${otpCode}`);
+          return {
+            success: true,
+            provider: 'twilio-trial-fallback',
+            isTrialUnverified: true,
+            devCode: otpCode,
+            message: `OTP: ${otpCode} (Twilio Trial: ${formattedPhone} not verified in Twilio console)`
+          };
+        }
         throw new Error(`SMS delivery failed via Twilio Verify: ${err.message}`);
       }
     }
@@ -49,6 +60,16 @@ export const smsService = {
         return { success: true, provider: 'twilio-sms', messageId: message.sid };
       } catch (err) {
         console.error('❌ Twilio Messages API delivery failed:', err.message);
+        if (err.code === 21608 || err.code === 572002 || err.message?.includes('unverified')) {
+          console.warn(`⚠️ [Twilio Trial Restriction] ${formattedPhone} is not verified in Twilio Console. Generated OTP: ${otpCode}`);
+          return {
+            success: true,
+            provider: 'twilio-trial-fallback',
+            isTrialUnverified: true,
+            devCode: otpCode,
+            message: `OTP: ${otpCode} (Twilio Trial: ${formattedPhone} not verified in Twilio console)`
+          };
+        }
         throw new Error(`SMS delivery failed via Twilio: ${err.message}`);
       }
     }

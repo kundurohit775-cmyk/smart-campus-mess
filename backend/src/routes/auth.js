@@ -31,8 +31,15 @@ router.post('/login', async (req, res, next) => {
         return res.status(401).json({ error: 'Invalid email or password.' });
       }
 
+      let effectiveRole = admin.role;
+      if (effectiveRole === 'chef' && cleanEmail !== config.chefEmail.trim().toLowerCase()) {
+        return res.status(403).json({
+          error: `Chef access is strictly restricted to ${config.chefEmail}.`
+        });
+      }
+
       const token = jwt.sign(
-        { id: admin.admin_id, email: admin.email, role: admin.role, name: admin.name },
+        { id: admin.admin_id, email: admin.email, role: effectiveRole, name: admin.name },
         config.jwtSecret,
         { expiresIn: config.jwtExpiresIn }
       );
@@ -44,7 +51,7 @@ router.post('/login', async (req, res, next) => {
           id: admin.admin_id,
           name: admin.name,
           email: admin.email,
-          role: admin.role
+          role: effectiveRole
         }
       });
     }
