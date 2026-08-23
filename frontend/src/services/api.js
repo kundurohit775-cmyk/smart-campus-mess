@@ -1,4 +1,5 @@
-const API_BASE = '/api';
+const rawApiUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/+$/, '') : '';
+const API_BASE = rawApiUrl ? `${rawApiUrl}/api` : '/api';
 
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem('mess_auth_token');
