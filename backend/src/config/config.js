@@ -25,5 +25,9 @@ export const config = {
   // MSG91 SMS Configuration
   msg91AuthKey: process.env.MSG91_AUTH_KEY || '',
   msg91SenderId: process.env.MSG91_SENDER_ID || '',
-  msg91TemplateId: process.env.MSG91_TEMPLATE_ID || ''
+  msg91TemplateId: process.env.MSG91_TEMPLATE_ID || '',
+
+  // Razorpay Payment Gateway Configuration (1 Rupee = 1 Credit)
+  razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
+  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || ''
 };

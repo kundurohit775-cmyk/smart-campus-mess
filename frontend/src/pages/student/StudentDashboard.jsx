@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Sparkles, Filter, RefreshCw, ShoppingBag, Clock, ArrowRight } from 'lucide-react';
+import { Search, Sparkles, Filter, RefreshCw, ShoppingBag, Clock, ArrowRight, CreditCard, PlusCircle, Zap, Coins } from 'lucide-react';
 import { api } from '../../services/api';
 import { MenuCard } from '../../components/MenuCard';
+import { TopupModal } from '../../components/TopupModal';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 
@@ -16,6 +17,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [isTopupOpen, setIsTopupOpen] = useState(false);
 
   const fetchMenu = async () => {
     try {
@@ -68,7 +70,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
             Craving Good Food, {user?.name?.split(' ')[0]}?
           </h1>
           <p className="text-sm sm:text-base text-orange-100 leading-relaxed">
-            Order your favorite meals in seconds without waiting in long queues. Credits are deducted automatically from your 9,000 monthly allowance.
+            Order your favorite meals in seconds without waiting in long queues. Balance refills instantly with ₹1 = 1 Credit.
           </p>
 
           <div className="pt-3 flex flex-wrap items-center gap-3">
@@ -80,13 +82,61 @@ export function StudentDashboard({ onNavigateToOrders }) {
               <span>View Food Tray ({totalItemCount})</span>
             </button>
             <button
+              onClick={() => setIsTopupOpen(true)}
+              className="px-4 py-2.5 bg-amber-500/30 hover:bg-amber-500/40 text-white font-extrabold text-xs sm:text-sm rounded-xl backdrop-blur-md transition flex items-center gap-2 border border-amber-300/40 shadow-sm"
+            >
+              <PlusCircle className="w-4 h-4 text-amber-300" />
+              <span>Buy Credits (₹1 = 1 Cr)</span>
+            </button>
+            <button
               onClick={onNavigateToOrders}
               className="px-4 py-2.5 bg-white/20 hover:bg-white/30 text-white font-bold text-xs sm:text-sm rounded-xl backdrop-blur-md transition flex items-center gap-2"
             >
               <Clock className="w-4 h-4" />
-              <span>Track Active Orders</span>
+              <span>Track Orders</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Quick Add Credits Banner Card */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-orange-950 text-white rounded-3xl p-5 sm:p-6 shadow-lg border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-5 relative overflow-hidden">
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-12 h-12 rounded-2xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
+            <CreditCard className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-extrabold text-base sm:text-lg text-white">Need More Mess Credits?</h3>
+              <span className="bg-orange-500/20 text-orange-400 border border-orange-500/30 text-[10px] uppercase font-black px-2 py-0.5 rounded-full">
+                Razorpay
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Refill instantly via UPI, Cards, NetBanking. <strong>1 Credit = ₹1</strong> directly credited to your account.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full md:w-auto relative z-10">
+          {[50, 100, 200, 500].map(amt => (
+            <button
+              key={amt}
+              type="button"
+              onClick={() => setIsTopupOpen(true)}
+              className="flex-1 md:flex-none px-3.5 py-2 rounded-xl bg-white/10 hover:bg-orange-600 hover:text-white text-xs font-black text-slate-200 border border-white/10 transition active:scale-95 text-center"
+            >
+              +₹{amt}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setIsTopupOpen(true)}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-xs font-extrabold text-white shadow-md shadow-orange-500/20 transition flex items-center gap-1.5 shrink-0"
+          >
+            <span>Top Up</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
@@ -166,6 +216,13 @@ export function StudentDashboard({ onNavigateToOrders }) {
           ))}
         </div>
       )}
+
+      {/* Topup Modal */}
+      <TopupModal
+        isOpen={isTopupOpen}
+        onClose={() => setIsTopupOpen(false)}
+        onSuccess={() => fetchMenu()}
+      />
     </div>
   );
 }

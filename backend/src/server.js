@@ -13,6 +13,7 @@ import menuRoutes from './routes/menu.js';
 import creditsRoutes from './routes/credits.js';
 import ordersRoutes from './routes/orders.js';
 import adminRoutes from './routes/admin.js';
+import paymentsRoutes from './routes/payments.js';
 
 const app = express();
 
@@ -147,6 +148,7 @@ app.use('/api/menu', menuRoutes);
 app.use('/api/credits', creditsRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/payments', paymentsRoutes);
 
 // Central Error Handler
 app.use(errorHandler);

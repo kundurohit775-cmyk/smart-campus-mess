@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Coins, ArrowDownLeft, ArrowUpRight, RotateCcw, ShieldCheck, Sparkles, AlertTriangle, Calendar } from 'lucide-react';
+import { Coins, ArrowDownLeft, ArrowUpRight, RotateCcw, ShieldCheck, Sparkles, AlertTriangle, Calendar, CreditCard, PlusCircle, RefreshCw } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { TopupModal } from '../../components/TopupModal';
 
 export function Transactions() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filterType, setFilterType] = useState('ALL');
+  const [isTopupOpen, setIsTopupOpen] = useState(false);
 
   const fetchCreditsData = async () => {
     if (!user) return;
@@ -18,12 +21,18 @@ export function Transactions() {
       console.error('Failed to fetch credit ledger:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchCreditsData();
   }, [user]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchCreditsData();
+  };
 
   if (loading) {
     return (
@@ -47,13 +56,32 @@ export function Transactions() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-          Credit Ledger & Balance
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Complete transparent audit trail of all monthly credit grants, meal purchases, and refunds
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Credit Ledger & Balance
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Complete transparent audit trail of monthly allowances, meal orders, and Razorpay top-ups
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            className={`p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition shadow-sm ${refreshing ? 'animate-spin' : ''}`}
+            title="Refresh transactions"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setIsTopupOpen(true)}
+            className="px-4 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-orange-500/20 transition flex items-center gap-2 active:scale-95"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Buy Credits (₹1 = 1 Cr)</span>
+          </button>
+        </div>
       </div>
 
       {/* Credit Summary Card */}
@@ -77,7 +105,7 @@ export function Transactions() {
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Each student receives a fixed allowance of 9,000 credits refreshed automatically every month.
+              Fixed monthly allowance of 9,000 credits plus purchased Razorpay credits.
             </p>
           </div>
 
@@ -113,6 +141,7 @@ export function Transactions() {
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
             {[
               { key: 'ALL', label: 'All' },
+              { key: 'TOPUP', label: 'Top-ups (₹)' },
               { key: 'DEBIT_ORDER', label: 'Orders' },
               { key: 'CREDIT_REFUND', label: 'Refunds' },
               { key: 'MONTHLY_ALLOWANCE', label: 'Monthly Allowance' },
@@ -123,7 +152,7 @@ export function Transactions() {
                 onClick={() => setFilterType(f.key)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                   filterType === f.key
-                    ? 'bg-slate-900 text-white'
+                    ? 'bg-slate-900 text-white shadow-sm'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -153,6 +182,7 @@ export function Transactions() {
                 </tr>
               ) : (
                 filteredTransactions.map(tx => {
+                  const isTopup = tx.transaction_type === 'TOPUP';
                   const isDebit = tx.transaction_type === 'DEBIT_ORDER';
                   const isRefund = tx.transaction_type === 'CREDIT_REFUND';
                   const isAllowance = tx.transaction_type === 'MONTHLY_ALLOWANCE';
@@ -160,11 +190,14 @@ export function Transactions() {
                   let badgeColor = 'bg-slate-100 text-slate-700';
                   let Icon = Coins;
 
-                  if (isDebit) {
+                  if (isTopup) {
+                    badgeColor = 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+                    Icon = CreditCard;
+                  } else if (isDebit) {
                     badgeColor = 'bg-rose-100 text-rose-700';
                     Icon = ArrowDownLeft;
                   } else if (isRefund) {
-                    badgeColor = 'bg-emerald-100 text-emerald-700';
+                    badgeColor = 'bg-teal-100 text-teal-700';
                     Icon = RotateCcw;
                   } else if (isAllowance) {
                     badgeColor = 'bg-purple-100 text-purple-700';
@@ -186,7 +219,7 @@ export function Transactions() {
                               {tx.notes || tx.transaction_type}
                             </span>
                             <span className={`inline-block text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded mt-0.5 ${badgeColor}`}>
-                              {tx.transaction_type.replace('_', ' ')}
+                              {isTopup ? '💳 RAZORPAY TOPUP' : tx.transaction_type.replace('_', ' ')}
                             </span>
                           </div>
                         </div>
@@ -203,7 +236,7 @@ export function Transactions() {
                         {isDebit ? `-${tx.amount}` : `+${tx.amount}`} Credits
                       </td>
                       <td className="py-4 px-5 text-right font-extrabold text-slate-800">
-                        {tx.balance_after.toLocaleString()}
+                        {Number(tx.balance_after).toLocaleString()}
                       </td>
                     </tr>
                   );
@@ -213,6 +246,13 @@ export function Transactions() {
           </table>
         </div>
       </div>
+
+      {/* Topup Modal */}
+      <TopupModal
+        isOpen={isTopupOpen}
+        onClose={() => setIsTopupOpen(false)}
+        onSuccess={() => fetchCreditsData()}
+      />
     </div>
   );
 }

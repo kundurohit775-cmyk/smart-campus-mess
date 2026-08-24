@@ -78,5 +78,16 @@ export const api = {
   }),
   deleteMenuItem: (itemId) => request(`/admin/menu/${itemId}`, { method: 'DELETE' }),
   getAdminOrders: () => request('/admin/orders'),
-  getAdminTransactions: () => request('/admin/transactions')
+  getAdminTransactions: () => request('/admin/transactions'),
+
+  // Payments / Razorpay Top-up (1 Rupee = 1 Credit)
+  createPaymentOrder: (amount) => request('/payments/create-order', {
+    method: 'POST',
+    body: JSON.stringify({ amount })
+  }),
+  verifyPayment: (payload) => request('/payments/verify', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  getPaymentHistory: () => request('/payments/history')
 };

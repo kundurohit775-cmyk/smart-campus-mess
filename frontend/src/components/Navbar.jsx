@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { TopupModal } from './TopupModal';
 import { 
   UtensilsCrossed, 
   ShoppingBag, 
@@ -12,12 +13,14 @@ import {
   Sliders, 
   LogOut, 
   AlertCircle,
-  Coins
+  Coins,
+  PlusCircle
 } from 'lucide-react';
 
 export function Navbar({ activeTab, setActiveTab }) {
   const { user, logout } = useAuth();
   const { totalItemCount, setIsOpen } = useCart();
+  const [isTopupOpen, setIsTopupOpen] = useState(false);
 
   if (!user) return null;
 
@@ -173,24 +176,36 @@ export function Navbar({ activeTab, setActiveTab }) {
 
           {/* Right Action Bar */}
           <div className="flex items-center gap-3">
-            {/* Student Live Credit Balance Display */}
+            {/* Student Live Credit Balance Display & Top-up */}
             {isStudent && (
-              <div
-                onClick={() => setActiveTab('transactions')}
-                className={`cursor-pointer flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border font-bold text-sm transition shadow-sm ${
-                  isLowBalance
-                    ? 'bg-rose-50 border-rose-200 text-rose-700 animate-pulse'
-                    : 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200/80 text-amber-900 hover:border-amber-400'
-                }`}
-                title="Click to view Credit Transaction Ledger"
-              >
-                <Coins className={`w-4 h-4 ${isLowBalance ? 'text-rose-600' : 'text-amber-600'}`} />
-                <div className="flex flex-col text-left leading-tight">
-                  <span className="text-[10px] uppercase font-semibold text-slate-500">Balance</span>
-                  <span className="text-sm font-extrabold">
-                    {remainingCredits.toLocaleString()} <span className="text-xs font-medium text-slate-500">/ 9k</span>
-                  </span>
+              <div className="flex items-center gap-1">
+                <div
+                  onClick={() => setActiveTab('transactions')}
+                  className={`cursor-pointer flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border font-bold text-sm transition shadow-sm ${
+                    isLowBalance
+                      ? 'bg-rose-50 border-rose-200 text-rose-700 animate-pulse'
+                      : 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200/80 text-amber-900 hover:border-amber-400'
+                  }`}
+                  title="Click to view Credit Transaction Ledger"
+                >
+                  <Coins className={`w-4 h-4 ${isLowBalance ? 'text-rose-600' : 'text-amber-600'}`} />
+                  <div className="flex flex-col text-left leading-tight">
+                    <span className="text-[10px] uppercase font-semibold text-slate-500">Balance</span>
+                    <span className="text-sm font-extrabold">
+                      {remainingCredits.toLocaleString()} <span className="text-xs font-medium text-slate-500">/ 9k</span>
+                    </span>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsTopupOpen(true)}
+                  className="p-2 sm:px-2.5 sm:py-2 rounded-xl bg-orange-100 hover:bg-orange-600 hover:text-white text-orange-700 font-extrabold text-xs transition border border-orange-200 shadow-sm flex items-center gap-1"
+                  title="Buy Credits via Razorpay (₹1 = 1 Credit)"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Add</span>
+                </button>
               </div>
             )}
 
@@ -320,6 +335,14 @@ export function Navbar({ activeTab, setActiveTab }) {
           )}
         </div>
       </div>
+
+      {/* Topup Modal */}
+      {isStudent && (
+        <TopupModal
+          isOpen={isTopupOpen}
+          onClose={() => setIsTopupOpen(false)}
+        />
+      )}
     </header>
   );
 }

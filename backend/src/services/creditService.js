@@ -104,5 +104,40 @@ export const creditService = {
     `, studentId, diff, config.monthlyCreditLimit, 'Admin reset monthly balance to full limit (9,000)');
 
     return await this.getOrCreateMonthlyCredits(studentId);
+  },
+
+  /**
+   * Top-up credits via Razorpay purchase (1 Rupee = 1 Credit)
+   */
+  async addPurchasedCredits(studentId, amount, paymentDetails = {}) {
+    const numericAmount = Math.round(Number(amount));
+    if (numericAmount <= 0) {
+      throw new Error('Credit purchase amount must be greater than 0.');
+    }
+
+    const credit = await this.getOrCreateMonthlyCredits(studentId);
+    const newRemaining = credit.remaining_credits + numericAmount;
+
+    await db.run(`
+      UPDATE credits 
+      SET remaining_credits = ?, updated_at = NOW()
+      WHERE credit_id = ?
+    `, newRemaining, credit.credit_id);
+
+    const notes = paymentDetails.paymentId 
+      ? `Top-up: ₹${numericAmount} via Razorpay (ID: ${paymentDetails.paymentId})`
+      : `Credit Purchase: ₹${numericAmount}`;
+
+    await db.run(`
+      INSERT INTO transactions (student_id, order_id, amount, transaction_type, balance_after, notes)
+      VALUES (?, NULL, ?, 'TOPUP', ?, ?)
+    `, studentId, numericAmount, newRemaining, notes);
+
+    return {
+      credit_id: credit.credit_id,
+      student_id: studentId,
+      remaining_credits: newRemaining,
+      topup_amount: numericAmount
+    };
   }
 };

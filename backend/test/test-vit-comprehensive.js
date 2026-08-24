@@ -131,22 +131,22 @@ async function runComprehensiveTests() {
     assert(chefRes.status === 200, `Chef login succeeds for configured chef (Status 200)`);
     assert(chefData.user?.role === 'chef', `Chef role verified: ${chefData.user?.role}`);
     assert(chefData.user?.isChef === true, `isChef boolean is true on response`);
-  } else {
-    console.log(`   ℹ️ Note: Chef login skipped (CHEF_EMAIL not matching local test environment)`);
-  }
 
-  // 4b. Chef Endpoint Access Test
-  const chefToken = chefData.token;
-  const toggleRes = await fetch(`${BASE_URL}/api/menu/1/toggle-stock`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${chefToken}`,
-      'Origin': 'http://localhost:3000'
-    },
-    body: JSON.stringify({ available_quantity: 45 })
-  });
-  assert(toggleRes.status === 200, `Chef can access toggle-stock endpoint (Status 200)`);
+    // 4b. Chef Endpoint Access Test
+    const chefToken = chefData.token;
+    const toggleRes = await fetch(`${BASE_URL}/api/menu/1/toggle-stock`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${chefToken}`,
+        'Origin': 'http://localhost:3000'
+      },
+      body: JSON.stringify({ available_quantity: 45 })
+    });
+    assert(toggleRes.status === 200, `Chef can access toggle-stock endpoint (Status 200)`);
+  } else {
+    console.log(`   ℹ️ Note: Chef login skipped (CHEF_EMAIL not configured in test runner)`);
+  }
 
   // 4c. Admin Login
   const targetAdmin = process.env.ADMIN_EMAIL || 'admin@campus.internal';
