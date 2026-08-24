@@ -54,9 +54,37 @@ function checkOrderRateLimit(userId) {
 
 // Initialize Razorpay instance
 function getRazorpayInstance() {
+  const envKeyId = process.env.RAZORPAY_KEY_ID;
+  const envKeySecret = process.env.RAZORPAY_KEY_SECRET;
+  const configKeyId = config.razorpayKeyId;
+  const configKeySecret = config.razorpayKeySecret;
+
+  // ---------------------------------------------------------------------------
+  // Temporary Debug Logging for Razorpay Environment Variables
+  // (Logs lengths, defined status, and empty status - NEVER the secret itself)
+  // ---------------------------------------------------------------------------
+  console.log('🔍 [RAZORPAY DEBUG] Checking Environment Variables:');
+  console.log('   - process.env.RAZORPAY_KEY_ID:', {
+    isUndefined: envKeyId === undefined,
+    isEmptyString: envKeyId === '',
+    valueType: typeof envKeyId,
+    length: typeof envKeyId === 'string' ? envKeyId.length : null,
+    configValueLength: typeof configKeyId === 'string' ? configKeyId.length : null
+  });
+  console.log('   - process.env.RAZORPAY_KEY_SECRET:', {
+    isUndefined: envKeySecret === undefined,
+    isEmptyString: envKeySecret === '',
+    valueType: typeof envKeySecret,
+    length: typeof envKeySecret === 'string' ? envKeySecret.length : null,
+    configValueLength: typeof configKeySecret === 'string' ? configKeySecret.length : null
+  });
+
   if (!config.razorpayKeyId || !config.razorpayKeySecret) {
+    console.warn('⚠️ [RAZORPAY DEBUG] Missing process.env.RAZORPAY_KEY_ID or process.env.RAZORPAY_KEY_SECRET.');
     return null;
   }
+
+  console.log(`✅ [RAZORPAY DEBUG] Creating Razorpay instance (Key ID length: ${config.razorpayKeyId.length}, Secret length: ${config.razorpayKeySecret.length})`);
   return new Razorpay({
     key_id: config.razorpayKeyId,
     key_secret: config.razorpayKeySecret
