@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sliders, Search, AlertCircle, CheckCircle, Plus, Minus, Power, RefreshCw } from 'lucide-react';
+import { Sliders, Search, AlertCircle, CheckCircle, Plus, Minus, Power, RefreshCw, Sparkles } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 
@@ -66,13 +66,15 @@ export function ChefInventory() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/80 shadow-stripe-md">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-            <Sliders className="w-6 h-6 text-orange-600" />
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 border border-orange-200/80 flex items-center justify-center shadow-stripe-sm">
+              <Sliders className="w-5 h-5" />
+            </div>
             <span>Food Inventory & Availability Toggler</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 font-medium mt-1">
             Toggle dishes in/out of stock in real-time. Sold out items instantly disable in the student app.
           </p>
         </div>
@@ -85,16 +87,21 @@ export function ChefInventory() {
             placeholder="Search items..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full pl-9 pr-4 py-2 bg-slate-50/80 border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 shadow-stripe-sm transition"
           />
         </div>
       </div>
 
       {/* Item List / Cards */}
       {loading ? (
-        <div className="bg-white rounded-3xl p-8 border border-slate-200 animate-pulse space-y-4">
-          <div className="h-6 bg-slate-200 rounded w-1/4" />
-          <div className="h-40 bg-slate-100 rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2.5xl p-5 border border-slate-200/80 shadow-stripe animate-pulse space-y-3">
+              <div className="h-16 bg-slate-100 rounded-xl" />
+              <div className="h-4 bg-slate-100 rounded w-1/2" />
+              <div className="h-8 bg-slate-100 rounded-xl" />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -105,29 +112,29 @@ export function ChefInventory() {
             return (
               <div
                 key={item.item_id}
-                className={`bg-white rounded-2xl p-5 border shadow-sm flex flex-col justify-between gap-4 transition ${
-                  isSoldOut ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200 hover:border-slate-300'
+                className={`bg-white rounded-2.5xl p-5 border shadow-stripe hover:shadow-stripe-hover flex flex-col justify-between gap-4 transition-all duration-150 ${
+                  isSoldOut ? 'border-rose-200/80 bg-rose-50/15' : 'border-slate-200/80'
                 }`}
               >
                 <div className="flex items-start gap-3.5">
                   <img
                     src={item.image_url}
                     alt={item.item_name}
-                    className="w-16 h-16 rounded-xl object-cover shrink-0 border border-slate-200"
+                    className="w-16 h-16 rounded-xl object-cover shrink-0 border border-slate-100 shadow-stripe-sm"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                      <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60">
                         {item.category}
                       </span>
-                      <span className="text-xs font-bold text-orange-600">
+                      <span className="text-xs font-black text-orange-600 tabular-nums">
                         {item.price} Credits
                       </span>
                     </div>
                     <h3 className="font-bold text-sm text-slate-900 truncate mt-1">
                       {item.item_name}
                     </h3>
-                    <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                    <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
                       {item.description}
                     </p>
                   </div>
@@ -136,22 +143,22 @@ export function ChefInventory() {
                 {/* Stock Controls */}
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                   {/* Stock Quantity Modifier */}
-                  <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                  <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shadow-stripe-sm">
                     <button
                       onClick={() => handleAdjustQuantity(item, -5)}
                       disabled={isUpdating || item.available_quantity <= 0}
-                      className="w-7 h-7 bg-white hover:bg-slate-200 rounded-lg flex items-center justify-center text-slate-700 text-xs font-bold shadow-sm disabled:opacity-40"
+                      className="w-7 h-7 bg-white hover:bg-slate-200 rounded-lg flex items-center justify-center text-slate-700 text-xs font-bold shadow-stripe-sm disabled:opacity-40 transition active:scale-95"
                       title="Decrease by 5"
                     >
                       -5
                     </button>
-                    <span className={`px-2 text-xs font-black min-w-[36px] text-center ${isSoldOut ? 'text-rose-600' : 'text-slate-800'}`}>
+                    <span className={`px-2 text-xs font-black min-w-[36px] text-center tabular-nums ${isSoldOut ? 'text-rose-600' : 'text-slate-800'}`}>
                       {item.available_quantity}
                     </span>
                     <button
                       onClick={() => handleAdjustQuantity(item, 5)}
                       disabled={isUpdating}
-                      className="w-7 h-7 bg-white hover:bg-slate-200 rounded-lg flex items-center justify-center text-slate-700 text-xs font-bold shadow-sm"
+                      className="w-7 h-7 bg-white hover:bg-slate-200 rounded-lg flex items-center justify-center text-slate-700 text-xs font-bold shadow-stripe-sm transition active:scale-95"
                       title="Increase by 5"
                     >
                       +5
@@ -162,10 +169,10 @@ export function ChefInventory() {
                   <button
                     onClick={() => handleToggleStock(item)}
                     disabled={isUpdating}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all duration-150 flex items-center gap-1.5 active:scale-95 ${
                       isSoldOut
-                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
-                        : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-stripe-sm hover:shadow-glow-emerald'
+                        : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 shadow-stripe-sm'
                     }`}
                   >
                     <Power className="w-3.5 h-3.5" />

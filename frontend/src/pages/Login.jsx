@@ -16,7 +16,8 @@ import {
   RotateCcw, 
   AlertCircle,
   ArrowLeft,
-  Sparkles
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -275,34 +276,41 @@ export function Login() {
   const isVitEmail = email.trim().toLowerCase().endsWith('@vitstudent.ac.in');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-orange-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Decorative background blobs */}
-      <div className="absolute top-0 -left-40 w-96 h-96 bg-orange-500/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 -right-40 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden subtle-mesh-bg">
+      {/* Subtle Stripe-like ambient gradient blur shapes behind header */}
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[720px] h-[360px] bg-gradient-to-tr from-orange-400/10 via-amber-300/15 to-indigo-400/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 right-10 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl pointer-events-none" />
 
+      {/* Brand Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-white shadow-xl shadow-orange-500/30 mx-auto mb-4">
-          <UtensilsCrossed className="w-8 h-8" />
+        <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2.5xl bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-400 flex items-center justify-center text-white shadow-stripe-md shadow-orange-500/20 mx-auto mb-4 border border-white/60">
+          <UtensilsCrossed className="w-7 h-7" />
         </div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-white">
-          Smart<span className="text-orange-400">Mess</span>
+        <h1 className="text-3xl font-black tracking-tight text-slate-900">
+          Smart<span className="text-orange-600">Mess</span>
         </h1>
-        <p className="mt-2 text-sm text-slate-300">
-          Campus Food Ordering & Digital Credit Management Platform
+        <p className="mt-1.5 text-xs sm:text-sm text-slate-500 font-medium">
+          Digital Token & Campus Food Credit Management Platform
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="bg-white/95 backdrop-blur-xl py-8 px-6 sm:px-10 rounded-3xl shadow-2xl border border-white/20">
+      {/* Centered Main Card */}
+      <div className="mt-7 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="bg-white py-8 px-6 sm:px-10 rounded-3xl shadow-stripe-lg border border-slate-200/80 relative overflow-hidden">
           
-          {/* Main Tab Switcher: Sign In vs Register (Hidden when on Registration OTP step) */}
+          {/* Top highlight bar */}
+          <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-orange-500 via-amber-400 to-orange-600" />
+
+          {/* Main Tab Switcher: Sign In vs Register */}
           {(!isRegister || registerStep === 'form') && (
-            <div className="flex bg-slate-100 p-1 rounded-2xl mb-6">
+            <div className="flex bg-slate-100/90 p-1 rounded-xl mb-6 border border-slate-200/50">
               <button
                 type="button"
                 onClick={() => { setIsRegister(false); setRegisterStep('form'); }}
-                className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition ${
-                  !isRegister ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-150 ${
+                  !isRegister 
+                    ? 'bg-white text-slate-900 shadow-stripe-sm' 
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 Sign In
@@ -310,8 +318,10 @@ export function Login() {
               <button
                 type="button"
                 onClick={() => { setIsRegister(true); setRegisterStep('form'); }}
-                className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition ${
-                  isRegister ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-150 ${
+                  isRegister 
+                    ? 'bg-white text-slate-900 shadow-stripe-sm' 
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 Register Student
@@ -320,19 +330,19 @@ export function Login() {
           )}
 
           {/* ================================================================= */}
-          {/* TAB 1: SIGN IN (EMAIL + PASSWORD - NO OTP REQUIRED)              */}
+          {/* TAB 1: SIGN IN (EMAIL + PASSWORD - NO OTP)                        */}
           {/* ================================================================= */}
           {!isRegister ? (
             <div>
               {/* Login Method Toggle: Password vs Mobile SMS */}
-              <div className="flex items-center justify-center gap-2 mb-5 p-1 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="flex items-center justify-center gap-1.5 mb-5 p-1 bg-slate-50 border border-slate-200/80 rounded-xl">
                 <button
                   type="button"
                   onClick={() => setLoginMethod('password')}
                   className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                     loginMethod === 'password'
-                      ? 'bg-orange-600 text-white shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white text-orange-600 shadow-stripe-sm border border-slate-200/60'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   <Mail className="w-3.5 h-3.5" />
@@ -343,8 +353,8 @@ export function Login() {
                   onClick={() => setLoginMethod('otp')}
                   className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                     loginMethod === 'otp'
-                      ? 'bg-orange-600 text-white shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white text-orange-600 shadow-stripe-sm border border-slate-200/60'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   <Smartphone className="w-3.5 h-3.5" />
@@ -356,35 +366,35 @@ export function Login() {
                 /* Standard Email & Password Sign In (NO OTP) */
                 <form onSubmit={handleLoginSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                       Campus Email Address
                     </label>
                     <div className="relative">
-                      <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="email"
                         required
                         placeholder="student@vitstudent.ac.in"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                       Password
                     </label>
                     <div className="relative">
-                      <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="password"
                         required
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
                       />
                     </div>
                   </div>
@@ -392,7 +402,7 @@ export function Login() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full mt-2 py-3 px-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50"
+                    className="w-full mt-2 py-3 px-4 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm rounded-xl shadow-stripe-sm hover:shadow-glow-orange flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] disabled:opacity-50"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -408,19 +418,19 @@ export function Login() {
                 /* Mobile SMS Sign In */
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                       Registered Mobile Number
                     </label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
-                        <Phone className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
                           type="tel"
                           placeholder="+91-9876543210"
                           value={otpPhone}
                           onChange={(e) => setOtpPhone(e.target.value)}
                           disabled={smsOtpSent}
-                          className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition disabled:bg-slate-100"
+                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition disabled:bg-slate-100"
                         />
                       </div>
                       {!smsOtpSent ? (
@@ -428,7 +438,7 @@ export function Login() {
                           type="button"
                           onClick={handleSendMobileSms}
                           disabled={sendingSms || !otpPhone}
-                          className="px-4 py-2.5 bg-slate-900 hover:bg-orange-600 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl shadow-sm transition shrink-0"
+                          className="px-4 py-2.5 bg-slate-900 hover:bg-orange-600 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl shadow-stripe-sm transition shrink-0"
                         >
                           {sendingSms ? 'Sending...' : 'Send SMS'}
                         </button>
@@ -445,10 +455,10 @@ export function Login() {
                   </div>
 
                   {smsOtpSent && (
-                    <form onSubmit={handleVerifyMobileSms} className="space-y-4 pt-2">
+                    <form onSubmit={handleVerifyMobileSms} className="space-y-4 pt-2 animate-fade-in">
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                             Enter 6-Digit SMS Code
                           </label>
                           <span className="text-xs font-mono font-bold text-orange-600">
@@ -456,7 +466,7 @@ export function Login() {
                           </span>
                         </div>
                         <div className="relative">
-                          <KeyRound className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                           <input
                             type="text"
                             maxLength="6"
@@ -465,7 +475,7 @@ export function Login() {
                             placeholder="••••••"
                             value={smsOtpCode}
                             onChange={(e) => setSmsOtpCode(e.target.value.replace(/\D/g, ''))}
-                            className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-lg font-mono tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
+                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-lg font-mono font-bold tracking-widest text-center focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
                           />
                         </div>
                       </div>
@@ -473,7 +483,7 @@ export function Login() {
                       <button
                         type="submit"
                         disabled={loading || smsOtpCode.length !== 6 || smsCountdown <= 0}
-                        className="w-full py-3 px-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50"
+                        className="w-full py-3 px-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm rounded-xl shadow-stripe-sm hover:shadow-glow-orange flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50"
                       >
                         {loading ? (
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -485,7 +495,7 @@ export function Login() {
                         )}
                       </button>
 
-                      <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                      <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
                         <span>Didn't receive SMS?</span>
                         <button
                           type="button"
@@ -504,18 +514,18 @@ export function Login() {
 
               {/* 1-Click Quick Demo Login Switcher */}
               <div className="mt-6 pt-6 border-t border-slate-100">
-                <p className="text-[11px] uppercase font-bold tracking-wider text-slate-400 text-center mb-3">
+                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 text-center mb-3">
                   ⚡ 1-Click Quick Demo Switcher
                 </p>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => { setLoginMethod('password'); handleQuickDemoLogin('student@vitstudent.ac.in', 'password123'); }}
-                    className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-orange-500 hover:bg-orange-50/50 transition text-center group"
+                    className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200/80 bg-white hover:border-orange-500/80 hover:bg-orange-50/40 transition shadow-stripe-sm group"
                   >
-                    <GraduationCap className="w-5 h-5 text-orange-600 group-hover:scale-110 transition" />
+                    <GraduationCap className="w-4 h-4 text-orange-600 group-hover:scale-110 transition-transform" />
                     <span className="text-xs font-bold text-slate-800 mt-1">Student</span>
-                    <span className="text-[10px] text-slate-400">9k Credits</span>
+                    <span className="text-[10px] font-medium text-slate-400">9k Credits</span>
                   </button>
 
                   <button
@@ -525,12 +535,12 @@ export function Login() {
                       setPassword('password123');
                       showToast('Enter your configured CHEF_EMAIL to sign in as Chef.', 'info', 4000);
                     }}
-                    className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition text-center group"
+                    className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200/80 bg-white hover:border-amber-500/80 hover:bg-amber-50/40 transition shadow-stripe-sm group"
                     title="Enter the email configured in CHEF_EMAIL environment variable"
                   >
-                    <ChefHat className="w-5 h-5 text-amber-600 group-hover:scale-110 transition" />
+                    <ChefHat className="w-4 h-4 text-amber-600 group-hover:scale-110 transition-transform" />
                     <span className="text-xs font-bold text-slate-800 mt-1">Chef</span>
-                    <span className="text-[10px] text-slate-400">Kitchen</span>
+                    <span className="text-[10px] font-medium text-slate-400">Kitchen</span>
                   </button>
 
                   <button
@@ -540,12 +550,12 @@ export function Login() {
                       setPassword('password123');
                       showToast('Enter your configured ADMIN_EMAIL to sign in as Admin.', 'info', 4000);
                     }}
-                    className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-purple-500 hover:bg-purple-50/50 transition text-center group"
+                    className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200/80 bg-white hover:border-purple-500/80 hover:bg-purple-50/40 transition shadow-stripe-sm group"
                     title="Enter the email configured in ADMIN_EMAIL environment variable"
                   >
-                    <ShieldCheck className="w-5 h-5 text-purple-600 group-hover:scale-110 transition" />
+                    <ShieldCheck className="w-4 h-4 text-purple-600 group-hover:scale-110 transition-transform" />
                     <span className="text-xs font-bold text-slate-800 mt-1">Admin</span>
-                    <span className="text-[10px] text-slate-400">Management</span>
+                    <span className="text-[10px] font-medium text-slate-400">Management</span>
                   </button>
                 </div>
               </div>
@@ -557,25 +567,25 @@ export function Login() {
             <div>
               {registerStep === 'form' ? (
                 /* Step 1: Student Details Form */
-                <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Full Name</label>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Full Name</label>
                     <div className="relative">
-                      <User className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         required
                         placeholder="e.g. Alex Chen"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
+                        className="w-full pl-10 pr-4 py-2 bg-slate-50/80 border border-slate-200/80 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Hostel Room</label>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hostel Room</label>
                       <div className="relative">
                         <Home className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
@@ -583,12 +593,12 @@ export function Login() {
                           placeholder="e.g. B-302"
                           value={roomNumber}
                           onChange={(e) => setRoomNumber(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
+                          className="w-full pl-9 pr-3 py-2 bg-slate-50/80 border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Mobile Phone</label>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Mobile Phone</label>
                       <div className="relative">
                         <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
@@ -596,7 +606,7 @@ export function Login() {
                           placeholder="+91-9876543210"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
+                          className="w-full pl-9 pr-3 py-2 bg-slate-50/80 border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
                         />
                       </div>
                     </div>
@@ -604,63 +614,63 @@ export function Login() {
 
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                        VIT Campus Email (@vitstudent.ac.in)
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        VIT Campus Email
                       </label>
                       {email && (
-                        <span className={`text-[11px] font-bold ${isVitEmail ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {isVitEmail ? '✓ Valid VIT Email' : '✗ Must end with @vitstudent.ac.in'}
+                        <span className={`text-[10px] font-bold ${isVitEmail ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {isVitEmail ? '✓ Valid VIT' : '✗ @vitstudent.ac.in'}
                         </span>
                       )}
                     </div>
                     <div className="relative">
-                      <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="email"
                         required
                         placeholder="your.name2024@vitstudent.ac.in"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className={`w-full pl-11 pr-4 py-2.5 bg-slate-50 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:bg-white transition ${
+                        className={`w-full pl-10 pr-4 py-2 bg-slate-50/80 border rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:ring-4 transition ${
                           email && !isVitEmail
-                            ? 'border-rose-300 focus:ring-rose-500'
-                            : 'border-slate-200 focus:ring-orange-500'
+                            ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/10'
+                            : 'border-slate-200/80 focus:border-orange-500 focus:ring-orange-500/10'
                         }`}
                       />
                     </div>
 
                     {email && !isVitEmail && (
-                      <p className="mt-1.5 text-xs text-rose-600 flex items-center gap-1 font-semibold">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>Only VIT student email addresses (@vitstudent.ac.in) are allowed to register.</span>
+                      <p className="mt-1 text-[11px] text-rose-600 flex items-center gap-1 font-medium">
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        <span>Only VIT student email addresses (@vitstudent.ac.in) are allowed.</span>
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Password</label>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
                     <div className="relative">
-                      <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="password"
                         required
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
+                        className="w-full pl-10 pr-4 py-2 bg-slate-50/80 border border-slate-200/80 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
                       />
                     </div>
                   </div>
 
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2">
+                  <div className="p-3 bg-amber-50/70 border border-amber-200/70 rounded-xl text-xs text-amber-900 flex items-start gap-2 shadow-stripe-sm">
                     <CheckCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <span>A <strong>6-digit OTP code</strong> will be sent to your email to verify and activate your student account.</span>
+                    <span>A <strong>6-digit OTP code</strong> will be sent to your email to verify and activate your 9,000 monthly credits.</span>
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading || !isVitEmail}
-                    className="w-full mt-2 py-3.5 px-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50"
+                    className="w-full mt-2 py-3 px-4 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm rounded-xl shadow-stripe-sm hover:shadow-glow-orange flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] disabled:opacity-50"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -674,16 +684,16 @@ export function Login() {
                 </form>
               ) : (
                 /* Step 2: Enter Email OTP Screen */
-                <div className="space-y-5 animate-fade-in">
-                  <div className="text-center space-y-1.5">
-                    <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mx-auto mb-2">
-                      <Mail className="w-6 h-6" />
+                <div className="space-y-4 animate-fade-in">
+                  <div className="text-center space-y-1">
+                    <div className="w-11 h-11 rounded-2xl bg-orange-50 text-orange-600 border border-orange-200/80 flex items-center justify-center mx-auto mb-2 shadow-stripe-sm">
+                      <Mail className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-black text-slate-900">
+                    <h3 className="text-base font-black text-slate-900">
                       Verify Your VIT Email
                     </h3>
                     <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                      Enter the single-use 6-digit code sent to <br />
+                      Enter the 6-digit verification code sent to <br />
                       <strong className="text-slate-800 font-bold">{email}</strong>
                     </p>
                   </div>
@@ -691,16 +701,16 @@ export function Login() {
                   <form onSubmit={handleVerifyRegisterOtp} className="space-y-4 pt-1">
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                           Enter 6-Digit Email OTP
                         </label>
-                        <span className="text-xs font-mono font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-200">
+                        <span className="text-xs font-mono font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-200/60">
                           ⏱️ {formatTimer(countdown)}
                         </span>
                       </div>
 
                       <div className="relative">
-                        <KeyRound className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
                           type="text"
                           maxLength="6"
@@ -709,12 +719,12 @@ export function Login() {
                           placeholder="••••••"
                           value={registerOtpCode}
                           onChange={(e) => setRegisterOtpCode(e.target.value.replace(/\D/g, ''))}
-                          className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-2xl font-mono font-bold tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
+                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xl font-mono font-bold tracking-widest text-center focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
                         />
                       </div>
                     </div>
 
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 flex items-center gap-2">
+                    <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-600 flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>Code valid for 10 minutes. 5 max attempts allowed.</span>
                     </div>
@@ -722,7 +732,7 @@ export function Login() {
                     <button
                       type="submit"
                       disabled={loading || registerOtpCode.length !== 6 || countdown <= 0}
-                      className="w-full py-3.5 px-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50"
+                      className="w-full py-3 px-4 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm rounded-xl shadow-stripe-sm hover:shadow-glow-orange flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] disabled:opacity-50"
                     >
                       {loading ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -734,7 +744,7 @@ export function Login() {
                       )}
                     </button>
 
-                    <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100">
                       <button
                         type="button"
                         onClick={() => { setRegisterStep('form'); setRegisterOtpCode(''); }}

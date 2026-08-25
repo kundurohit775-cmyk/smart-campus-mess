@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Sparkles, Filter, RefreshCw, ShoppingBag, Clock, ArrowRight, CreditCard, PlusCircle, Zap, Coins } from 'lucide-react';
+import { Search, Sparkles, Filter, RefreshCw, ShoppingBag, Clock, ArrowRight, CreditCard, PlusCircle, Coins, ChevronRight } from 'lucide-react';
 import { api } from '../../services/api';
 import { MenuCard } from '../../components/MenuCard';
 import { TopupModal } from '../../components/TopupModal';
@@ -57,63 +57,70 @@ export function StudentDashboard({ onNavigateToOrders }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
-      {/* Hero Welcome Banner */}
-      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white p-6 sm:p-10 shadow-xl shadow-orange-500/15">
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-white/10 skew-x-12 pointer-events-none hidden md:block" />
-        
-        <div className="relative z-10 max-w-2xl space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5" />
-            Digital Token Mess Ordering
+      
+      {/* Hero Welcome Banner (Stripe Light Glass Card Style) */}
+      <div className="relative rounded-3xl bg-white border border-slate-200/80 shadow-stripe-md p-6 sm:p-9 overflow-hidden">
+        {/* Soft background ambient gradient glow */}
+        <div className="absolute -top-12 -right-12 w-96 h-96 bg-gradient-to-br from-orange-400/15 via-amber-300/10 to-indigo-400/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 left-1/3 w-80 h-80 bg-orange-500/5 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 max-w-2xl space-y-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200/60 text-orange-700 text-[11px] font-bold uppercase tracking-wider shadow-stripe-sm">
+            <Sparkles className="w-3.5 h-3.5 text-orange-600" />
+            <span>Digital Mess Hub • VIT Campus</span>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-            Craving Good Food, {user?.name?.split(' ')[0]}?
+
+          <h1 className="text-2xl sm:text-3.5xl font-black tracking-tight text-slate-900 leading-tight">
+            Craving Good Food, <span className="text-orange-600">{user?.name?.split(' ')[0] || 'Student'}</span>?
           </h1>
-          <p className="text-sm sm:text-base text-orange-100 leading-relaxed">
-            Order your favorite meals in seconds without waiting in long queues. Balance refills instantly with ₹1 = 1 Credit.
+
+          <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-xl">
+            Order fresh breakfast, lunch, snacks, and dinner directly from your phone. Zero queue time, live kitchen status tracking, and 1:1 instant credit top-ups.
           </p>
 
-          <div className="pt-3 flex flex-wrap items-center gap-3">
+          <div className="pt-2 flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => setIsOpen(true)}
-              className="px-5 py-2.5 bg-white text-orange-800 hover:bg-orange-50 font-extrabold text-xs sm:text-sm rounded-xl shadow-md transition flex items-center gap-2 active:scale-95"
+              className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-stripe-sm hover:shadow-stripe-md transition-all duration-150 flex items-center gap-2 active:scale-95"
             >
-              <ShoppingBag className="w-4 h-4 text-orange-600" />
-              <span>View Food Tray ({totalItemCount})</span>
+              <ShoppingBag className="w-4 h-4 text-orange-400" />
+              <span>View Tray ({totalItemCount})</span>
             </button>
+
             <button
               onClick={() => setIsTopupOpen(true)}
-              className="px-4 py-2.5 bg-amber-500/30 hover:bg-amber-500/40 text-white font-extrabold text-xs sm:text-sm rounded-xl backdrop-blur-md transition flex items-center gap-2 border border-amber-300/40 shadow-sm"
+              className="px-4 py-2.5 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-stripe-sm hover:shadow-glow-orange transition-all duration-150 flex items-center gap-2 active:scale-95"
             >
-              <PlusCircle className="w-4 h-4 text-amber-300" />
+              <PlusCircle className="w-4 h-4" />
               <span>Buy Credits (₹1 = 1 Cr)</span>
             </button>
+
             <button
               onClick={onNavigateToOrders}
-              className="px-4 py-2.5 bg-white/20 hover:bg-white/30 text-white font-bold text-xs sm:text-sm rounded-xl backdrop-blur-md transition flex items-center gap-2"
+              className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm rounded-xl border border-slate-200/80 shadow-stripe-sm transition flex items-center gap-1.5 active:scale-95"
             >
-              <Clock className="w-4 h-4" />
+              <Clock className="w-4 h-4 text-slate-500" />
               <span>Track Orders</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Quick Add Credits Banner Card */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-orange-950 text-white rounded-3xl p-5 sm:p-6 shadow-lg border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-5 relative overflow-hidden">
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="w-12 h-12 rounded-2xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
-            <CreditCard className="w-6 h-6" />
+      {/* Quick Add Credits Promo Card (Hi-Tech Light Stripe FinTech Style) */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-stripe border border-slate-200/80 flex flex-col md:flex-row items-center justify-between gap-4 relative overflow-hidden group">
+        <div className="flex items-center gap-3.5 relative z-10">
+          <div className="w-11 h-11 rounded-2xl bg-orange-50 border border-orange-200/80 text-orange-600 flex items-center justify-center shadow-stripe-sm shrink-0">
+            <Coins className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-extrabold text-base sm:text-lg text-white">Need More Mess Credits?</h3>
-              <span className="bg-orange-500/20 text-orange-400 border border-orange-500/30 text-[10px] uppercase font-black px-2 py-0.5 rounded-full">
-                Razorpay
+              <h3 className="font-black text-sm sm:text-base text-slate-900">Need Extra Mess Credits?</h3>
+              <span className="bg-orange-50 text-orange-700 border border-orange-200/60 text-[10px] uppercase font-black px-2 py-0.5 rounded-full">
+                ₹1 = 1 Credit
               </span>
             </div>
-            <p className="text-xs text-slate-300 mt-0.5">
-              Refill instantly via UPI, Cards, NetBanking. <strong>1 Credit = ₹1</strong> directly credited to your account.
+            <p className="text-xs text-slate-500 mt-0.5">
+              Instant balance refill via UPI, Cards, NetBanking with Razorpay.
             </p>
           </div>
         </div>
@@ -124,7 +131,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
               key={amt}
               type="button"
               onClick={() => setIsTopupOpen(true)}
-              className="flex-1 md:flex-none px-3.5 py-2 rounded-xl bg-white/10 hover:bg-orange-600 hover:text-white text-xs font-black text-slate-200 border border-white/10 transition active:scale-95 text-center"
+              className="flex-1 md:flex-none px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200 text-xs font-black text-slate-700 border border-slate-200/80 transition-all duration-150 active:scale-95 text-center shadow-stripe-sm tabular-nums"
             >
               +₹{amt}
             </button>
@@ -132,26 +139,26 @@ export function StudentDashboard({ onNavigateToOrders }) {
           <button
             type="button"
             onClick={() => setIsTopupOpen(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-xs font-extrabold text-white shadow-md shadow-orange-500/20 transition flex items-center gap-1.5 shrink-0"
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-xs font-black text-white shadow-stripe-sm hover:shadow-glow-orange transition-all duration-150 flex items-center gap-1 shrink-0 active:scale-95"
           >
             <span>Top Up</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+        {/* Category Pills (Stripe Tab Style) */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 border border-slate-200/60 rounded-2xl overflow-x-auto scrollbar-none shadow-stripe-sm">
           {CATEGORIES.map(category => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition shadow-sm ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-150 ${
                 selectedCategory === category
-                  ? 'bg-orange-600 text-white shadow-orange-500/20'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+                  ? 'bg-white text-slate-900 shadow-stripe-sm'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'
               }`}
             >
               {category}
@@ -159,7 +166,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
           ))}
         </div>
 
-        {/* Search & Refresh */}
+        {/* Search & Live Refresh */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1 md:w-64">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -168,12 +175,12 @@ export function StudentDashboard({ onNavigateToOrders }) {
               placeholder="Search dishes or beverages..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm"
+              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 shadow-stripe-sm transition"
             />
           </div>
           <button
             onClick={handleRefresh}
-            className={`p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition shadow-sm ${refreshing ? 'animate-spin' : ''}`}
+            className={`p-2 bg-white border border-slate-200/80 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition shadow-stripe-sm ${refreshing ? 'animate-spin' : ''}`}
             title="Refresh menu stock"
           >
             <RefreshCw className="w-4 h-4" />
@@ -185,21 +192,21 @@ export function StudentDashboard({ onNavigateToOrders }) {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl p-4 border border-slate-200 animate-pulse space-y-3">
-              <div className="h-44 bg-slate-200 rounded-xl w-full" />
-              <div className="h-4 bg-slate-200 rounded w-3/4" />
-              <div className="h-3 bg-slate-200 rounded w-full" />
-              <div className="h-8 bg-slate-200 rounded-xl w-full mt-4" />
+            <div key={i} className="bg-white rounded-2.5xl p-4 border border-slate-200/80 shadow-stripe animate-pulse space-y-3">
+              <div className="h-44 bg-slate-100 rounded-xl w-full" />
+              <div className="h-4 bg-slate-100 rounded w-3/4" />
+              <div className="h-3 bg-slate-100 rounded w-full" />
+              <div className="h-9 bg-slate-100 rounded-xl w-full mt-4" />
             </div>
           ))}
         </div>
       ) : filteredItems.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3">
-          <div className="w-16 h-16 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mx-auto">
-            <Filter className="w-8 h-8 stroke-1" />
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-stripe p-12 text-center space-y-3">
+          <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-100 text-orange-500 flex items-center justify-center mx-auto shadow-stripe-sm">
+            <Filter className="w-7 h-7 stroke-1" />
           </div>
-          <h3 className="text-lg font-bold text-slate-800">No dishes found</h3>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
+          <h3 className="text-base font-bold text-slate-800">No dishes found</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
             We couldn't find any dishes matching "{searchQuery}". Try selecting another category or clearing your search.
           </p>
           <button

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle2, Ban, RotateCcw, AlertTriangle, ChevronDown, ChevronUp, ShoppingBag, Utensils } from 'lucide-react';
+import { Clock, CheckCircle2, Ban, RotateCcw, AlertTriangle, ChevronDown, ChevronUp, ShoppingBag, Utensils, Sparkles } from 'lucide-react';
 import { api } from '../../services/api';
 import { OrderStepper } from '../../components/OrderStepper';
 import { Modal } from '../../components/Modal';
@@ -87,20 +87,20 @@ export function OrderTracking({ onBrowseMenu }) {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-5">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Order Status & History
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Real-time status updates directly from the campus mess kitchen
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Live kitchen preparation status, token numbers, and re-order history
           </p>
         </div>
         <button
           onClick={onBrowseMenu}
-          className="self-start sm:self-auto px-4 py-2 bg-orange-50 text-orange-600 hover:bg-orange-100 font-bold text-xs rounded-xl transition flex items-center gap-2"
+          className="self-start sm:self-auto px-4 py-2 bg-white hover:bg-orange-50 text-orange-600 font-bold text-xs rounded-xl border border-slate-200/80 shadow-stripe-sm transition flex items-center gap-1.5 active:scale-95"
         >
-          <Utensils className="w-4 h-4" />
+          <Utensils className="w-3.5 h-3.5" />
           <span>Order More Food</span>
         </button>
       </div>
@@ -108,26 +108,26 @@ export function OrderTracking({ onBrowseMenu }) {
       {/* SECTION 1: Active Orders */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
             <span>🔥 Active Kitchen Orders</span>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-orange-100 text-orange-700">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-orange-50 text-orange-700 border border-orange-200/60">
               {activeOrders.length}
             </span>
           </h2>
-          <span className="text-xs text-slate-400 flex items-center gap-1.5 animate-pulse">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" /> Live kitchen sync
+          <span className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live kitchen sync
           </span>
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-3xl p-8 border border-slate-200 animate-pulse space-y-4">
-            <div className="h-6 bg-slate-200 rounded w-1/4" />
+          <div className="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-stripe animate-pulse space-y-4">
+            <div className="h-6 bg-slate-100 rounded w-1/4" />
             <div className="h-16 bg-slate-100 rounded-xl" />
           </div>
         ) : activeOrders.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-10 text-center space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-400 flex items-center justify-center mx-auto">
-              <Clock className="w-7 h-7" />
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-stripe p-8 sm:p-10 text-center space-y-3">
+            <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2.5xl bg-orange-50 border border-orange-100 text-orange-400 flex items-center justify-center mx-auto shadow-stripe-sm">
+              <Clock className="w-7 h-7 stroke-1" />
             </div>
             <h3 className="font-bold text-base text-slate-800">No Active Orders Right Now</h3>
             <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
@@ -135,7 +135,7 @@ export function OrderTracking({ onBrowseMenu }) {
             </p>
             <button
               onClick={onBrowseMenu}
-              className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-md transition"
+              className="px-5 py-2.5 bg-slate-900 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-stripe-sm transition active:scale-95"
             >
               Browse Today's Menu
             </button>
@@ -149,21 +149,21 @@ export function OrderTracking({ onBrowseMenu }) {
               return (
                 <div
                   key={order.order_id}
-                  className={`bg-white rounded-3xl border shadow-sm transition-all overflow-hidden ${
-                    isReady ? 'border-emerald-400 ring-2 ring-emerald-100' : 'border-slate-200'
+                  className={`bg-white rounded-3xl border shadow-stripe transition-all overflow-hidden ${
+                    isReady ? 'border-emerald-300 ring-2 ring-emerald-500/10' : 'border-slate-200/80'
                   }`}
                 >
                   {/* Order Card Header */}
-                  <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
+                  <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/60">
                     <div className="flex items-center gap-3">
-                      <div className="px-3.5 py-1.5 rounded-xl bg-orange-600 text-white font-black text-sm tracking-wider shadow-sm">
+                      <div className="px-3.5 py-1.5 rounded-xl bg-slate-900 text-white font-black text-xs sm:text-sm tracking-wider shadow-stripe-sm">
                         {order.pickup_token || `#TK-${order.order_id}`}
                       </div>
                       <div>
-                        <h3 className="font-bold text-sm sm:text-base text-slate-900">
+                        <h3 className="font-black text-sm sm:text-base text-slate-900">
                           Order #{order.order_id}
                         </h3>
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-[11px] text-slate-400 font-medium">
                           Placed at {new Date(order.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -171,22 +171,22 @@ export function OrderTracking({ onBrowseMenu }) {
 
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <span className="font-black text-base text-slate-900">{order.total_amount}</span>
-                        <span className="text-xs text-slate-500 font-semibold ml-1">Credits</span>
+                        <span className="font-black text-base text-slate-900 tabular-nums">{order.total_amount}</span>
+                        <span className="text-xs text-slate-400 font-medium ml-1">Credits</span>
                       </div>
 
                       {/* Cancel Order Action */}
                       {isPending ? (
                         <button
                           onClick={() => setOrderToCancel(order)}
-                          className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition"
+                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200/80 shadow-stripe-sm transition"
                         >
                           Cancel & Refund
                         </button>
                       ) : (
                         <span
-                          className="px-3 py-1 bg-slate-100 text-slate-400 text-[11px] font-semibold rounded-xl cursor-not-allowed"
-                          title="Cancellation is disabled once preparation begins"
+                          className="px-3 py-1 bg-slate-100 text-slate-400 text-[11px] font-bold rounded-xl cursor-not-allowed"
+                          title="Cancellation is disabled once kitchen starts cooking"
                         >
                           Non-Cancellable
                         </span>
@@ -200,20 +200,20 @@ export function OrderTracking({ onBrowseMenu }) {
                   </div>
 
                   {/* Order Items List */}
-                  <div className="px-5 sm:px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="px-5 sm:px-6 py-3.5 bg-slate-50/80 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-slate-700">Items:</span>
+                      <span className="font-bold text-slate-500">Items:</span>
                       {order.items?.map(item => (
                         <span
                           key={item.order_item_id}
-                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-800 font-medium"
+                          className="px-2.5 py-0.5 rounded-lg bg-white border border-slate-200/80 text-slate-800 font-bold shadow-stripe-sm"
                         >
                           {item.quantity}x {item.item_name}
                         </span>
                       ))}
                     </div>
                     {isReady && (
-                      <span className="text-emerald-700 font-extrabold flex items-center gap-1 animate-pulse">
+                      <span className="text-emerald-700 font-black flex items-center gap-1 animate-pulse">
                         <CheckCircle2 className="w-4 h-4" /> Ready at Counter 1!
                       </span>
                     )}
@@ -226,10 +226,10 @@ export function OrderTracking({ onBrowseMenu }) {
       </section>
 
       {/* SECTION 2: Order History */}
-      <section className="space-y-4 pt-4">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+      <section className="space-y-4 pt-2">
+        <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
           <span>📜 Past Orders</span>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-slate-100 text-slate-700 border border-slate-200/60">
             {pastOrders.length}
           </span>
         </h2>
@@ -237,7 +237,7 @@ export function OrderTracking({ onBrowseMenu }) {
         {pastOrders.length === 0 ? (
           <p className="text-xs text-slate-400 italic">No past orders yet.</p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {pastOrders.map(order => {
               const isCancelled = order.order_status === 'Cancelled';
               const isExpanded = !!expandedOrders[order.order_id];
@@ -245,15 +245,15 @@ export function OrderTracking({ onBrowseMenu }) {
               return (
                 <div
                   key={order.order_id}
-                  className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-slate-300 transition"
+                  className="bg-white rounded-2xl border border-slate-200/80 shadow-stripe-sm overflow-hidden hover:border-slate-300 transition"
                 >
                   <div
                     onClick={() => toggleExpand(order.order_id)}
                     className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/50 transition gap-4"
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                        isCancelled ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-800'
+                      <span className={`px-2.5 py-1 rounded-xl text-xs font-black border ${
+                        isCancelled ? 'bg-rose-50 text-rose-700 border-rose-200/80' : 'bg-emerald-50 text-emerald-800 border-emerald-200/80'
                       }`}>
                         {order.order_status}
                       </span>
@@ -261,14 +261,14 @@ export function OrderTracking({ onBrowseMenu }) {
                         <h4 className="font-bold text-sm text-slate-900">
                           Order #{order.order_id} ({order.pickup_token})
                         </h4>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-[11px] text-slate-400 font-medium">
                           {new Date(order.order_time).toLocaleString()}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <span className="font-extrabold text-sm text-slate-900">
+                      <span className="font-black text-sm text-slate-900 tabular-nums">
                         {order.total_amount} Credits
                       </span>
                       {isExpanded ? (
@@ -280,25 +280,25 @@ export function OrderTracking({ onBrowseMenu }) {
                   </div>
 
                   {isExpanded && (
-                    <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-3 text-xs">
-                      <div className="space-y-2">
+                    <div className="p-4 bg-slate-50/80 border-t border-slate-100 space-y-3 text-xs">
+                      <div className="space-y-1.5">
                         {order.items?.map(item => (
-                          <div key={item.order_item_id} className="flex justify-between text-slate-700">
+                          <div key={item.order_item_id} className="flex justify-between text-slate-700 font-medium">
                             <span>{item.quantity}x {item.item_name}</span>
-                            <span className="font-semibold">{item.subtotal} Credits</span>
+                            <span className="font-bold tabular-nums">{item.subtotal} Credits</span>
                           </div>
                         ))}
                       </div>
 
-                      <div className="pt-2 border-t border-slate-200 flex justify-between items-center">
+                      <div className="pt-2.5 border-t border-slate-200/80 flex justify-between items-center">
                         <button
                           onClick={() => handleReorder(order)}
-                          className="px-3 py-1.5 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition flex items-center gap-1.5"
+                          className="px-3 py-1.5 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 transition flex items-center gap-1.5 shadow-stripe-sm active:scale-95"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
                           <span>Re-order Items</span>
                         </button>
-                        <span className="text-slate-500 text-[11px]">
+                        <span className="text-slate-400 text-[11px] font-medium">
                           Completed: {order.completed_time ? new Date(order.completed_time).toLocaleTimeString() : 'N/A'}
                         </span>
                       </div>
@@ -318,7 +318,7 @@ export function OrderTracking({ onBrowseMenu }) {
         title="Confirm Order Cancellation"
       >
         <div className="space-y-4">
-          <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-xs text-rose-900">
+          <div className="p-4 bg-rose-50/80 border border-rose-200/80 rounded-2xl flex items-start gap-3 text-xs text-rose-900">
             <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
             <div>
               <p className="font-bold">Are you sure you want to cancel Order #{orderToCancel?.order_id}?</p>
@@ -338,7 +338,7 @@ export function OrderTracking({ onBrowseMenu }) {
             <button
               onClick={handleCancelOrder}
               disabled={!!cancellingId}
-              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition flex items-center gap-2"
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-stripe-sm transition flex items-center gap-2"
             >
               {cancellingId ? 'Refunding...' : 'Yes, Cancel & Refund'}
             </button>

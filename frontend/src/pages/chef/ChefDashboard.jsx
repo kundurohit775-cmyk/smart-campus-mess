@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, Clock, CheckCircle2, Flame, BellRing, PackageCheck, AlertCircle, RefreshCw, Filter, User, Home } from 'lucide-react';
+import { ChefHat, Clock, CheckCircle2, Flame, BellRing, PackageCheck, AlertCircle, RefreshCw, Filter, User, Home, ChevronRight } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 
@@ -64,40 +64,41 @@ export function ChefDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
-      {/* Dashboard Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+      
+      {/* Dashboard Top Header (Stripe Glass Card Style) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/80 shadow-stripe-md relative overflow-hidden">
+        <div className="flex items-center gap-3.5 relative z-10">
+          <div className="w-12 h-12 rounded-2.5xl bg-amber-50 border border-amber-200/80 text-amber-600 flex items-center justify-center shadow-stripe-sm">
             <ChefHat className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               Kitchen Preparation Queue
             </h1>
-            <p className="text-xs text-slate-500">
-              Live orders management & instant status progression
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Live student orders management & single-click status progression
             </p>
           </div>
         </div>
 
-        {/* Live Counters Pill */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-900 text-xs font-bold">
+        {/* Live Counters Pill (Stripe Soft Badges) */}
+        <div className="flex items-center gap-2 flex-wrap relative z-10">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 border border-orange-200/80 text-orange-900 text-xs font-black shadow-stripe-sm">
             <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
-            <span>{pendingCount} Pending</span>
+            <span className="tabular-nums">{pendingCount} Pending</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs font-black shadow-stripe-sm">
             <Flame className="w-3.5 h-3.5 text-amber-600" />
-            <span>{preparingCount} Cooking</span>
+            <span className="tabular-nums">{preparingCount} Cooking</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-xs font-black shadow-stripe-sm">
             <BellRing className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{readyCount} Ready</span>
+            <span className="tabular-nums">{readyCount} Ready</span>
           </div>
 
           <button
             onClick={handleManualRefresh}
-            className={`p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 transition ${refreshing ? 'animate-spin' : ''}`}
+            className={`p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-xl text-slate-600 transition shadow-stripe-sm ${refreshing ? 'animate-spin' : ''}`}
             title="Refresh Orders"
           >
             <RefreshCw className="w-4 h-4" />
@@ -105,16 +106,16 @@ export function ChefDashboard() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+      {/* Filter Tabs (Stripe Segmented Style) */}
+      <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 border border-slate-200/60 rounded-2xl overflow-x-auto scrollbar-none shadow-stripe-sm">
         {STATUS_TABS.map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition shadow-sm ${
+            className={`px-4 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-150 ${
               activeTab === tab
-                ? 'bg-slate-900 text-white'
-                : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+                ? 'bg-white text-slate-900 shadow-stripe-sm'
+                : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'
             }`}
           >
             {tab} {tab === 'Pending' && pendingCount > 0 && `(${pendingCount})`}
@@ -126,20 +127,20 @@ export function ChefDashboard() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white rounded-3xl p-6 border border-slate-200 animate-pulse space-y-4">
-              <div className="h-6 bg-slate-200 rounded w-1/3" />
+            <div key={i} className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-stripe animate-pulse space-y-4">
+              <div className="h-6 bg-slate-100 rounded w-1/3" />
               <div className="h-20 bg-slate-100 rounded-xl" />
-              <div className="h-10 bg-slate-200 rounded-xl" />
+              <div className="h-10 bg-slate-100 rounded-xl" />
             </div>
           ))}
         </div>
       ) : filteredOrders.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3">
-          <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-8 h-8 stroke-1" />
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-stripe p-12 text-center space-y-3">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-stripe-sm">
+            <CheckCircle2 className="w-7 h-7 stroke-1" />
           </div>
-          <h3 className="text-lg font-bold text-slate-800">No Orders in this Queue</h3>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
+          <h3 className="text-base font-bold text-slate-800">No Orders in this Queue</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
             All incoming student orders for this status filter have been attended to.
           </p>
         </div>
@@ -154,32 +155,32 @@ export function ChefDashboard() {
             const isCompleted = order.order_status === 'Completed';
             const isCancelled = order.order_status === 'Cancelled';
 
-            let statusBadge = 'bg-slate-100 text-slate-700 border-slate-200';
-            if (isPending) statusBadge = 'bg-orange-100 text-orange-800 border-orange-300 font-extrabold animate-pulse';
-            if (isAccepted) statusBadge = 'bg-blue-100 text-blue-800 border-blue-200';
-            if (isPreparing) statusBadge = 'bg-amber-100 text-amber-800 border-amber-300';
-            if (isReady) statusBadge = 'bg-emerald-100 text-emerald-800 border-emerald-300';
-            if (isCompleted) statusBadge = 'bg-slate-100 text-slate-600 border-slate-200';
-            if (isCancelled) statusBadge = 'bg-rose-100 text-rose-700 border-rose-200';
+            let statusBadge = 'bg-slate-50 text-slate-700 border-slate-200';
+            if (isPending) statusBadge = 'bg-orange-50 text-orange-800 border-orange-200/80 font-extrabold animate-pulse';
+            if (isAccepted) statusBadge = 'bg-sky-50 text-sky-800 border-sky-200/80';
+            if (isPreparing) statusBadge = 'bg-amber-50 text-amber-800 border-amber-200/80';
+            if (isReady) statusBadge = 'bg-emerald-50 text-emerald-800 border-emerald-200/80';
+            if (isCompleted) statusBadge = 'bg-slate-50 text-slate-600 border-slate-200/80';
+            if (isCancelled) statusBadge = 'bg-rose-50 text-rose-700 border-rose-200/80';
 
             return (
               <div
                 key={order.order_id}
-                className={`bg-white rounded-3xl border shadow-sm flex flex-col justify-between overflow-hidden transition-all duration-300 ${
-                  isPending ? 'border-orange-400 ring-2 ring-orange-100' :
-                  isReady ? 'border-emerald-400 ring-2 ring-emerald-100' :
-                  'border-slate-200 hover:border-slate-300'
+                className={`bg-white rounded-3xl border shadow-stripe flex flex-col justify-between overflow-hidden transition-all duration-200 hover:shadow-stripe-hover ${
+                  isPending ? 'border-orange-300 ring-2 ring-orange-500/10' :
+                  isReady ? 'border-emerald-300 ring-2 ring-emerald-500/10' :
+                  'border-slate-200/80'
                 }`}
               >
                 {/* Card Top */}
-                <div className="p-5 border-b border-slate-100 space-y-3 bg-slate-50/40">
+                <div className="p-5 border-b border-slate-100 space-y-3 bg-slate-50/50">
                   <div className="flex items-center justify-between">
                     <span className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-                      <span className="text-orange-600 font-extrabold">
+                      <span className="text-orange-600 font-black">
                         {order.pickup_token || `#${order.order_id}`}
                       </span>
                     </span>
-                    <span className={`text-[11px] uppercase font-extrabold px-3 py-1 rounded-xl border ${statusBadge}`}>
+                    <span className={`text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full border shadow-stripe-sm ${statusBadge}`}>
                       {order.order_status}
                     </span>
                   </div>
@@ -190,13 +191,13 @@ export function ChefDashboard() {
                       <User className="w-3.5 h-3.5 text-slate-400" />
                       <span>{order.student_name}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-500">
+                    <div className="flex items-center gap-1.5 text-slate-500 font-medium">
                       <Home className="w-3.5 h-3.5 text-slate-400" />
                       <span>{order.room_number || 'Hostel'}</span>
                     </div>
                   </div>
 
-                  <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                  <div className="text-[11px] text-slate-400 font-medium flex items-center justify-between">
                     <span>Order #{order.order_id}</span>
                     <span>{new Date(order.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
@@ -204,20 +205,20 @@ export function ChefDashboard() {
 
                 {/* Ordered Items List */}
                 <div className="p-5 flex-1 space-y-2.5">
-                  <p className="text-[11px] uppercase font-bold tracking-wider text-slate-400">Order Items</p>
+                  <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Order Items</p>
                   <div className="space-y-1.5">
                     {order.items?.map(item => (
                       <div
                         key={item.order_item_id}
-                        className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs"
+                        className="flex items-center justify-between p-2 rounded-xl bg-slate-50/80 border border-slate-200/60 text-xs shadow-stripe-sm"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-800 font-extrabold flex items-center justify-center text-[11px]">
+                          <span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-800 font-black flex items-center justify-center text-[10px]">
                             {item.quantity}x
                           </span>
                           <span className="font-bold text-slate-800">{item.item_name}</span>
                         </div>
-                        <span className="text-slate-400 font-medium">{item.category}</span>
+                        <span className="text-slate-400 font-medium text-[11px]">{item.category}</span>
                       </div>
                     ))}
                   </div>
@@ -226,8 +227,8 @@ export function ChefDashboard() {
                 {/* Status Progression Action Buttons */}
                 <div className="p-5 bg-slate-50/80 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-3 text-xs">
-                    <span className="text-slate-500 font-medium">Total Credits:</span>
-                    <span className="font-extrabold text-slate-900">{order.total_amount} Credits</span>
+                    <span className="text-slate-400 font-medium">Total Credits:</span>
+                    <span className="font-black text-slate-900 tabular-nums">{order.total_amount} Credits</span>
                   </div>
 
                   {/* Progressive Actions */}
@@ -235,7 +236,7 @@ export function ChefDashboard() {
                     <button
                       onClick={() => handleUpdateStatus(order.order_id, 'Accepted')}
                       disabled={isUpdating}
-                      className="w-full py-2.5 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-600/20 transition flex items-center justify-center gap-2"
+                      className="w-full py-2.5 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-stripe-sm hover:shadow-glow-orange transition-all duration-150 flex items-center justify-center gap-2 active:scale-95"
                     >
                       <CheckCircle2 className="w-4 h-4" />
                       <span>Accept Order</span>
@@ -246,7 +247,7 @@ export function ChefDashboard() {
                     <button
                       onClick={() => handleUpdateStatus(order.order_id, 'Preparing')}
                       disabled={isUpdating}
-                      className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-500/20 transition flex items-center justify-center gap-2"
+                      className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-stripe-sm transition-all duration-150 flex items-center justify-center gap-2 active:scale-95"
                     >
                       <Flame className="w-4 h-4" />
                       <span>Start Preparing / Cooking</span>
@@ -257,7 +258,7 @@ export function ChefDashboard() {
                     <button
                       onClick={() => handleUpdateStatus(order.order_id, 'Ready')}
                       disabled={isUpdating}
-                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-2"
+                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-stripe-sm hover:shadow-glow-emerald transition-all duration-150 flex items-center justify-center gap-2 active:scale-95"
                     >
                       <BellRing className="w-4 h-4" />
                       <span>Mark Ready for Pickup</span>
@@ -268,7 +269,7 @@ export function ChefDashboard() {
                     <button
                       onClick={() => handleUpdateStatus(order.order_id, 'Completed')}
                       disabled={isUpdating}
-                      className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
+                      className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-stripe-sm transition flex items-center justify-center gap-2 active:scale-95"
                     >
                       <PackageCheck className="w-4 h-4 text-emerald-400" />
                       <span>Handover & Complete Order</span>
@@ -276,13 +277,13 @@ export function ChefDashboard() {
                   )}
 
                   {isCompleted && (
-                    <div className="py-2 text-center text-xs font-bold text-slate-400 bg-slate-100 rounded-xl">
+                    <div className="py-2 text-center text-xs font-bold text-slate-400 bg-slate-100/80 rounded-xl border border-slate-200/60">
                       ✓ Order Fulfilled
                     </div>
                   )}
 
                   {isCancelled && (
-                    <div className="py-2 text-center text-xs font-bold text-rose-600 bg-rose-50 rounded-xl">
+                    <div className="py-2 text-center text-xs font-bold text-rose-600 bg-rose-50 rounded-xl border border-rose-200/60">
                       ✕ Order Cancelled & Refunded
                     </div>
                   )}

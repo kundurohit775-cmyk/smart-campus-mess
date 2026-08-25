@@ -12,9 +12,9 @@ import {
   Users, 
   Sliders, 
   LogOut, 
-  AlertCircle,
   Coins,
-  PlusCircle
+  Plus,
+  Sparkles
 } from 'lucide-react';
 
 export function Navbar({ activeTab, setActiveTab }) {
@@ -32,67 +32,71 @@ export function Navbar({ activeTab, setActiveTab }) {
   const isLowBalance = remainingCredits < 500;
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.03),0_6px_16px_-4px_rgba(0,0,0,0.03)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20">
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab(isStudent ? 'menu' : 'dashboard')}>
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
-              <UtensilsCrossed className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="flex items-center justify-between h-16 sm:h-18">
+          
+          {/* Brand & Logo */}
+          <div 
+            className="flex items-center gap-3 cursor-pointer group" 
+            onClick={() => setActiveTab(isStudent ? 'menu' : 'dashboard')}
+          >
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-orange-500/25 group-hover:scale-105 transition-transform duration-200">
+              <UtensilsCrossed className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-lg sm:text-xl tracking-tight text-slate-900">
                   Smart<span className="text-orange-600">Mess</span>
                 </span>
-                <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
-                  isAdmin ? 'bg-purple-100 text-purple-700' :
-                  isChef ? 'bg-amber-100 text-amber-800' :
-                  'bg-orange-100 text-orange-700'
+                <span className={`text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-full border ${
+                  isAdmin ? 'bg-purple-50 text-purple-700 border-purple-200/60' :
+                  isChef ? 'bg-amber-50 text-amber-800 border-amber-200/60' :
+                  'bg-orange-50 text-orange-700 border-orange-200/60'
                 }`}>
                   {user.role}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 hidden sm:block">Campus Food & Credit Hub</p>
+              <p className="text-[11px] text-slate-400 font-medium hidden sm:block">Campus Food & Credit Hub</p>
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1.5">
+          {/* Desktop Navigation Links (Stripe Pill Tab Style) */}
+          <nav className="hidden md:flex items-center p-1 bg-slate-100/80 border border-slate-200/60 rounded-xl gap-0.5">
             {isStudent && (
               <>
                 <button
                   onClick={() => setActiveTab('menu')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${
                     activeTab === 'menu'
-                      ? 'bg-orange-50 text-orange-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? 'bg-white text-slate-900 shadow-stripe-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                   }`}
                 >
-                  <UtensilsCrossed className="w-4 h-4" />
-                  Today's Menu
+                  <UtensilsCrossed className="w-3.5 h-3.5 text-orange-600" />
+                  <span>Today's Menu</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('orders')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${
                     activeTab === 'orders'
-                      ? 'bg-orange-50 text-orange-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? 'bg-white text-slate-900 shadow-stripe-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                   }`}
                 >
-                  <Clock className="w-4 h-4" />
-                  My Orders & Live Status
+                  <Clock className="w-3.5 h-3.5 text-orange-600" />
+                  <span>My Orders</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('transactions')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${
                     activeTab === 'transactions'
-                      ? 'bg-orange-50 text-orange-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? 'bg-white text-slate-900 shadow-stripe-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                   }`}
                 >
-                  <Receipt className="w-4 h-4" />
-                  Credit Ledger
+                  <Receipt className="w-3.5 h-3.5 text-orange-600" />
+                  <span>Credit Ledger</span>
                 </button>
               </>
             )}
@@ -101,25 +105,25 @@ export function Navbar({ activeTab, setActiveTab }) {
               <>
                 <button
                   onClick={() => setActiveTab('dashboard')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${
                     activeTab === 'dashboard'
-                      ? 'bg-orange-50 text-orange-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? 'bg-white text-slate-900 shadow-stripe-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                   }`}
                 >
-                  <ChefHat className="w-4 h-4" />
-                  Kitchen Queue
+                  <ChefHat className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Kitchen Queue</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('inventory')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${
                     activeTab === 'inventory'
-                      ? 'bg-orange-50 text-orange-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? 'bg-white text-slate-900 shadow-stripe-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                   }`}
                 >
-                  <Sliders className="w-4 h-4" />
-                  Stock Availability
+                  <Sliders className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Stock Availability</span>
                 </button>
               </>
             )}
@@ -128,71 +132,73 @@ export function Navbar({ activeTab, setActiveTab }) {
               <>
                 <button
                   onClick={() => setActiveTab('dashboard')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${
                     activeTab === 'dashboard'
-                      ? 'bg-orange-50 text-orange-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? 'bg-white text-slate-900 shadow-stripe-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                   }`}
                 >
-                  <LayoutDashboard className="w-4 h-4" />
-                  Analytics
+                  <LayoutDashboard className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Analytics</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('menu-mgr')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${
                     activeTab === 'menu-mgr'
-                      ? 'bg-orange-50 text-orange-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? 'bg-white text-slate-900 shadow-stripe-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                   }`}
                 >
-                  <UtensilsCrossed className="w-4 h-4" />
-                  Menu Items
+                  <UtensilsCrossed className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Menu Items</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('students')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${
                     activeTab === 'students'
-                      ? 'bg-orange-50 text-orange-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? 'bg-white text-slate-900 shadow-stripe-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                   }`}
                 >
-                  <Users className="w-4 h-4" />
-                  Student Credits
+                  <Users className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Student Credits</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('audit')}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${
                     activeTab === 'audit'
-                      ? 'bg-orange-50 text-orange-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? 'bg-white text-slate-900 shadow-stripe-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                   }`}
                 >
-                  <Receipt className="w-4 h-4" />
-                  Audit Logs
+                  <Receipt className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Audit Logs</span>
                 </button>
               </>
             )}
           </nav>
 
           {/* Right Action Bar */}
-          <div className="flex items-center gap-3">
-            {/* Student Live Credit Balance Display & Top-up */}
+          <div className="flex items-center gap-2.5">
+            {/* Student Live Credit Balance Display & Razorpay Top-Up Trigger */}
             {isStudent && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 bg-slate-50/80 p-1 rounded-2xl border border-slate-200/80 shadow-stripe-sm">
                 <div
                   onClick={() => setActiveTab('transactions')}
-                  className={`cursor-pointer flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border font-bold text-sm transition shadow-sm ${
+                  className={`cursor-pointer flex items-center gap-2 px-2.5 py-1 rounded-xl text-xs font-bold transition ${
                     isLowBalance
-                      ? 'bg-rose-50 border-rose-200 text-rose-700 animate-pulse'
-                      : 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200/80 text-amber-900 hover:border-amber-400'
+                      ? 'bg-rose-50 text-rose-700 border border-rose-200 animate-pulse'
+                      : 'text-slate-800 hover:bg-white'
                   }`}
                   title="Click to view Credit Transaction Ledger"
                 >
-                  <Coins className={`w-4 h-4 ${isLowBalance ? 'text-rose-600' : 'text-amber-600'}`} />
-                  <div className="flex flex-col text-left leading-tight">
-                    <span className="text-[10px] uppercase font-semibold text-slate-500">Balance</span>
-                    <span className="text-sm font-extrabold">
-                      {remainingCredits.toLocaleString()} <span className="text-xs font-medium text-slate-500">/ 9k</span>
+                  <div className="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
+                    <Coins className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 leading-none">Credits</span>
+                    <span className="text-xs font-black tabular-nums text-slate-900 leading-tight">
+                      {remainingCredits.toLocaleString()} <span className="text-[10px] font-medium text-slate-400">/ 9k</span>
                     </span>
                   </div>
                 </div>
@@ -200,78 +206,84 @@ export function Navbar({ activeTab, setActiveTab }) {
                 <button
                   type="button"
                   onClick={() => setIsTopupOpen(true)}
-                  className="p-2 sm:px-2.5 sm:py-2 rounded-xl bg-orange-100 hover:bg-orange-600 hover:text-white text-orange-700 font-extrabold text-xs transition border border-orange-200 shadow-sm flex items-center gap-1"
+                  className="py-1 px-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs rounded-xl shadow-sm hover:shadow-glow-orange transition-all duration-150 flex items-center gap-1 active:scale-95"
                   title="Buy Credits via Razorpay (₹1 = 1 Credit)"
                 >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Add</span>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Top-up</span>
                 </button>
               </div>
             )}
 
-            {/* Student Cart Drawer Trigger */}
+            {/* Student Tray / Cart Trigger */}
             {isStudent && (
               <button
                 onClick={() => setIsOpen(true)}
-                className="relative p-2.5 sm:px-3.5 sm:py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold flex items-center gap-2 transition shadow-md shadow-orange-500/20 active:scale-95"
+                className="relative p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-stripe-sm hover:shadow-stripe-md active:scale-95"
                 aria-label="Open food tray"
               >
-                <ShoppingBag className="w-5 h-5" />
-                <span className="hidden sm:inline text-sm">Tray</span>
+                <ShoppingBag className="w-4 h-4 text-orange-400" />
+                <span className="hidden sm:inline">Tray</span>
                 {totalItemCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[11px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-bounce">
+                  <span className="bg-orange-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-slate-900 shadow-sm animate-scale-in">
                     {totalItemCount}
                   </span>
                 )}
               </button>
             )}
 
-            {/* User Profile & Logout */}
+            {/* Profile Avatar & Logout */}
             <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-              <div className="hidden lg:block text-right">
-                <p className="text-xs font-bold text-slate-900 leading-tight">{user.name}</p>
-                <p className="text-[11px] text-slate-500 leading-tight truncate max-w-[120px]">
-                  {isStudent ? (user.roomNumber || 'Hostel') : user.email}
-                </p>
+              <div className="hidden lg:flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-slate-800 to-slate-900 text-white font-black text-xs flex items-center justify-center shadow-sm">
+                  {user.name ? user.name[0].toUpperCase() : 'U'}
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[100px]">{user.name}</p>
+                  <p className="text-[10px] text-slate-400 leading-none truncate max-w-[100px]">
+                    {isStudent ? (user.roomNumber || 'Hostel') : user.email}
+                  </p>
+                </div>
               </div>
+
               <button
                 onClick={logout}
-                className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
                 title="Sign out"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-4 h-4" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile Bottom Sub-nav */}
-        <div className="md:hidden flex items-center justify-around py-2.5 border-t border-slate-100 overflow-x-auto gap-1">
+        {/* Mobile Bottom Sub-nav (Stripe Pill Style) */}
+        <div className="md:hidden flex items-center justify-around py-2 border-t border-slate-100 overflow-x-auto gap-1">
           {isStudent && (
             <>
               <button
                 onClick={() => setActiveTab('menu')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${
-                  activeTab === 'menu' ? 'bg-orange-500 text-white' : 'text-slate-600'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+                  activeTab === 'menu' ? 'bg-orange-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 Menu
               </button>
               <button
                 onClick={() => setActiveTab('orders')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${
-                  activeTab === 'orders' ? 'bg-orange-500 text-white' : 'text-slate-600'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+                  activeTab === 'orders' ? 'bg-orange-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 My Orders
               </button>
               <button
                 onClick={() => setActiveTab('transactions')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${
-                  activeTab === 'transactions' ? 'bg-orange-500 text-white' : 'text-slate-600'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+                  activeTab === 'transactions' ? 'bg-orange-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                Credits
+                Credits Ledger
               </button>
             </>
           )}
@@ -280,16 +292,16 @@ export function Navbar({ activeTab, setActiveTab }) {
             <>
               <button
                 onClick={() => setActiveTab('dashboard')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${
-                  activeTab === 'dashboard' ? 'bg-orange-500 text-white' : 'text-slate-600'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+                  activeTab === 'dashboard' ? 'bg-orange-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 Queue
               </button>
               <button
                 onClick={() => setActiveTab('inventory')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${
-                  activeTab === 'inventory' ? 'bg-orange-500 text-white' : 'text-slate-600'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+                  activeTab === 'inventory' ? 'bg-orange-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 Stock Items
@@ -301,32 +313,32 @@ export function Navbar({ activeTab, setActiveTab }) {
             <>
               <button
                 onClick={() => setActiveTab('dashboard')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${
-                  activeTab === 'dashboard' ? 'bg-orange-500 text-white' : 'text-slate-600'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+                  activeTab === 'dashboard' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 Stats
               </button>
               <button
                 onClick={() => setActiveTab('menu-mgr')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${
-                  activeTab === 'menu-mgr' ? 'bg-orange-500 text-white' : 'text-slate-600'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+                  activeTab === 'menu-mgr' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 Menu
               </button>
               <button
                 onClick={() => setActiveTab('students')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${
-                  activeTab === 'students' ? 'bg-orange-500 text-white' : 'text-slate-600'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+                  activeTab === 'students' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 Students
               </button>
               <button
                 onClick={() => setActiveTab('audit')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${
-                  activeTab === 'audit' ? 'bg-orange-500 text-white' : 'text-slate-600'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+                  activeTab === 'audit' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 Audit
