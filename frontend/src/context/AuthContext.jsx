@@ -8,7 +8,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check active session
+  // Check active session with timeout safeguard
   const checkSession = useCallback(async () => {
     try {
       // 1. Try local storage token first
@@ -19,6 +19,8 @@ export function AuthProvider({ children }) {
         try {
           const parsed = JSON.parse(localSaved);
           setUser(parsed);
+          setLoading(false);
+
           // Refresh details in background
           api.getMe().then(meData => {
             if (meData && meData.user) {
@@ -32,9 +34,14 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // 2. Try Better Auth session
+      // 2. Try Better Auth session with timeout safeguard
       try {
-        const sessionResult = await authClient.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session check timeout')), 1500)
+        );
+        const sessionPromise = authClient.getSession().catch(() => null);
+        const sessionResult = await Promise.race([sessionPromise, timeoutPromise]).catch(() => null);
+
         if (sessionResult && sessionResult.data && sessionResult.data.user) {
           const sessionUser = sessionResult.data.user;
           let creditInfo = null;
