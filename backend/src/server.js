@@ -105,6 +105,17 @@ app.post('/api/auth/sign-in/email', express.json(), async (req, res, next) => {
   }
 });
 
+// Direct Email OTP Endpoints (/api/auth/send-otp and /api/auth/verify-otp)
+app.post('/api/auth/send-otp', express.json(), (req, res, next) => {
+  req.url = '/send-otp';
+  authRoutes(req, res, next);
+});
+
+app.post('/api/auth/verify-otp', express.json(), (req, res, next) => {
+  req.url = '/verify-otp';
+  authRoutes(req, res, next);
+});
+
 // Mount Better Auth handler for /api/auth routes
 app.all('/api/auth/*', toNodeHandler(auth));
 

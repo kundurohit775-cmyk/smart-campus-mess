@@ -29,5 +29,10 @@ export const config = {
 
   // Razorpay Payment Gateway Configuration (1 Rupee = 1 Credit)
   razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
-  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || ''
+  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
+
+  // Resend Email Configuration for Email OTP Verification
+  resendApiKey: process.env.RESEND_API_KEY || '',
+  emailFrom: process.env.EMAIL_FROM || 'Smart Campus Mess <onboarding@resend.dev>',
+  otpExpiryMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES, 10) || 10
 };

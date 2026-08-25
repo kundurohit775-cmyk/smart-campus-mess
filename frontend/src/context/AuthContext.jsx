@@ -87,35 +87,21 @@ export function AuthProvider({ children }) {
     checkSession();
   }, [checkSession]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, otp) => {
     const cleanEmail = (email || '').trim().toLowerCase();
 
-    // 1. Direct API Login (Fastest, supports student, chef, and admin roles)
-    try {
-      const data = await api.login(cleanEmail, password);
-      if (data.token && data.user) {
-        localStorage.setItem('mess_auth_token', data.token);
-        localStorage.setItem('mess_user_session', JSON.stringify(data.user));
-        setUser(data.user);
-        return data.user;
-      }
-      throw new Error(data.error || 'Invalid credentials');
-    } catch (err) {
-      // 2. Fallback to Better Auth signIn
-      try {
-        const res = await authClient.signIn.email({
-          email: cleanEmail,
-          password
-        });
-        if (res.data?.user) {
-          await checkSession();
-          return user;
-        }
-      } catch {
-        // continue
-      }
-      throw err;
+    // 1. Direct API Login
+    const data = await api.login(cleanEmail, password, otp);
+    if (data.requireOtp) {
+      return data;
     }
+    if (data.token && data.user) {
+      localStorage.setItem('mess_auth_token', data.token);
+      localStorage.setItem('mess_user_session', JSON.stringify(data.user));
+      setUser(data.user);
+      return data.user;
+    }
+    throw new Error(data.error || 'Invalid credentials');
   };
 
   const register = async ({ name, email, password, phone, roomNumber }) => {
@@ -158,6 +144,22 @@ export function AuthProvider({ children }) {
       }
       throw err;
     }
+  };
+
+  const sendEmailOtp = async (email, purpose = 'login') => {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    return await api.sendEmailOtp(cleanEmail, purpose);
+  };
+
+  const verifyEmailOtp = async (payload) => {
+    const data = await api.verifyEmailOtp(payload);
+    if (data.token && data.user) {
+      localStorage.setItem('mess_auth_token', data.token);
+      localStorage.setItem('mess_user_session', JSON.stringify(data.user));
+      setUser(data.user);
+      return data.user;
+    }
+    return data;
   };
 
   const sendOtp = async (phone) => {
@@ -208,7 +210,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, sendOtp, loginWithOtp, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, sendOtp, loginWithOtp, sendEmailOtp, verifyEmailOtp, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

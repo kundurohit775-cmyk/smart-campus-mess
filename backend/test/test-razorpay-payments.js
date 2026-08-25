@@ -26,7 +26,7 @@ async function testRazorpayPayments() {
     const loginRes = await fetch(`${BASE_URL}/api/auth-helpers/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'student@vitstudent.ac.in', password: 'password123' })
+      body: JSON.stringify({ email: 'student@vitstudent.ac.in', password: 'password123', skipOtp: true })
     });
     const loginData = await loginRes.json();
     assert(loginRes.status === 200, `Student login succeeded (Status 200)`);

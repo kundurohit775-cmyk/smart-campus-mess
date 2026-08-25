@@ -34,11 +34,13 @@ async function request(endpoint, options = {}) {
 
 export const api = {
   // Auth
-  login: (email, password) => request('/auth-helpers/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  login: (email, password, otp) => request('/auth-helpers/login', { method: 'POST', body: JSON.stringify({ email, password, otp }) }),
   register: (payload) => request('/auth-helpers/register', { method: 'POST', body: JSON.stringify(payload) }),
   getMe: () => request('/auth-helpers/me'),
   sendOtp: (phone) => request('/auth-helpers/otp/send', { method: 'POST', body: JSON.stringify({ phone }) }),
   verifyOtp: (phone, otp) => request('/auth-helpers/otp/verify', { method: 'POST', body: JSON.stringify({ phone, otp }) }),
+  sendEmailOtp: (email, purpose = 'login') => request('/auth-helpers/send-otp', { method: 'POST', body: JSON.stringify({ email, purpose }) }),
+  verifyEmailOtp: (payload) => request('/auth-helpers/verify-otp', { method: 'POST', body: JSON.stringify(payload) }),
 
   // Menu
   getMenu: () => request('/menu'),

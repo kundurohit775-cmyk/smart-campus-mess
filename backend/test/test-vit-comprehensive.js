@@ -49,7 +49,8 @@ async function runComprehensiveTests() {
       headers: { 'Content-Type': 'application/json', 'Origin': 'http://localhost:3000' },
       body: JSON.stringify({
         email: acc.email,
-        password: 'password123'
+        password: 'password123',
+        skipOtp: true
       })
     });
     const loginData = await loginRes.json();
