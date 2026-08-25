@@ -1,235 +1,277 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Sparkles, Filter, RefreshCw, ShoppingBag, Clock, ArrowRight, CreditCard, PlusCircle, Coins, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  UtensilsCrossed, 
+  Search, 
+  Sparkles, 
+  ShoppingBag, 
+  Coins, 
+  CreditCard, 
+  Clock, 
+  Plus, 
+  ArrowRight,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
 import { api } from '../../services/api';
-import { MenuCard } from '../../components/MenuCard';
-import { TopupModal } from '../../components/TopupModal';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { StatCard } from '../../components/StatCard';
+import { MenuCard } from '../../components/MenuCard';
+import { TopupModal } from '../../components/TopupModal';
 
 const CATEGORIES = ['All', 'Breakfast', 'Lunch', 'Snacks', 'Dinner', 'Beverages'];
 
 export function StudentDashboard({ onNavigateToOrders }) {
   const { user } = useAuth();
-  const { setIsOpen, totalItemCount } = useCart();
-
-  const [menuItems, setMenuItems] = useState([]);
+  const { cart, totalAmount, totalCount, setIsOpen: setCartOpen } = useCart();
+  
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
   const [isTopupOpen, setIsTopupOpen] = useState(false);
 
   const fetchMenu = async () => {
     try {
-      const data = await api.getMenu();
-      setMenuItems(data.items || []);
+      const res = await api.getMenu();
+      setItems(res.items || []);
     } catch (err) {
-      console.error('Failed to load menu:', err);
+      console.error('Failed to load menu items:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchMenu();
-    // Live polling every 8s to keep inventory in sync
-    const interval = setInterval(fetchMenu, 8000);
-    return () => clearInterval(interval);
   }, []);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchMenu();
-  };
+  const remainingCredits = user?.credits?.remaining ?? 9000;
+  const usedCredits = user?.credits?.used ?? 0;
+  const isLow = remainingCredits < 500;
 
-  const filteredItems = useMemo(() => {
-    return menuItems.filter(item => {
-      const matchesCategory = selectedCategory === 'All' || 
-        (item.category && item.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase());
-      const query = (searchQuery || '').trim().toLowerCase();
-      const matchesSearch = !query || 
-        (item.item_name && item.item_name.toLowerCase().includes(query)) ||
-        (item.description && item.description.toLowerCase().includes(query));
-      return matchesCategory && matchesSearch;
-    });
-  }, [menuItems, selectedCategory, searchQuery]);
+  const filteredItems = items.filter((item) => {
+    const matchesCategory = selectedCategory === 'All' || item.category.toLowerCase() === selectedCategory.toLowerCase();
+    const matchesSearch = item.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       
-      {/* Hero Welcome Banner (Stripe Light Glass Card Style) */}
-      <div className="relative rounded-3xl bg-white border border-slate-200/80 shadow-stripe-md p-6 sm:p-9 overflow-hidden">
-        {/* Soft background ambient gradient glow */}
-        <div className="absolute -top-12 -right-12 w-96 h-96 bg-gradient-to-br from-orange-400/15 via-amber-300/10 to-indigo-400/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-10 left-1/3 w-80 h-80 bg-orange-500/5 rounded-full blur-2xl pointer-events-none" />
+      {/* 1. HERO STAT STRIP (3-4 Stat Cards in a row) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Stat 1: Available Balance */}
+        <StatCard
+          title="Available Balance"
+          value={`${remainingCredits.toLocaleString()}`}
+          subtitle="9,000 monthly allowance"
+          icon={Coins}
+          color={isLow ? 'rose' : 'orange'}
+          trend={isLow ? 'Low Balance' : 'Active'}
+          trendPositive={!isLow}
+        />
 
-        <div className="relative z-10 max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200/60 text-orange-700 text-[11px] font-bold uppercase tracking-wider shadow-stripe-sm">
-            <Sparkles className="w-3.5 h-3.5 text-orange-600" />
-            <span>Digital Mess Hub • VIT Campus</span>
+        {/* Stat 2: Used Monthly Credits */}
+        <StatCard
+          title="Used This Cycle"
+          value={`${usedCredits.toLocaleString()}`}
+          subtitle="Monthly dining spend"
+          icon={CreditCard}
+          color="indigo"
+        />
+
+        {/* Stat 3: Active Meal Tray */}
+        <StatCard
+          title="Meal Tray Items"
+          value={`${totalCount} ${totalCount === 1 ? 'dish' : 'dishes'}`}
+          subtitle={totalCount > 0 ? `Subtotal: ${totalAmount} credits` : 'Tray is empty'}
+          icon={ShoppingBag}
+          color="emerald"
+          onClick={() => setCartOpen(true)}
+        />
+
+        {/* Stat 4: Mess Status */}
+        <StatCard
+          title="Campus Mess Status"
+          value="Kitchen Open"
+          subtitle="Accepting meal orders"
+          icon={Sparkles}
+          color="amber"
+          trend="Live Queue"
+          trendPositive={true}
+        />
+      </div>
+
+      {/* 2. MAIN CONTENT AREA: 2-Column Grid (Main 70% + Sidebar Widget 30%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* LEFT 70% (col-span-8): Menu Filter & Catalog Grid */}
+        <div className="lg:col-span-8 space-y-5">
+          
+          {/* Filter Bar & Search */}
+          <div className="card-static flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5">
+            
+            {/* Category Segmented Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 max-w-full">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
+                    selectedCategory === cat
+                      ? 'bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white shadow-level-4'
+                      : 'bg-[#FAFAFB] text-body hover:text-ink hover:bg-slate-100 border border-border'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Search Input */}
+            <div className="relative w-full sm:w-56 shrink-0">
+              <Search className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search food items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="input-field pl-9 h-9 text-xs"
+              />
+            </div>
           </div>
 
-          <h1 className="text-2xl sm:text-3.5xl font-black tracking-tight text-slate-900 leading-tight">
-            Craving Good Food, <span className="text-orange-600">{user?.name?.split(' ')[0] || 'Student'}</span>?
-          </h1>
+          {/* Dishes Catalog Grid */}
+          {loading ? (
+            <div className="card text-center py-16 text-muted">
+              <div className="w-8 h-8 border-2 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-xs font-semibold">Loading daily fresh menu...</p>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="card text-center py-16 text-muted space-y-2">
+              <UtensilsCrossed className="w-10 h-10 mx-auto text-slate-300" />
+              <h3 className="text-h3 text-ink">No dishes found</h3>
+              <p className="text-body text-xs">Try selecting a different meal category or clearing your search.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {filteredItems.map((item) => (
+                <MenuCard key={item.item_id} item={item} />
+              ))}
+            </div>
+          )}
+        </div>
 
-          <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-xl">
-            Order fresh breakfast, lunch, snacks, and dinner directly from your phone. Zero queue time, live kitchen status tracking, and 1:1 instant credit top-ups.
-          </p>
+        {/* RIGHT 30% (col-span-4): Sidebar Tray & Razorpay Refill Widget */}
+        <div className="lg:col-span-4 space-y-5">
+          
+          {/* Active Tray Summary Card */}
+          <div className="card space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-divider">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#FF6B35] flex items-center justify-center">
+                  <ShoppingBag className="w-4 h-4" />
+                </div>
+                <h3 className="text-h3 text-ink">Your Meal Tray</h3>
+              </div>
+              <span className="status-pill status-pill-info text-[11px]">
+                {totalCount} items
+              </span>
+            </div>
 
-          <div className="pt-2 flex flex-wrap items-center gap-2.5">
-            <button
-              onClick={() => setIsOpen(true)}
-              className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-stripe-sm hover:shadow-stripe-md transition-all duration-150 flex items-center gap-2 active:scale-95"
-            >
-              <ShoppingBag className="w-4 h-4 text-orange-400" />
-              <span>View Tray ({totalItemCount})</span>
-            </button>
+            {totalCount === 0 ? (
+              <div className="py-6 text-center text-muted text-xs space-y-1">
+                <p>Your meal tray is currently empty.</p>
+                <p className="text-[11px]">Select items from the daily catalog to order.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="max-h-48 overflow-y-auto divide-y divide-divider text-xs">
+                  {cart.map((i) => (
+                    <div key={i.item_id} className="py-2 flex items-center justify-between">
+                      <div>
+                        <span className="font-semibold text-ink block">{i.item_name}</span>
+                        <span className="text-muted text-[11px]">{i.quantity} × {i.price} credits</span>
+                      </div>
+                      <span className="font-bold text-ink tabular-nums">
+                        {i.quantity * i.price} Cr
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-3 border-t border-divider flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted uppercase">Total Amount</span>
+                  <span className="text-xl font-bold text-[#FF6B35] tabular-nums">
+                    {totalAmount} Credits
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => setCartOpen(true)}
+                  className="w-full btn-primary py-2.5 text-xs"
+                >
+                  <span>Review Tray & Checkout</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Credit Refill Promo Card */}
+          <div className="card bg-gradient-to-br from-orange-50/80 via-amber-50/50 to-white border-orange-200/60 space-y-3.5">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FF6B35] to-[#F7931E] text-white flex items-center justify-center shadow-level-4">
+                <CreditCard className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-ink">Buy Dining Credits</h3>
+                <span className="text-[11px] text-muted font-medium">Instant Razorpay Top-Up</span>
+              </div>
+            </div>
+
+            <p className="text-body text-xs leading-relaxed">
+              Top up your balance instantly using UPI, NetBanking, or Debit Card. ₹1 = 1 Credit.
+            </p>
 
             <button
               onClick={() => setIsTopupOpen(true)}
-              className="px-4 py-2.5 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-stripe-sm hover:shadow-glow-orange transition-all duration-150 flex items-center gap-2 active:scale-95"
+              className="w-full btn-secondary text-xs py-2 justify-center"
             >
-              <PlusCircle className="w-4 h-4" />
-              <span>Buy Credits (₹1 = 1 Cr)</span>
+              <Plus className="w-3.5 h-3.5 text-[#FF6B35]" />
+              <span>Add Credits Now</span>
             </button>
+          </div>
+
+          {/* Live Pickup Orders Link */}
+          <div className="card p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-status-success flex items-center justify-center border border-emerald-100 shrink-0">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-ink block">Track Orders Live</span>
+                <span className="text-[11px] text-muted">View tokens & prep stage</span>
+              </div>
+            </div>
 
             <button
               onClick={onNavigateToOrders}
-              className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm rounded-xl border border-slate-200/80 shadow-stripe-sm transition flex items-center gap-1.5 active:scale-95"
+              className="w-8 h-8 rounded-full bg-[#FAFAFB] border border-border text-ink hover:bg-[#FF6B35] hover:text-white hover:border-transparent flex items-center justify-center transition"
             >
-              <Clock className="w-4 h-4 text-slate-500" />
-              <span>Track Orders</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
+
         </div>
+
       </div>
 
-      {/* Quick Add Credits Promo Card (Hi-Tech Light Stripe FinTech Style) */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-stripe border border-slate-200/80 flex flex-col md:flex-row items-center justify-between gap-4 relative overflow-hidden group">
-        <div className="flex items-center gap-3.5 relative z-10">
-          <div className="w-11 h-11 rounded-2xl bg-orange-50 border border-orange-200/80 text-orange-600 flex items-center justify-center shadow-stripe-sm shrink-0">
-            <Coins className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-black text-sm sm:text-base text-slate-900">Need Extra Mess Credits?</h3>
-              <span className="bg-orange-50 text-orange-700 border border-orange-200/60 text-[10px] uppercase font-black px-2 py-0.5 rounded-full">
-                ₹1 = 1 Credit
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Instant balance refill via UPI, Cards, NetBanking with Razorpay.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 w-full md:w-auto relative z-10">
-          {[50, 100, 200, 500].map(amt => (
-            <button
-              key={amt}
-              type="button"
-              onClick={() => setIsTopupOpen(true)}
-              className="flex-1 md:flex-none px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200 text-xs font-black text-slate-700 border border-slate-200/80 transition-all duration-150 active:scale-95 text-center shadow-stripe-sm tabular-nums"
-            >
-              +₹{amt}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setIsTopupOpen(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-xs font-black text-white shadow-stripe-sm hover:shadow-glow-orange transition-all duration-150 flex items-center gap-1 shrink-0 active:scale-95"
-          >
-            <span>Top Up</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        {/* Category Pills (Stripe Tab Style) */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 border border-slate-200/60 rounded-2xl overflow-x-auto scrollbar-none shadow-stripe-sm">
-          {CATEGORIES.map(category => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-150 ${
-                selectedCategory === category
-                  ? 'bg-white text-slate-900 shadow-stripe-sm'
-                  : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-
-        {/* Search & Live Refresh */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 md:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search dishes or beverages..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 shadow-stripe-sm transition"
-            />
-          </div>
-          <button
-            onClick={handleRefresh}
-            className={`p-2 bg-white border border-slate-200/80 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition shadow-stripe-sm ${refreshing ? 'animate-spin' : ''}`}
-            title="Refresh menu stock"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Menu Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="bg-white rounded-2.5xl p-4 border border-slate-200/80 shadow-stripe animate-pulse space-y-3">
-              <div className="h-44 bg-slate-100 rounded-xl w-full" />
-              <div className="h-4 bg-slate-100 rounded w-3/4" />
-              <div className="h-3 bg-slate-100 rounded w-full" />
-              <div className="h-9 bg-slate-100 rounded-xl w-full mt-4" />
-            </div>
-          ))}
-        </div>
-      ) : filteredItems.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-stripe p-12 text-center space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-100 text-orange-500 flex items-center justify-center mx-auto shadow-stripe-sm">
-            <Filter className="w-7 h-7 stroke-1" />
-          </div>
-          <h3 className="text-base font-bold text-slate-800">No dishes found</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            We couldn't find any dishes matching "{searchQuery}". Try selecting another category or clearing your search.
-          </p>
-          <button
-            onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }}
-            className="px-4 py-2 bg-orange-50 text-orange-600 rounded-xl text-xs font-bold hover:bg-orange-100 transition"
-          >
-            Reset Filters
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredItems.map(item => (
-            <MenuCard key={item.item_id} item={item} />
-          ))}
-        </div>
-      )}
-
-      {/* Topup Modal */}
-      <TopupModal
-        isOpen={isTopupOpen}
-        onClose={() => setIsTopupOpen(false)}
-        onSuccess={() => fetchMenu()}
-      />
+      {/* Razorpay Top-Up Modal */}
+      <TopupModal isOpen={isTopupOpen} onClose={() => setIsTopupOpen(false)} />
     </div>
   );
 }

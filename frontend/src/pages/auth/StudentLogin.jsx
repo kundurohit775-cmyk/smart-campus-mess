@@ -14,7 +14,9 @@ import {
   RotateCcw, 
   AlertCircle,
   ArrowLeft,
-  ShieldCheck
+  ShieldCheck,
+  Sparkles,
+  Coins
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -246,47 +248,102 @@ export function StudentLogin({ onBack }) {
   const isVitEmail = email.trim().toLowerCase().endsWith('@vitstudent.ac.in');
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 relative overflow-hidden subtle-mesh-bg">
-      {/* Ambient background glows */}
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[720px] h-[360px] bg-gradient-to-tr from-orange-400/10 via-amber-300/15 to-indigo-400/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-[#FAFAFB] flex flex-col md:flex-row">
+      
+      {/* LEFT 45% PANEL: Branded Gradient Panel with Messaging */}
+      <div className="w-full md:w-[45%] bg-gradient-to-br from-[#FF6B35] via-[#FF7A45] to-[#F7931E] text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden shrink-0">
+        {/* Subtle geometric overlay pattern */}
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+        
+        {/* Top Back / Logo */}
+        <div className="relative z-10 space-y-6">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold backdrop-blur-md transition active:scale-95 border border-white/20"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Role Selection</span>
+          </button>
 
-      {/* Header with Back button */}
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center mb-2">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 text-slate-600 hover:text-slate-900 text-xs font-bold shadow-stripe-sm hover:shadow-stripe transition mb-4 active:scale-95"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Change Role / Back</span>
-        </button>
-
-        <div className="w-12 h-12 rounded-2.5xl bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-400 flex items-center justify-center text-white shadow-stripe-md shadow-orange-500/20 mx-auto mb-3 border border-white/60">
-          <GraduationCap className="w-6 h-6" />
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 shadow-level-1">
+              <UtensilsCrossed className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-xl font-bold tracking-tight block">SmartMess</span>
+              <span className="text-xs text-orange-100 font-medium">Campus Food & Credit Hub</span>
+            </div>
+          </div>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-          Student Portal
-        </h1>
-        <p className="mt-1 text-xs sm:text-sm text-slate-500 font-medium">
-          Sign in to access your daily meals & 9,000 monthly credits
-        </p>
+
+        {/* Middle Messaging */}
+        <div className="relative z-10 py-8 space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-white text-[#FF6B35] flex items-center justify-center shadow-level-2 mb-2">
+            <GraduationCap className="w-6 h-6" />
+          </div>
+
+          <h2 className="text-2xl sm:text-3.5xl font-bold tracking-tight leading-snug">
+            Student Meal Portal & Credit Management
+          </h2>
+          
+          <p className="text-orange-100 text-sm sm:text-[15px] leading-relaxed max-w-md">
+            Order food without waiting in lines. Every active student receives <strong>9,000 monthly credits</strong> with instant Razorpay top-ups.
+          </p>
+
+          <div className="pt-4 space-y-2.5 text-xs text-orange-50/90 font-medium">
+            <div className="flex items-center gap-2.5">
+              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-3.5 h-3.5 text-white" />
+              </div>
+              <span>Instant pickup token queue system</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-3.5 h-3.5 text-white" />
+              </div>
+              <span>Transparent credit audit ledger & refunds</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-3.5 h-3.5 text-white" />
+              </div>
+              <span>Verified student registration via Email OTP</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Footer note */}
+        <div className="relative z-10 pt-4 border-t border-white/20 text-xs text-orange-100/80">
+          VIT University Campus Mess Network
+        </div>
       </div>
 
-      {/* Main Card */}
-      <div className="mt-4 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="bg-white py-7 px-6 sm:px-9 rounded-3xl shadow-stripe-lg border border-slate-200/80 relative overflow-hidden">
-          <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-orange-500 via-amber-400 to-orange-600" />
+      {/* RIGHT 55% PANEL: Form Panel Centered Vertically */}
+      <div className="w-full md:w-[55%] flex items-center justify-center p-6 sm:p-10 lg:p-14 bg-[#FAFAFB]">
+        <div className="max-w-md w-full bg-white p-7 sm:p-9 rounded-2xl shadow-level-1 border border-border space-y-6">
+          
+          {/* Header */}
+          <div>
+            <span className="text-micro text-[#FF6B35] font-semibold block mb-1">Student Portal</span>
+            <h2 className="text-h2 text-ink">
+              {isRegister ? 'Register Student Account' : 'Sign in to Your Account'}
+            </h2>
+            <p className="text-body text-xs sm:text-sm mt-1">
+              {isRegister ? 'Sign up with your official VIT student email' : 'Access your daily menu and credit balance'}
+            </p>
+          </div>
 
-          {/* Tab Switcher: Sign In vs Register */}
+          {/* Tab Switcher: Sign In vs Register (Hidden on OTP verification step) */}
           {(!isRegister || registerStep === 'form') && (
-            <div className="flex bg-slate-100/90 p-1 rounded-xl mb-6 border border-slate-200/50">
+            <div className="flex bg-[#FAFAFB] p-1 rounded-xl border border-border">
               <button
                 type="button"
                 onClick={() => { setIsRegister(false); setRegisterStep('form'); }}
-                className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-150 ${
+                className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 ${
                   !isRegister 
-                    ? 'bg-white text-slate-900 shadow-stripe-sm' 
-                    : 'text-slate-500 hover:text-slate-900'
+                    ? 'bg-white text-ink shadow-level-1' 
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Sign In
@@ -294,10 +351,10 @@ export function StudentLogin({ onBack }) {
               <button
                 type="button"
                 onClick={() => { setIsRegister(true); setRegisterStep('form'); }}
-                className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-150 ${
+                className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 ${
                   isRegister 
-                    ? 'bg-white text-slate-900 shadow-stripe-sm' 
-                    : 'text-slate-500 hover:text-slate-900'
+                    ? 'bg-white text-ink shadow-level-1' 
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Register Student
@@ -305,18 +362,20 @@ export function StudentLogin({ onBack }) {
             </div>
           )}
 
-          {/* TAB 1: SIGN IN */}
+          {/* =============================================================== */}
+          {/* TAB 1: SIGN IN                                                  */}
+          {/* =============================================================== */}
           {!isRegister ? (
-            <div>
+            <div className="space-y-5">
               {/* Method Switcher */}
-              <div className="flex items-center justify-center gap-1.5 mb-5 p-1 bg-slate-50 border border-slate-200/80 rounded-xl">
+              <div className="flex items-center justify-center gap-1.5 p-1 bg-[#FAFAFB] border border-border rounded-xl">
                 <button
                   type="button"
                   onClick={() => setLoginMethod('password')}
-                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 py-1.5 px-3 rounded-[8px] text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
                     loginMethod === 'password'
-                      ? 'bg-white text-orange-600 shadow-stripe-sm border border-slate-200/60'
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-white text-[#FF6B35] shadow-level-1 border border-border'
+                      : 'text-muted hover:text-ink'
                   }`}
                 >
                   <Mail className="w-3.5 h-3.5" />
@@ -325,10 +384,10 @@ export function StudentLogin({ onBack }) {
                 <button
                   type="button"
                   onClick={() => setLoginMethod('otp')}
-                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 py-1.5 px-3 rounded-[8px] text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
                     loginMethod === 'otp'
-                      ? 'bg-white text-orange-600 shadow-stripe-sm border border-slate-200/60'
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-white text-[#FF6B35] shadow-level-1 border border-border'
+                      : 'text-muted hover:text-ink'
                   }`}
                 >
                   <Smartphone className="w-3.5 h-3.5" />
@@ -337,45 +396,39 @@ export function StudentLogin({ onBack }) {
               </div>
 
               {loginMethod === 'password' ? (
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                <form onSubmit={handleLoginSubmit} className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
                       VIT Student Email Address
                     </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="email"
-                        required
-                        placeholder="student@vitstudent.ac.in"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
-                      />
-                    </div>
+                    <input
+                      type="email"
+                      required
+                      placeholder="student@vitstudent.ac.in"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="input-field"
+                    />
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
                       Password
                     </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="password"
-                        required
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
-                      />
-                    </div>
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="input-field"
+                    />
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full mt-2 py-3 px-4 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-stripe-sm hover:shadow-glow-orange flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] disabled:opacity-50"
+                    className="w-full btn-primary"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -388,29 +441,26 @@ export function StudentLogin({ onBack }) {
                   </button>
                 </form>
               ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                <div className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
                       Registered Mobile Number
                     </label>
                     <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="tel"
-                          placeholder="+91-9876543210"
-                          value={otpPhone}
-                          onChange={(e) => setOtpPhone(e.target.value)}
-                          disabled={smsOtpSent}
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition disabled:bg-slate-100"
-                        />
-                      </div>
+                      <input
+                        type="tel"
+                        placeholder="+91-9876543210"
+                        value={otpPhone}
+                        onChange={(e) => setOtpPhone(e.target.value)}
+                        disabled={smsOtpSent}
+                        className="input-field flex-1"
+                      />
                       {!smsOtpSent ? (
                         <button
                           type="button"
                           onClick={handleSendMobileSms}
                           disabled={sendingSms || !otpPhone}
-                          className="px-4 py-2.5 bg-slate-900 hover:bg-orange-600 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl shadow-stripe-sm transition shrink-0"
+                          className="px-4 bg-ink text-white font-semibold text-xs rounded-btn shadow-level-1 hover:bg-black transition shrink-0"
                         >
                           {sendingSms ? 'Sending...' : 'Send SMS'}
                         </button>
@@ -418,7 +468,7 @@ export function StudentLogin({ onBack }) {
                         <button
                           type="button"
                           onClick={() => { setSmsOtpSent(false); setSmsOtpCode(''); }}
-                          className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition text-xs font-semibold"
+                          className="px-3 bg-slate-100 hover:bg-slate-200 text-ink rounded-btn text-xs font-semibold"
                         >
                           Edit
                         </button>
@@ -427,56 +477,52 @@ export function StudentLogin({ onBack }) {
                   </div>
 
                   {smsOtpSent && (
-                    <form onSubmit={handleVerifyMobileSms} className="space-y-4 pt-2 animate-fade-in">
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                            Enter 6-Digit SMS Code
+                    <form onSubmit={handleVerifyMobileSms} className="space-y-5 pt-2 animate-fade-in">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
+                            6-Digit SMS Code
                           </label>
-                          <span className="text-xs font-mono font-bold text-orange-600">
+                          <span className="text-xs font-mono font-bold text-[#FF6B35]">
                             ⏱️ {formatTimer(smsCountdown)}
                           </span>
                         </div>
-                        <div className="relative">
-                          <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            maxLength="6"
-                            required
-                            autoFocus
-                            placeholder="••••••"
-                            value={smsOtpCode}
-                            onChange={(e) => setSmsOtpCode(e.target.value.replace(/\D/g, ''))}
-                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-lg font-mono font-bold tracking-widest text-center focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
-                          />
-                        </div>
+                        <input
+                          type="text"
+                          maxLength="6"
+                          required
+                          autoFocus
+                          placeholder="••••••"
+                          value={smsOtpCode}
+                          onChange={(e) => setSmsOtpCode(e.target.value.replace(/\D/g, ''))}
+                          className="input-field font-mono text-lg tracking-widest text-center"
+                        />
                       </div>
 
                       <button
                         type="submit"
                         disabled={loading || smsOtpCode.length !== 6 || smsCountdown <= 0}
-                        className="w-full py-3 px-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm rounded-xl shadow-stripe-sm hover:shadow-glow-orange flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50"
+                        className="w-full btn-primary"
                       >
                         {loading ? (
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         ) : (
                           <>
-                            <span>Verify & Sign In</span>
+                            <span>Verify SMS & Sign In</span>
                             <ArrowRight className="w-4 h-4" />
                           </>
                         )}
                       </button>
 
-                      <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
+                      <div className="flex items-center justify-between text-xs text-muted pt-1">
                         <span>Didn't receive SMS?</span>
                         <button
                           type="button"
                           onClick={handleSendMobileSms}
                           disabled={sendingSms || smsCountdown > 240}
-                          className="font-bold text-orange-600 hover:text-orange-700 disabled:opacity-40 flex items-center gap-1"
+                          className="font-semibold text-[#FF6B35] hover:underline disabled:opacity-40"
                         >
-                          <RotateCcw className="w-3 h-3" />
-                          <span>Resend SMS</span>
+                          Resend SMS
                         </button>
                       </div>
                     </form>
@@ -485,113 +531,94 @@ export function StudentLogin({ onBack }) {
               )}
             </div>
           ) : (
-            /* TAB 2: REGISTER STUDENT */
+            /* =============================================================== */
+            /* TAB 2: REGISTER STUDENT (EMAIL OTP FLOW)                         */
+            /* =============================================================== */
             <div>
               {registerStep === 'form' ? (
-                <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Full Name</label>
-                    <div className="relative">
-                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Full Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Alex Chen"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="input-field"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Hostel Room</label>
                       <input
                         type="text"
-                        required
-                        placeholder="e.g. Alex Chen"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-slate-50/80 border border-slate-200/80 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
+                        placeholder="e.g. B-302"
+                        value={roomNumber}
+                        onChange={(e) => setRoomNumber(e.target.value)}
+                        className="input-field"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Mobile Phone</label>
+                      <input
+                        type="tel"
+                        placeholder="+91-9876543210"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="input-field"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hostel Room</label>
-                      <div className="relative">
-                        <Home className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          placeholder="e.g. B-302"
-                          value={roomNumber}
-                          onChange={(e) => setRoomNumber(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 bg-slate-50/80 border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Mobile Phone</label>
-                      <div className="relative">
-                        <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="tel"
-                          placeholder="+91-9876543210"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 bg-slate-50/80 border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                        VIT Campus Email
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
+                        VIT Student Email
                       </label>
                       {email && (
-                        <span className={`text-[10px] font-bold ${isVitEmail ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        <span className={`text-[11px] font-bold ${isVitEmail ? 'text-status-success' : 'text-status-danger'}`}>
                           {isVitEmail ? '✓ Valid VIT' : '✗ @vitstudent.ac.in'}
                         </span>
                       )}
                     </div>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="email"
-                        required
-                        placeholder="your.name2024@vitstudent.ac.in"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className={`w-full pl-10 pr-4 py-2 bg-slate-50/80 border rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:ring-4 transition ${
-                          email && !isVitEmail
-                            ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/10'
-                            : 'border-slate-200/80 focus:border-orange-500 focus:ring-orange-500/10'
-                        }`}
-                      />
-                    </div>
-
+                    <input
+                      type="email"
+                      required
+                      placeholder="your.name2024@vitstudent.ac.in"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="input-field"
+                    />
                     {email && !isVitEmail && (
-                      <p className="mt-1 text-[11px] text-rose-600 flex items-center gap-1 font-medium">
-                        <AlertCircle className="w-3 h-3 shrink-0" />
-                        <span>Only VIT student email addresses (@vitstudent.ac.in) are allowed.</span>
+                      <p className="text-xs text-status-danger mt-1">
+                        Only official VIT student email addresses are permitted.
                       </p>
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="password"
-                        required
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-slate-50/80 border border-slate-200/80 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
-                      />
-                    </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Password</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="input-field"
+                    />
                   </div>
 
-                  <div className="p-3 bg-amber-50/70 border border-amber-200/70 rounded-xl text-xs text-amber-900 flex items-start gap-2 shadow-stripe-sm">
-                    <CheckCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <span>A <strong>6-digit OTP code</strong> will be sent to your email to verify and activate your 9,000 monthly credits.</span>
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-xs text-amber-900 flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-[#D97706] shrink-0 mt-0.5" />
+                    <span>A <strong>6-digit OTP code</strong> will be sent to verify and allocate your 9,000 monthly credits.</span>
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading || !isVitEmail}
-                    className="w-full mt-2 py-3 px-4 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-stripe-sm hover:shadow-glow-orange flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] disabled:opacity-50"
+                    className="w-full btn-primary mt-2"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -604,55 +631,51 @@ export function StudentLogin({ onBack }) {
                   </button>
                 </form>
               ) : (
-                <div className="space-y-4 animate-fade-in">
+                <div className="space-y-5 animate-fade-in">
                   <div className="text-center space-y-1">
-                    <div className="w-11 h-11 rounded-2xl bg-orange-50 text-orange-600 border border-orange-200/80 flex items-center justify-center mx-auto mb-2 shadow-stripe-sm">
-                      <Mail className="w-5 h-5" />
+                    <div className="w-12 h-12 rounded-2xl bg-orange-50 text-[#FF6B35] flex items-center justify-center mx-auto mb-2 border border-orange-100">
+                      <Mail className="w-6 h-6" />
                     </div>
-                    <h3 className="text-base font-black text-slate-900">
+                    <h3 className="text-h3 text-ink">
                       Verify Your VIT Email
                     </h3>
-                    <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                    <p className="text-body text-xs max-w-xs mx-auto">
                       Enter the 6-digit verification code sent to <br />
-                      <strong className="text-slate-800 font-bold">{email}</strong>
+                      <strong className="text-ink">{email}</strong>
                     </p>
                   </div>
 
-                  <form onSubmit={handleVerifyRegisterOtp} className="space-y-4 pt-1">
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                          Enter 6-Digit Email OTP
+                  <form onSubmit={handleVerifyRegisterOtp} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
+                          6-Digit Email OTP
                         </label>
-                        <span className="text-xs font-mono font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-200/60">
+                        <span className="text-xs font-mono font-bold text-[#FF6B35] bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-200/60">
                           ⏱️ {formatTimer(countdown)}
                         </span>
                       </div>
-
-                      <div className="relative">
-                        <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          maxLength="6"
-                          required
-                          autoFocus
-                          placeholder="••••••"
-                          value={registerOtpCode}
-                          onChange={(e) => setRegisterOtpCode(e.target.value.replace(/\D/g, ''))}
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xl font-mono font-bold tracking-widest text-center focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        maxLength="6"
+                        required
+                        autoFocus
+                        placeholder="••••••"
+                        value={registerOtpCode}
+                        onChange={(e) => setRegisterOtpCode(e.target.value.replace(/\D/g, ''))}
+                        className="input-field font-mono text-xl font-bold tracking-widest text-center"
+                      />
                     </div>
 
-                    <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-600 flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Code valid for 10 minutes. 5 max attempts allowed.</span>
+                    <div className="p-2.5 bg-[#FAFAFB] border border-border rounded-xl text-xs text-muted flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-status-success shrink-0" />
+                      <span>Code valid for 10 minutes (5 max attempts).</span>
                     </div>
 
                     <button
                       type="submit"
                       disabled={loading || registerOtpCode.length !== 6 || countdown <= 0}
-                      className="w-full py-3 px-4 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-stripe-sm hover:shadow-glow-orange flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] disabled:opacity-50"
+                      className="w-full btn-primary"
                     >
                       {loading ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -664,25 +687,23 @@ export function StudentLogin({ onBack }) {
                       )}
                     </button>
 
-                    <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-xs text-muted pt-2 border-t border-divider">
                       <button
                         type="button"
                         onClick={() => { setRegisterStep('form'); setRegisterOtpCode(''); }}
-                        className="font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1"
+                        className="font-semibold text-ink hover:text-[#FF6B35] flex items-center gap-1"
                       >
                         <ArrowLeft className="w-3.5 h-3.5" />
-                        <span>Back / Edit Details</span>
+                        <span>Edit Details</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={handleResendRegisterOtp}
                         disabled={resendingOtp || countdown > 0}
-                        className="font-bold text-orange-600 hover:text-orange-700 disabled:opacity-40 flex items-center gap-1"
-                        title={countdown > 0 ? `Wait ${formatTimer(countdown)} before resending` : 'Resend Code'}
+                        className="font-semibold text-[#FF6B35] hover:underline disabled:opacity-40"
                       >
-                        <RotateCcw className={`w-3.5 h-3.5 ${resendingOtp ? 'animate-spin' : ''}`} />
-                        <span>{resendingOtp ? 'Sending...' : 'Resend OTP'}</span>
+                        {resendingOtp ? 'Sending...' : 'Resend Code'}
                       </button>
                     </div>
                   </form>

@@ -1,29 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle2, Ban, RotateCcw, AlertTriangle, ChevronDown, ChevronUp, ShoppingBag, Utensils, Sparkles } from 'lucide-react';
+import { 
+  Clock, 
+  ShoppingBag, 
+  CheckCircle2, 
+  ChevronDown, 
+  ChevronUp, 
+  Sparkles, 
+  UtensilsCrossed, 
+  RotateCcw,
+  ArrowRight,
+  BellRing
+} from 'lucide-react';
 import { api } from '../../services/api';
 import { OrderStepper } from '../../components/OrderStepper';
-import { Modal } from '../../components/Modal';
-import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../context/ToastContext';
-import { useCart } from '../../context/CartContext';
 
 export function OrderTracking({ onBrowseMenu }) {
-  const { refreshUser } = useAuth();
-  const { showToast } = useToast();
-  const { addItem, setIsOpen } = useCart();
-
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [cancellingId, setCancellingId] = useState(null);
-  const [orderToCancel, setOrderToCancel] = useState(null);
-  const [expandedOrders, setExpandedOrders] = useState({});
+  const [expandedId, setExpandedId] = useState(null);
 
   const fetchOrders = async () => {
     try {
-      const data = await api.getOrders();
-      setOrders(data.orders || []);
+      const res = await api.getOrders();
+      setOrders(res.orders || []);
     } catch (err) {
-      console.error('Failed to fetch orders:', err);
+      console.error('Failed to load orders:', err);
     } finally {
       setLoading(false);
     }
@@ -31,320 +32,210 @@ export function OrderTracking({ onBrowseMenu }) {
 
   useEffect(() => {
     fetchOrders();
-    // Live polling every 3.5 seconds
-    const interval = setInterval(fetchOrders, 3500);
+    const interval = setInterval(fetchOrders, 4000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleCancelOrder = async () => {
-    if (!orderToCancel) return;
-    setCancellingId(orderToCancel.order_id);
+  const activeOrders = orders.filter(o => o.order_status !== 'Completed' && o.order_status !== 'Cancelled');
+  const pastOrders = orders.filter(o => o.order_status === 'Completed' || o.order_status === 'Cancelled');
 
-    try {
-      const res = await api.cancelOrder(orderToCancel.order_id);
-      showToast(res.message, 'success');
-      await refreshUser();
-      await fetchOrders();
-      setOrderToCancel(null);
-    } catch (err) {
-      showToast(err.message || 'Failed to cancel order', 'error');
-    } finally {
-      setCancellingId(null);
-    }
+  const toggleExpand = (id) => {
+    setExpandedId(expandedId === id ? null : id);
   };
-
-  const toggleExpand = (orderId) => {
-    setExpandedOrders(prev => ({
-      ...prev,
-      [orderId]: !prev[orderId]
-    }));
-  };
-
-  const handleReorder = (order) => {
-    if (!order.items || order.items.length === 0) return;
-    let addedCount = 0;
-    order.items.forEach(item => {
-      addItem({
-        item_id: item.item_id,
-        item_name: item.item_name,
-        category: item.category,
-        price: item.price,
-        image_url: item.image_url,
-        available_quantity: 99
-      }, item.quantity);
-      addedCount++;
-    });
-
-    if (addedCount > 0) {
-      setIsOpen(true);
-    }
-  };
-
-  // Group active vs history
-  const activeOrders = orders.filter(o => ['Pending', 'Accepted', 'Preparing', 'Ready'].includes(o.order_status));
-  const pastOrders = orders.filter(o => ['Completed', 'Cancelled'].includes(o.order_status));
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-5">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Order Status & History
+          <h1 className="text-h1 text-ink">
+            Live Order Tracking
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Live kitchen preparation status, token numbers, and re-order history
+          <p className="text-body text-xs sm:text-sm mt-0.5">
+            Monitor real-time food preparation stages and pick up using your token
           </p>
         </div>
+
         <button
-          onClick={onBrowseMenu}
-          className="self-start sm:self-auto px-4 py-2 bg-white hover:bg-orange-50 text-orange-600 font-bold text-xs rounded-xl border border-slate-200/80 shadow-stripe-sm transition flex items-center gap-1.5 active:scale-95"
+          onClick={fetchOrders}
+          className="btn-secondary py-2 px-3.5 text-xs self-start sm:self-auto"
         >
-          <Utensils className="w-3.5 h-3.5" />
-          <span>Order More Food</span>
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span>Refresh Status</span>
         </button>
       </div>
 
-      {/* SECTION 1: Active Orders */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-            <span>🔥 Active Kitchen Orders</span>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-orange-50 text-orange-700 border border-orange-200/60">
-              {activeOrders.length}
-            </span>
-          </h2>
-          <span className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live kitchen sync
+      {/* 1. ACTIVE ORDERS SECTION */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="text-micro text-[#FF6B35] font-semibold">Active In-Kitchen Orders</span>
+          <span className="status-pill status-pill-warning text-[11px] py-0.5 px-2">
+            {activeOrders.length} In Progress
           </span>
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-stripe animate-pulse space-y-4">
-            <div className="h-6 bg-slate-100 rounded w-1/4" />
-            <div className="h-16 bg-slate-100 rounded-xl" />
+          <div className="card text-center py-12 text-muted">
+            <div className="w-8 h-8 border-2 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <p className="text-xs font-semibold">Syncing with kitchen queue...</p>
           </div>
         ) : activeOrders.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-stripe p-8 sm:p-10 text-center space-y-3">
-            <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2.5xl bg-orange-50 border border-orange-100 text-orange-400 flex items-center justify-center mx-auto shadow-stripe-sm">
-              <Clock className="w-7 h-7 stroke-1" />
+          <div className="card text-center py-12 text-muted space-y-3">
+            <ShoppingBag className="w-10 h-10 mx-auto text-slate-300" />
+            <div>
+              <h3 className="text-h3 text-ink">No active orders</h3>
+              <p className="text-body text-xs mt-1">You don't have any meals currently cooking in the mess kitchen.</p>
             </div>
-            <h3 className="font-bold text-base text-slate-800">No Active Orders Right Now</h3>
-            <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
-              You don't have any meals in preparation. Check out today's menu to place a new order!
-            </p>
-            <button
-              onClick={onBrowseMenu}
-              className="px-5 py-2.5 bg-slate-900 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-stripe-sm transition active:scale-95"
-            >
-              Browse Today's Menu
-            </button>
+            {onBrowseMenu && (
+              <button
+                onClick={onBrowseMenu}
+                className="btn-primary py-2.5 px-5 text-xs mx-auto"
+              >
+                <UtensilsCrossed className="w-3.5 h-3.5" />
+                <span>Browse Menu to Order</span>
+              </button>
+            )}
           </div>
         ) : (
-          <div className="space-y-6">
-            {activeOrders.map(order => {
-              const isPending = order.order_status === 'Pending';
+          <div className="space-y-4">
+            {activeOrders.map((order) => {
               const isReady = order.order_status === 'Ready';
 
               return (
-                <div
-                  key={order.order_id}
-                  className={`bg-white rounded-3xl border shadow-stripe transition-all overflow-hidden ${
-                    isReady ? 'border-emerald-300 ring-2 ring-emerald-500/10' : 'border-slate-200/80'
+                <div 
+                  key={order.order_id} 
+                  className={`card relative overflow-hidden ${
+                    isReady ? 'border-status-success bg-gradient-to-br from-white to-emerald-50/20' : ''
                   }`}
                 >
-                  {/* Order Card Header */}
-                  <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/60">
-                    <div className="flex items-center gap-3">
-                      <div className="px-3.5 py-1.5 rounded-xl bg-slate-900 text-white font-black text-xs sm:text-sm tracking-wider shadow-stripe-sm">
-                        {order.pickup_token || `#TK-${order.order_id}`}
-                      </div>
+                  {isReady && (
+                    <div className="absolute top-0 right-0 bg-status-success text-white px-4 py-1 text-[11px] font-semibold rounded-bl-xl shadow-level-1 flex items-center gap-1.5 animate-pulse">
+                      <BellRing className="w-3.5 h-3.5" />
+                      <span>Ready for Counter Pickup!</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-5">
+                    {/* Card Top Info */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
-                        <h3 className="font-black text-sm sm:text-base text-slate-900">
-                          Order #{order.order_id}
-                        </h3>
-                        <p className="text-[11px] text-slate-400 font-medium">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl font-bold text-ink">
+                            Order #{order.order_id}
+                          </span>
+                          <span className="status-pill status-pill-info text-xs">
+                            Token: {order.pickup_token}
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted block mt-0.5">
                           Placed at {new Date(order.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
+                        </span>
+                      </div>
+
+                      <div className="text-left sm:text-right">
+                        <span className="text-micro text-muted block">Total Paid</span>
+                        <span className="text-lg font-bold text-[#FF6B35] tabular-nums">
+                          {order.total_amount} Credits
+                        </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="font-black text-base text-slate-900 tabular-nums">{order.total_amount}</span>
-                        <span className="text-xs text-slate-400 font-medium ml-1">Credits</span>
+                    {/* Stepper Progress */}
+                    <div className="pt-2">
+                      <OrderStepper currentStatus={order.order_status} />
+                    </div>
+
+                    {/* Items List */}
+                    <div className="p-4 bg-[#FAFAFB] rounded-xl border border-border space-y-2">
+                      <span className="text-micro text-muted block">Order Dishes</span>
+                      <div className="space-y-1 text-xs">
+                        {order.items?.map((item, idx) => (
+                          <div key={idx} className="flex justify-between text-ink">
+                            <span>{item.quantity}x {item.item_name}</span>
+                            <span className="text-muted tabular-nums">{item.price_at_order * item.quantity} Cr</span>
+                          </div>
+                        ))}
                       </div>
-
-                      {/* Cancel Order Action */}
-                      {isPending ? (
-                        <button
-                          onClick={() => setOrderToCancel(order)}
-                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200/80 shadow-stripe-sm transition"
-                        >
-                          Cancel & Refund
-                        </button>
-                      ) : (
-                        <span
-                          className="px-3 py-1 bg-slate-100 text-slate-400 text-[11px] font-bold rounded-xl cursor-not-allowed"
-                          title="Cancellation is disabled once kitchen starts cooking"
-                        >
-                          Non-Cancellable
-                        </span>
-                      )}
                     </div>
-                  </div>
-
-                  {/* 5-Step Order Stepper */}
-                  <div className="px-5 sm:px-8 py-4">
-                    <OrderStepper status={order.order_status} />
-                  </div>
-
-                  {/* Order Items List */}
-                  <div className="px-5 sm:px-6 py-3.5 bg-slate-50/80 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-slate-500">Items:</span>
-                      {order.items?.map(item => (
-                        <span
-                          key={item.order_item_id}
-                          className="px-2.5 py-0.5 rounded-lg bg-white border border-slate-200/80 text-slate-800 font-bold shadow-stripe-sm"
-                        >
-                          {item.quantity}x {item.item_name}
-                        </span>
-                      ))}
-                    </div>
-                    {isReady && (
-                      <span className="text-emerald-700 font-black flex items-center gap-1 animate-pulse">
-                        <CheckCircle2 className="w-4 h-4" /> Ready at Counter 1!
-                      </span>
-                    )}
                   </div>
                 </div>
               );
             })}
           </div>
         )}
-      </section>
+      </div>
 
-      {/* SECTION 2: Order History */}
-      <section className="space-y-4 pt-2">
-        <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-          <span>📜 Past Orders</span>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-slate-100 text-slate-700 border border-slate-200/60">
-            {pastOrders.length}
-          </span>
-        </h2>
+      {/* 2. PAST ORDER HISTORY */}
+      {pastOrders.length > 0 && (
+        <div className="card-static space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-divider">
+            <h2 className="text-h2 text-ink">
+              Past Completed Orders
+            </h2>
+            <span className="text-xs text-muted">
+              {pastOrders.length} records
+            </span>
+          </div>
 
-        {pastOrders.length === 0 ? (
-          <p className="text-xs text-slate-400 italic">No past orders yet.</p>
-        ) : (
-          <div className="space-y-2.5">
-            {pastOrders.map(order => {
+          <div className="divide-y divide-divider">
+            {pastOrders.map((order) => {
+              const isExpanded = expandedId === order.order_id;
               const isCancelled = order.order_status === 'Cancelled';
-              const isExpanded = !!expandedOrders[order.order_id];
 
               return (
-                <div
-                  key={order.order_id}
-                  className="bg-white rounded-2xl border border-slate-200/80 shadow-stripe-sm overflow-hidden hover:border-slate-300 transition"
-                >
-                  <div
+                <div key={order.order_id} className="py-3.5 space-y-2">
+                  <div 
                     onClick={() => toggleExpand(order.order_id)}
-                    className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/50 transition gap-4"
+                    className="flex items-center justify-between cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition"
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`px-2.5 py-1 rounded-xl text-xs font-black border ${
-                        isCancelled ? 'bg-rose-50 text-rose-700 border-rose-200/80' : 'bg-emerald-50 text-emerald-800 border-emerald-200/80'
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${
+                        isCancelled ? 'bg-rose-50 text-status-danger' : 'bg-emerald-50 text-status-success'
                       }`}>
-                        {order.order_status}
-                      </span>
+                        #{order.order_id}
+                      </div>
                       <div>
-                        <h4 className="font-bold text-sm text-slate-900">
-                          Order #{order.order_id} ({order.pickup_token})
-                        </h4>
-                        <p className="text-[11px] text-slate-400 font-medium">
-                          {new Date(order.order_time).toLocaleString()}
-                        </p>
+                        <span className="font-semibold text-xs sm:text-sm text-ink block">
+                          Token: {order.pickup_token}
+                        </span>
+                        <span className="text-[11px] text-muted">
+                          {new Date(order.order_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <span className="font-black text-sm text-slate-900 tabular-nums">
-                        {order.total_amount} Credits
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-ink tabular-nums">
+                        {order.total_amount} Cr
                       </span>
-                      {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-slate-400" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-slate-400" />
-                      )}
+                      <span className={`status-pill text-[11px] ${
+                        isCancelled ? 'status-pill-danger' : 'status-pill-success'
+                      }`}>
+                        {order.order_status}
+                      </span>
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-muted" /> : <ChevronDown className="w-4 h-4 text-muted" />}
                     </div>
                   </div>
 
                   {isExpanded && (
-                    <div className="p-4 bg-slate-50/80 border-t border-slate-100 space-y-3 text-xs">
-                      <div className="space-y-1.5">
-                        {order.items?.map(item => (
-                          <div key={item.order_item_id} className="flex justify-between text-slate-700 font-medium">
-                            <span>{item.quantity}x {item.item_name}</span>
-                            <span className="font-bold tabular-nums">{item.subtotal} Credits</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="pt-2.5 border-t border-slate-200/80 flex justify-between items-center">
-                        <button
-                          onClick={() => handleReorder(order)}
-                          className="px-3 py-1.5 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 transition flex items-center gap-1.5 shadow-stripe-sm active:scale-95"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Re-order Items</span>
-                        </button>
-                        <span className="text-slate-400 text-[11px] font-medium">
-                          Completed: {order.completed_time ? new Date(order.completed_time).toLocaleTimeString() : 'N/A'}
-                        </span>
-                      </div>
+                    <div className="p-3.5 bg-[#FAFAFB] rounded-xl border border-border text-xs space-y-1.5 animate-fade-in">
+                      <span className="text-micro text-muted block">Items Breakdown:</span>
+                      {order.items?.map((item, idx) => (
+                        <div key={idx} className="flex justify-between text-body">
+                          <span>{item.quantity}x {item.item_name}</span>
+                          <span className="tabular-nums font-semibold">{item.price_at_order * item.quantity} Credits</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
-        )}
-      </section>
-
-      {/* Confirmation Modal for Order Cancellation */}
-      <Modal
-        isOpen={!!orderToCancel}
-        onClose={() => setOrderToCancel(null)}
-        title="Confirm Order Cancellation"
-      >
-        <div className="space-y-4">
-          <div className="p-4 bg-rose-50/80 border border-rose-200/80 rounded-2xl flex items-start gap-3 text-xs text-rose-900">
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold">Are you sure you want to cancel Order #{orderToCancel?.order_id}?</p>
-              <p className="mt-1 text-rose-700">
-                Full amount of <strong>{orderToCancel?.total_amount} Credits</strong> will be refunded immediately back to your student credit balance.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              onClick={() => setOrderToCancel(null)}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition"
-            >
-              Keep Order
-            </button>
-            <button
-              onClick={handleCancelOrder}
-              disabled={!!cancellingId}
-              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-stripe-sm transition flex items-center gap-2"
-            >
-              {cancellingId ? 'Refunding...' : 'Yes, Cancel & Refund'}
-            </button>
-          </div>
         </div>
-      </Modal>
+      )}
+
     </div>
   );
 }

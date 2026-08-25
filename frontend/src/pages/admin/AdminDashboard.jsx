@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, ShoppingBag, Coins, Clock, AlertTriangle, TrendingUp, ArrowRight, UtensilsCrossed, Sparkles } from 'lucide-react';
+import { 
+  Users, 
+  UtensilsCrossed, 
+  Coins, 
+  ShoppingBag, 
+  TrendingUp, 
+  ArrowRight, 
+  ShieldCheck, 
+  RotateCcw,
+  Sparkles,
+  AlertTriangle,
+  Receipt
+} from 'lucide-react';
 import { api } from '../../services/api';
 import { StatCard } from '../../components/StatCard';
 
@@ -7,193 +19,193 @@ export function AdminDashboard({ onNavigate }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchAnalytics = async () => {
+  const fetchStats = async () => {
     try {
-      const res = await api.getAdminAnalytics();
-      setStats(res.analytics);
+      const res = await api.getAdminStats();
+      setStats(res);
     } catch (err) {
-      console.error('Failed to load admin analytics:', err);
+      console.error('Failed to load admin stats:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAnalytics();
+    fetchStats();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6 animate-pulse">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-28 bg-white rounded-2.5xl border border-slate-200/80 shadow-stripe" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const s = stats || {
-    totalStudents: 0,
-    ordersToday: 0,
-    creditsUsedToday: 0,
-    pendingOrders: 0,
-    lowCreditStudents: 0,
-    topItems: []
-  };
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-7 sm:space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       
-      {/* Top Banner (Stripe Light Glass Style) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-stripe-md relative overflow-hidden">
-        {/* Soft background ambient gradient glow */}
-        <div className="absolute -top-10 -right-10 w-96 h-96 bg-gradient-to-bl from-purple-400/10 via-indigo-300/10 to-transparent rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 border border-purple-200/60 text-purple-700 text-[11px] font-black uppercase tracking-wider shadow-stripe-sm">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Campus Administration Console</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-            Mess Performance & Credit Analytics
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-xl font-medium">
-            Live overview of student credit burn rates, kitchen throughput, and menu item performance.
-          </p>
-        </div>
-
-        {/* Quick Nav shortcuts */}
-        <div className="flex items-center gap-2 flex-wrap relative z-10">
-          <button
-            onClick={() => onNavigate('menu-mgr')}
-            className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-black border border-slate-200/80 shadow-stripe-sm transition-all duration-150 flex items-center gap-1.5 active:scale-95"
-          >
-            <UtensilsCrossed className="w-3.5 h-3.5 text-purple-600" />
-            <span>Manage Menu</span>
-          </button>
-          <button
-            onClick={() => onNavigate('students')}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-stripe-sm hover:shadow-glow-indigo transition-all duration-150 flex items-center gap-1.5 active:scale-95"
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Student Credits</span>
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* 1. HERO STAT STRIP (4 Stat Cards in a row) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Active Students"
-          value={s.totalStudents}
-          subtitle="Registered on platform"
+          value={stats ? stats.total_students : '--'}
+          subtitle="Enrolled campus accounts"
           icon={Users}
-          color="purple"
+          color="indigo"
+          onClick={() => onNavigate('students')}
         />
         <StatCard
-          title="Orders Placed Today"
-          value={s.ordersToday}
-          subtitle="Total campus meal orders"
-          icon={ShoppingBag}
+          title="Menu Dishes"
+          value={stats ? stats.total_menu_items : '--'}
+          subtitle="Catalog food items"
+          icon={UtensilsCrossed}
           color="orange"
+          onClick={() => onNavigate('menu-mgr')}
         />
         <StatCard
-          title="Credits Used Today"
-          value={`${s.creditsUsedToday.toLocaleString()}`}
-          subtitle="Mess revenue today"
-          icon={Coins}
+          title="Orders Processed"
+          value={stats ? stats.total_orders : '--'}
+          subtitle="Total campus meals served"
+          icon={ShoppingBag}
           color="emerald"
+          onClick={() => onNavigate('audit')}
         />
         <StatCard
-          title="Live Queue Orders"
-          value={s.pendingOrders}
-          subtitle="Pending / In-Kitchen"
-          icon={Clock}
-          color="amber"
+          title="Total Credit Volume"
+          value={stats ? `${(stats.total_credits_used || 0).toLocaleString()} Cr` : '--'}
+          subtitle="Credits processed to date"
+          icon={Coins}
+          color="purple"
+          onClick={() => onNavigate('audit')}
         />
       </div>
 
-      {/* Top Ordered Dishes & Low Credit Students */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-        {/* Most Ordered Dishes Leaderboard */}
-        <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200/80 p-6 shadow-stripe space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div>
-              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-orange-600" />
-                <span>Most Ordered Food Items</span>
-              </h3>
-              <p className="text-xs text-slate-400 font-medium">Highest volume dishes ordered across campus</p>
+      {/* 2. MAIN CONTENT AREA: 2-Column Grid (Main 70% + Sidebar 30%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* LEFT 70% (col-span-8): Most Ordered Dishes Leaderboard */}
+        <div className="lg:col-span-8 space-y-5">
+          <div className="card-static space-y-4 p-5 sm:p-6">
+            <div className="flex items-center justify-between pb-3 border-b border-divider">
+              <div>
+                <h2 className="text-h2 text-ink">
+                  Top Ordered Dishes
+                </h2>
+                <p className="text-body text-xs mt-0.5">
+                  Leaderboard of most popular campus meals ordered
+                </p>
+              </div>
+              <span className="status-pill status-pill-success text-xs">
+                Popularity
+              </span>
             </div>
-            <button
-              onClick={() => onNavigate('menu-mgr')}
-              className="text-xs font-black text-orange-600 hover:text-orange-700 flex items-center gap-1"
-            >
-              <span>View All Menu</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+
+            {loading ? (
+              <div className="py-12 text-center text-muted animate-pulse">
+                Loading analytics leaderboard...
+              </div>
+            ) : !stats?.top_items || stats.top_items.length === 0 ? (
+              <div className="py-12 text-center text-muted">
+                No orders recorded yet.
+              </div>
+            ) : (
+              <div className="divide-y divide-divider">
+                {stats.top_items.map((item, index) => (
+                  <div 
+                    key={index}
+                    className="h-14 flex items-center justify-between hover:bg-[#FAFAFB] px-2 rounded-xl transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#FF6B35] font-bold text-xs flex items-center justify-center border border-orange-100 shrink-0">
+                        #{index + 1}
+                      </div>
+                      <span className="font-semibold text-xs sm:text-sm text-ink">
+                        {item.item_name}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted">
+                        Ordered <strong className="text-ink font-bold">{item.order_count}</strong> times
+                      </span>
+                      <span className="status-pill status-pill-info text-xs tabular-nums">
+                        {item.total_credits} Credits
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-
-          {s.topItems.length === 0 ? (
-            <div className="py-10 text-center text-xs text-slate-400">
-              No orders logged yet today.
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {s.topItems.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/60 hover:border-orange-200/80 transition-colors text-xs sm:text-sm shadow-stripe-sm"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-800 font-black flex items-center justify-center text-xs">
-                      #{idx + 1}
-                    </span>
-                    <div>
-                      <h4 className="font-bold text-slate-900">{item.item_name}</h4>
-                      <span className="text-[11px] text-slate-400 font-medium">{item.category}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-5 text-right">
-                    <div>
-                      <span className="font-black text-slate-900 block tabular-nums">{item.total_sold} ordered</span>
-                      <span className="text-[11px] text-emerald-600 font-bold tabular-nums">{item.total_revenue} credits</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Low Balance Warning & Quick Audit */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-stripe space-y-4">
-            <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
-              <span>Low Balance Accounts</span>
-            </h3>
-            <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 space-y-2 shadow-stripe-sm">
-              <p className="text-2xl font-black text-amber-950 tabular-nums">
-                {s.lowCreditStudents} <span className="text-xs font-bold text-amber-700">students</span>
-              </p>
-              <p className="text-xs text-amber-800 leading-relaxed">
-                Students currently below the 500-credit threshold. Their allowance resets to 9,000 on the 1st.
-              </p>
+        {/* RIGHT 30% (col-span-4): Low Balance Warning & Quick Navigation Shortcuts */}
+        <div className="lg:col-span-4 space-y-5">
+          
+          {/* Low Balance Warning Widget */}
+          <div className="card bg-gradient-to-br from-amber-50/60 via-white to-white border-amber-200/80 space-y-3.5">
+            <div className="flex items-center justify-between pb-2 border-b border-amber-200/50">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-[#D97706]" />
+                <h3 className="text-sm font-bold text-ink">Low Credit Accounts</h3>
+              </div>
+              <span className="status-pill status-pill-warning text-[11px]">
+                {stats?.low_balance_students?.length || 0} Students
+              </span>
             </div>
+
+            <p className="text-body text-xs leading-relaxed">
+              Students with less than 500 remaining credits can be credited or refreshed in the Student Manager.
+            </p>
+
             <button
               onClick={() => onNavigate('students')}
-              className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-stripe-sm transition flex items-center justify-center gap-2 active:scale-95"
+              className="w-full btn-secondary text-xs py-2 justify-center"
             >
               <span>Manage Student Balances</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {/* Quick Admin Actions */}
+          <div className="card space-y-3">
+            <h3 className="text-h3 text-ink pb-2 border-b border-divider">
+              Quick Management
+            </h3>
+
+            <div className="space-y-2 text-xs">
+              <button
+                onClick={() => onNavigate('menu-mgr')}
+                className="w-full p-2.5 rounded-xl border border-border bg-[#FAFAFB] hover:bg-slate-100 flex items-center justify-between transition"
+              >
+                <div className="flex items-center gap-2.5">
+                  <UtensilsCrossed className="w-4 h-4 text-[#FF6B35]" />
+                  <span className="font-semibold text-ink">Menu Items Catalog</span>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted" />
+              </button>
+
+              <button
+                onClick={() => onNavigate('students')}
+                className="w-full p-2.5 rounded-xl border border-border bg-[#FAFAFB] hover:bg-slate-100 flex items-center justify-between transition"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Users className="w-4 h-4 text-[#6366F1]" />
+                  <span className="font-semibold text-ink">Student Accounts & Resets</span>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted" />
+              </button>
+
+              <button
+                onClick={() => onNavigate('audit')}
+                className="w-full p-2.5 rounded-xl border border-border bg-[#FAFAFB] hover:bg-slate-100 flex items-center justify-between transition"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Receipt className="w-4 h-4 text-purple-600" />
+                  <span className="font-semibold text-ink">Campus Financial Audit Logs</span>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted" />
+              </button>
+            </div>
+          </div>
+
         </div>
+
       </div>
+
     </div>
   );
 }
