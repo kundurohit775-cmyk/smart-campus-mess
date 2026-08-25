@@ -1,5 +1,14 @@
-const rawApiUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/+$/, '') : '';
-const API_BASE = rawApiUrl ? `${rawApiUrl}/api` : '/api';
+const getApiBase = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return 'https://smart-campus-mess.onrender.com/api';
+  }
+  return '/api';
+};
+
+const API_BASE = getApiBase();
 
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem('mess_auth_token');
@@ -48,13 +57,31 @@ export const api = {
     method: 'PATCH',
     body: JSON.stringify({ available_quantity })
   }),
+  updateItemStock: (itemId, available_quantity) => request(`/menu/${itemId}/toggle-stock`, {
+    method: 'PATCH',
+    body: JSON.stringify({ available_quantity })
+  }),
 
-  // Credits
+  // Credits & Student
   getCredits: (studentId) => request(`/credits/${studentId}`),
+  getTransactions: async (studentId) => {
+    try {
+      // First try student credit ledger
+      const me = JSON.parse(localStorage.getItem('mess_user') || '{}');
+      const targetId = studentId || me.student_id || me.id || 'me';
+      const res = await request(`/credits/${targetId}`);
+      if (res && res.transactions) return res;
+      return { transactions: [] };
+    } catch {
+      return request('/admin/transactions').catch(() => ({ transactions: [] }));
+    }
+  },
 
   // Orders
   placeOrder: (items) => request('/orders', { method: 'POST', body: JSON.stringify({ items }) }),
   getOrders: (status) => request(status ? `/orders?status=${status}` : '/orders'),
+  getChefOrders: (status) => request(status ? `/orders?status=${status}` : '/orders'),
+  getChefInventory: () => request('/admin/menu'),
   getOrderDetails: (orderId) => request(`/orders/${orderId}`),
   updateOrderStatus: (orderId, status) => request(`/orders/${orderId}/status`, {
     method: 'PATCH',
@@ -63,6 +90,7 @@ export const api = {
   cancelOrder: (orderId) => request(`/orders/${orderId}/cancel`, { method: 'PATCH' }),
 
   // Admin
+  getAdminStats: () => request('/admin/analytics'),
   getAdminAnalytics: () => request('/admin/analytics'),
   getAdminStudents: () => request('/admin/students'),
   adjustStudentCredits: (studentId, payload) => request(`/admin/students/${studentId}/credits`, {
@@ -87,9 +115,19 @@ export const api = {
     method: 'POST',
     body: JSON.stringify({ amount })
   }),
+  createRazorpayOrder: (amount) => request('/payments/create-order', {
+    method: 'POST',
+    body: JSON.stringify({ amount })
+  }),
   verifyPayment: (payload) => request('/payments/verify', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  verifyRazorpayPayment: (payload) => request('/payments/verify', {
     method: 'POST',
     body: JSON.stringify(payload)
   }),
   getPaymentHistory: () => request('/payments/history')
 };
+
+export default api;
