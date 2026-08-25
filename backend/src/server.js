@@ -105,14 +105,14 @@ app.post('/api/auth/sign-in/email', express.json(), async (req, res, next) => {
   }
 });
 
-// Direct Email OTP Endpoints (/api/auth/send-otp and /api/auth/verify-otp)
-app.post('/api/auth/send-otp', express.json(), (req, res, next) => {
-  req.url = '/send-otp';
+// Registration Email OTP Endpoints (/api/auth/register/send-otp and /api/auth/register/verify-otp)
+app.post(['/api/auth/register/send-otp', '/api/auth/send-otp'], express.json(), (req, res, next) => {
+  req.url = '/register/send-otp';
   authRoutes(req, res, next);
 });
 
-app.post('/api/auth/verify-otp', express.json(), (req, res, next) => {
-  req.url = '/verify-otp';
+app.post(['/api/auth/register/verify-otp', '/api/auth/verify-otp'], express.json(), (req, res, next) => {
+  req.url = '/register/verify-otp';
   authRoutes(req, res, next);
 });
 
