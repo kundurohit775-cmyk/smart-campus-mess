@@ -14,7 +14,7 @@ import {
   ChefHat, 
   ShieldCheck, 
   CheckCircle, 
-  AlertCircle 
+  Sparkles 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -131,6 +131,199 @@ export function Login() {
 
   const isVitEmail = email.trim().toLowerCase().endsWith('@vitstudent.ac.in');
 
+  // =========================================================================
+  // VIEW 1: DARK HERO ROLE-SELECTION LANDING PAGE (route: "/")
+  // =========================================================================
+  if (view === 'role_select') {
+    return (
+      <div className="min-h-screen bg-[#0B0E1A] text-[#F1F5F9] font-sans relative overflow-x-hidden selection:bg-[#8B5CF6] selection:text-white">
+        
+        {/* Subtle radial gradient glow behind headline */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-b from-[#8B5CF6]/15 via-[#6366F1]/10 to-transparent blur-[120px] pointer-events-none" />
+        <div className="absolute top-[40%] right-[-100px] w-[500px] h-[500px] bg-[#06B6D4]/10 blur-[140px] pointer-events-none" />
+
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 lg:py-16 relative z-10 flex flex-col items-center">
+          
+          {/* Top Brand Logo + App Name */}
+          <div className="flex items-center gap-3 mb-8 animate-fade-in">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#06B6D4] flex items-center justify-center text-white shadow-[0_0_20px_rgba(139,92,246,0.4)] border border-white/20">
+              <UtensilsCrossed className="w-5 h-5" />
+            </div>
+            <span className="text-xl sm:text-2xl font-bold tracking-tight text-[#F1F5F9]">
+              Smart<span className="text-[#8B5CF6]">Mess</span>
+            </span>
+          </div>
+
+          {/* Hero Section */}
+          <div className="text-center max-w-3xl space-y-6 animate-slide-up">
+            
+            {/* Badge Pill */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[rgba(139,92,246,0.12)] border border-[rgba(139,92,246,0.3)] text-[#A78BFA] text-xs font-semibold backdrop-blur-md shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-[#A78BFA] animate-pulse shadow-[0_0_8px_#A78BFA]" />
+              <span>Campus Food & Credit Platform</span>
+            </div>
+
+            {/* Large Bold Headline (2 Lines) */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1]">
+              <span className="text-[#F1F5F9] block">Smart dining,</span>
+              <span className="bg-gradient-to-r from-[#8B5CF6] via-[#A78BFA] to-[#06B6D4] bg-clip-text text-transparent block mt-1">
+                seamlessly managed.
+              </span>
+            </h1>
+
+            {/* Subtext Paragraph */}
+            <p className="text-sm sm:text-base text-[#94A3B8] max-w-xl mx-auto leading-relaxed font-normal">
+              SmartMess connects students, chefs, and admins on one platform — from ordering to credit top-ups to kitchen management.
+            </p>
+
+            {/* Two Hero Action Buttons */}
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById('role-selection-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] hover:from-[#7C3AED] hover:to-[#0891B2] text-white font-semibold px-6 py-3 rounded-xl text-sm shadow-[0_0_24px_rgba(139,92,246,0.4)] transition-all duration-200 active:scale-[0.98] flex items-center gap-2"
+              >
+                <span>Get Started</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById('role-selection-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="border-[1.5px] border-[#8B5CF6] hover:bg-[#8B5CF6]/10 text-[#A78BFA] font-semibold px-6 py-3 rounded-xl text-sm transition-all duration-200 backdrop-blur-md"
+              >
+                Learn More
+              </button>
+            </div>
+
+          </div>
+
+          {/* Subtle Horizontal Divider */}
+          <div className="w-full max-w-4xl h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent my-14" />
+
+          {/* Role Cards Section */}
+          <div id="role-selection-section" className="w-full space-y-8 scroll-mt-8">
+            
+            <div className="text-center space-y-1.5">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#F1F5F9]">
+                Choose how you'd like to sign in
+              </h2>
+              <p className="text-xs sm:text-sm text-[#94A3B8]">
+                Select your role to initialize your authenticated dining session
+              </p>
+            </div>
+
+            {/* Three Role Cards Row (Desktop) / Stack (Mobile) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto w-full">
+              
+              {/* Card 1: Student (Violet #8B5CF6) */}
+              <div
+                onClick={() => navigateTo('student', '/login/student')}
+                className="group cursor-pointer bg-[rgba(19,23,40,0.65)] backdrop-blur-xl border border-[#8B5CF6]/20 hover:border-[#8B5CF6]/70 rounded-2xl p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_32px_rgba(139,92,246,0.3)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between space-y-6"
+              >
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30 flex items-center justify-center shadow-[0_0_16px_rgba(139,92,246,0.3)] group-hover:scale-105 transition-transform">
+                    <GraduationCap className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-[#F1F5F9] group-hover:text-white transition-colors">
+                      Student
+                    </h3>
+                    <p className="text-xs text-[#94A3B8] mt-1.5 leading-relaxed">
+                      Order meals, track live queue tokens, and manage your 9,000 monthly credits.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
+                  <span className="text-xs font-semibold text-[#8B5CF6] group-hover:text-[#A78BFA] transition-colors">
+                    Enter Student Portal
+                  </span>
+                  <div className="w-7 h-7 rounded-full bg-[#1A1F3A] border border-[#8B5CF6]/30 group-hover:bg-[#8B5CF6] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#8B5CF6]">
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Chef (Amber #F59E0B) */}
+              <div
+                onClick={() => navigateTo('chef', '/login/chef')}
+                className="group cursor-pointer bg-[rgba(19,23,40,0.65)] backdrop-blur-xl border border-[#F59E0B]/20 hover:border-[#F59E0B]/70 rounded-2xl p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_32px_rgba(245,158,11,0.3)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between space-y-6"
+              >
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30 flex items-center justify-center shadow-[0_0_16px_rgba(245,158,11,0.3)] group-hover:scale-105 transition-transform">
+                    <ChefHat className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-[#F1F5F9] group-hover:text-white transition-colors">
+                      Chef
+                    </h3>
+                    <p className="text-xs text-[#94A3B8] mt-1.5 leading-relaxed">
+                      Manage active meal prep, advance cooking stages, and control portion stock.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
+                  <span className="text-xs font-semibold text-[#F59E0B] group-hover:text-amber-400 transition-colors">
+                    Enter Kitchen
+                  </span>
+                  <div className="w-7 h-7 rounded-full bg-[#1A1F3A] border border-[#F59E0B]/30 group-hover:bg-[#F59E0B] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#F59E0B]">
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Admin (Cyan #06B6D4) */}
+              <div
+                onClick={() => navigateTo('admin', '/login/admin')}
+                className="group cursor-pointer bg-[rgba(19,23,40,0.65)] backdrop-blur-xl border border-[#06B6D4]/20 hover:border-[#06B6D4]/70 rounded-2xl p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_32px_rgba(6,182,212,0.3)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between space-y-6"
+              >
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#06B6D4]/15 text-[#06B6D4] border border-[#06B6D4]/30 flex items-center justify-center shadow-[0_0_16px_rgba(6,182,212,0.3)] group-hover:scale-105 transition-transform">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-[#F1F5F9] group-hover:text-white transition-colors">
+                      Admin
+                    </h3>
+                    <p className="text-xs text-[#94A3B8] mt-1.5 leading-relaxed">
+                      Campus dining governance, student credit allotments, and audit logs.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
+                  <span className="text-xs font-semibold text-[#06B6D4] group-hover:text-cyan-400 transition-colors">
+                    Enter Console
+                  </span>
+                  <div className="w-7 h-7 rounded-full bg-[#1A1F3A] border border-[#06B6D4]/30 group-hover:bg-[#06B6D4] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#06B6D4]">
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* Footer Note */}
+          <div className="mt-16 text-center text-xs text-[#64748B]">
+            VIT University Campus Mess Network • 256-bit SSL Encrypted
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // VIEW 2: LOGIN PAGES (Student, Chef, Admin) & REGISTER (Student)
+  // =========================================================================
   return (
     <div className="min-h-screen bg-[#F8F9FC] text-[#1E293B] font-sans flex flex-col justify-between items-center py-12 px-4 sm:px-6 relative selection:bg-[#6366F1] selection:text-white">
       
@@ -148,111 +341,7 @@ export function Login() {
       </div>
 
       {/* =================================================================== */}
-      {/* STEP 1: ROLE SELECTION VIEW (route: "/")                           */}
-      {/* =================================================================== */}
-      {view === 'role_select' && (
-        <div className="max-w-[540px] w-full my-auto space-y-5 animate-fade-in">
-          
-          <div className="text-center space-y-1 mb-2">
-            <h2 className="text-xl sm:text-2xl font-bold text-[#1E293B]">
-              Who are you signing in as?
-            </h2>
-            <p className="text-xs text-[#64748B]">
-              Select your role to access your dedicated portal
-            </p>
-          </div>
-
-          {/* Three Stacked Role Cards */}
-          <div className="space-y-4">
-            
-            {/* Card 1: Student */}
-            <div
-              onClick={() => navigateTo('student', '/login/student')}
-              className="group cursor-pointer bg-white rounded-2xl p-5 sm:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.05)] border border-slate-200/80 hover:border-[#6366F1]/50 hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between gap-4"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-[#6366F1] border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                  <GraduationCap className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-[#1E293B] group-hover:text-[#6366F1] transition-colors">
-                    Student
-                  </h3>
-                  <p className="text-xs text-[#64748B] mt-0.5 font-normal">
-                    Order food & manage your credits
-                  </p>
-                  <span className="inline-block mt-2 text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-2 py-0.5 rounded-md">
-                    9k+ students
-                  </span>
-                </div>
-              </div>
-
-              <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 group-hover:bg-[#6366F1] group-hover:text-white group-hover:border-transparent flex items-center justify-center transition-all duration-200 text-slate-400 shrink-0">
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </div>
-
-            {/* Card 2: Chef */}
-            <div
-              onClick={() => navigateTo('chef', '/login/chef')}
-              className="group cursor-pointer bg-white rounded-2xl p-5 sm:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.05)] border border-slate-200/80 hover:border-amber-400 hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between gap-4"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                  <ChefHat className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-[#1E293B] group-hover:text-amber-600 transition-colors">
-                    Chef
-                  </h3>
-                  <p className="text-xs text-[#64748B] mt-0.5 font-normal">
-                    Manage kitchen orders & menu
-                  </p>
-                  <span className="inline-block mt-2 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100/80 px-2 py-0.5 rounded-md">
-                    Kitchen access
-                  </span>
-                </div>
-              </div>
-
-              <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 group-hover:bg-amber-500 group-hover:text-white group-hover:border-transparent flex items-center justify-center transition-all duration-200 text-slate-400 shrink-0">
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </div>
-
-            {/* Card 3: Admin */}
-            <div
-              onClick={() => navigateTo('admin', '/login/admin')}
-              className="group cursor-pointer bg-white rounded-2xl p-5 sm:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.05)] border border-slate-200/80 hover:border-cyan-400 hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between gap-4"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-100 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-[#1E293B] group-hover:text-cyan-600 transition-colors">
-                    Admin
-                  </h3>
-                  <p className="text-xs text-[#64748B] mt-0.5 font-normal">
-                    Full platform management
-                  </p>
-                  <span className="inline-block mt-2 text-[11px] font-semibold text-cyan-700 bg-cyan-50 border border-cyan-100/80 px-2 py-0.5 rounded-md">
-                    Full Access
-                  </span>
-                </div>
-              </div>
-
-              <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 group-hover:bg-cyan-500 group-hover:text-white group-hover:border-transparent flex items-center justify-center transition-all duration-200 text-slate-400 shrink-0">
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      )}
-
-      {/* =================================================================== */}
-      {/* STEP 2: DEDICATED LOGIN CARDS (Student, Chef, Admin)                */}
+      {/* LOGIN CARD (Student, Chef, Admin)                                   */}
       {/* =================================================================== */}
       {(view === 'student' || view === 'chef' || view === 'admin') && (
         <div className="max-w-[460px] w-full my-auto space-y-4 animate-fade-in">
@@ -411,7 +500,7 @@ export function Login() {
       )}
 
       {/* =================================================================== */}
-      {/* STEP 3: REGISTER STUDENT VIEW (route: "/register")                  */}
+      {/* REGISTER STUDENT CARD (route: "/register")                          */}
       {/* =================================================================== */}
       {view === 'register' && (
         <div className="max-w-[480px] w-full my-auto space-y-4 animate-fade-in">
