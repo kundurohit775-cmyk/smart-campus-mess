@@ -7,11 +7,11 @@ import {
   Filter, 
   Receipt, 
   Calendar, 
-  CreditCard,
-  Sparkles,
-  TrendingDown,
-  Lock,
-  ArrowRight
+  CreditCard, 
+  Sparkles, 
+  TrendingDown, 
+  Lock, 
+  ArrowRight 
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -56,12 +56,12 @@ export function Transactions() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       
       {/* 1. HERO CREDIT BALANCE CARD with Display-Size Number */}
-      <div className="card bg-gradient-to-br from-white via-white to-orange-50/30 p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+      <div className="card bg-gradient-to-br from-[#1A1F3A] via-[#131728] to-[#0B0E1A] p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden border-[#8B5CF6]/30 shadow-glow-primary">
         
         {/* Left: Display-Size Hero Balance */}
         <div className="space-y-3 max-w-lg">
           <div className="flex items-center gap-2">
-            <span className="text-micro text-[#FF6B35] font-semibold">
+            <span className="text-micro text-[#8B5CF6] font-semibold">
               Available Dining Credits
             </span>
             <span className="status-pill status-pill-success text-[11px] py-0.5 px-2">
@@ -70,7 +70,7 @@ export function Transactions() {
           </div>
 
           <div className="flex items-baseline gap-3">
-            <h1 className="text-display font-bold text-ink tabular-nums tracking-tight">
+            <h1 className="text-display font-bold tabular-nums tracking-tight">
               {remaining.toLocaleString()}
             </h1>
             <span className="text-body text-base font-semibold">
@@ -82,11 +82,11 @@ export function Transactions() {
           <div className="space-y-1.5 pt-1">
             <div className="flex justify-between text-xs text-muted font-medium">
               <span>{used.toLocaleString()} Credits Spent This Cycle</span>
-              <span>{usedPercentage}% Utilized</span>
+              <span className="text-[#06B6D4] font-heading">{usedPercentage}% Utilized</span>
             </div>
-            <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+            <div className="w-full h-2.5 rounded-full bg-[#0B0E1A] border border-border overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#FF6B35] to-[#F7931E] transition-all duration-500"
+                className="h-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] transition-all duration-500 shadow-glow-primary"
                 style={{ width: `${usedPercentage}%` }}
               />
             </div>
@@ -97,7 +97,7 @@ export function Transactions() {
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
           <button
             onClick={() => setIsTopupOpen(true)}
-            className="w-full sm:w-auto btn-primary py-3.5 px-6 shadow-level-4"
+            className="w-full sm:w-auto btn-primary py-3.5 px-6 shadow-glow-primary"
           >
             <Plus className="w-4 h-4" />
             <span>Buy Credits via Razorpay</span>
@@ -111,7 +111,7 @@ export function Transactions() {
         {/* Header & Filter Pills */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-divider">
           <div>
-            <h2 className="text-h2 text-ink">
+            <h2 className="text-h2 text-ink font-heading">
               Credit Ledger Records
             </h2>
             <p className="text-body text-xs mt-0.5">
@@ -120,14 +120,14 @@ export function Transactions() {
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center gap-1.5 bg-[#FAFAFB] p-1 rounded-xl border border-border">
+          <div className="flex items-center gap-1.5 bg-[#0B0E1A] p-1 rounded-xl border border-border">
             {['ALL', 'DEBIT', 'TOPUP', 'CREDIT'].map((type) => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
                 className={`px-3 py-1.5 rounded-[8px] text-xs font-semibold transition-all duration-200 ${
                   filterType === type
-                    ? 'bg-white text-ink shadow-level-1'
+                    ? 'bg-[#131728] text-ink border border-[#8B5CF6]/40 shadow-glow-primary'
                     : 'text-muted hover:text-ink'
                 }`}
               >
@@ -140,7 +140,7 @@ export function Transactions() {
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="text-micro text-muted border-b border-divider">
+            <thead className="text-micro text-muted border-b border-divider bg-[#0B0E1A]/60">
               <tr>
                 <th className="py-3 px-4">Transaction / Type</th>
                 <th className="py-3 px-4">Description</th>
@@ -170,21 +170,21 @@ export function Transactions() {
                   return (
                     <tr 
                       key={tx.transaction_id} 
-                      className="h-14 hover:bg-[#FAFAFB] transition-colors"
+                      className="h-14 hover:bg-[#1A1F3A]/70 transition-colors"
                     >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
                             isDebit 
-                              ? 'bg-rose-50 text-status-danger' 
+                              ? 'bg-[#F87171]/15 text-status-danger border-[#F87171]/30' 
                               : isTopup 
-                              ? 'bg-emerald-50 text-status-success' 
-                              : 'bg-orange-50 text-[#FF6B35]'
+                              ? 'bg-[#34D399]/15 text-status-success border-[#34D399]/30 shadow-glow-emerald' 
+                              : 'bg-[#8B5CF6]/15 text-[#8B5CF6] border-[#8B5CF6]/30 shadow-glow-primary'
                           }`}>
                             {isDebit ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
                           </div>
                           <div>
-                            <span className="font-semibold text-ink block">
+                            <span className="font-semibold text-ink block font-heading">
                               #{tx.transaction_id}
                             </span>
                             <span className="text-[10px] text-muted uppercase font-medium">
@@ -199,14 +199,14 @@ export function Transactions() {
                       </td>
 
                       <td className="py-3 px-4 text-right">
-                        <span className={`font-bold tabular-nums text-sm ${
+                        <span className={`font-bold tabular-nums text-sm font-heading ${
                           isDebit ? 'text-status-danger' : 'text-status-success'
                         }`}>
                           {isDebit ? `-${tx.amount}` : `+${tx.amount}`} Credits
                         </span>
                       </td>
 
-                      <td className="py-3 px-4 text-right font-semibold text-ink tabular-nums">
+                      <td className="py-3 px-4 text-right font-semibold text-ink tabular-nums font-heading">
                         {tx.balance_after?.toLocaleString() ?? tx.balance_after}
                       </td>
 

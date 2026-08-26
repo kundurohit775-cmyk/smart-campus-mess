@@ -12,22 +12,22 @@ export function MenuCard({ item }) {
   if (!item) return null;
 
   return (
-    <div className="card flex flex-col justify-between overflow-hidden relative group">
+    <div className="card flex flex-col justify-between overflow-hidden relative group hover:border-[#8B5CF6]/50 hover:shadow-glow-primary">
       
       {/* Top Image Section */}
-      <div className="relative h-44 -mx-6 -mt-6 mb-4 overflow-hidden bg-slate-100">
+      <div className="relative h-44 -mx-6 -mt-6 mb-4 overflow-hidden bg-[#0B0E1A]">
         <img
           src={item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80'}
           alt={item.item_name}
           className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
-            isOutOfStock ? 'grayscale opacity-60' : ''
+            isOutOfStock ? 'grayscale opacity-50' : ''
           }`}
           loading="lazy"
         />
 
         {/* Category Pill on top-left */}
         <div className="absolute top-3 left-3">
-          <span className="status-pill bg-white/90 text-ink backdrop-blur-md border border-border shadow-level-1 text-[11px]">
+          <span className="status-pill bg-[#0B0E1A]/80 text-[#06B6D4] backdrop-blur-md border border-[#06B6D4]/30 shadow-level-1 text-[11px]">
             {item.category}
           </span>
         </div>
@@ -52,7 +52,7 @@ export function MenuCard({ item }) {
 
       {/* Content Section */}
       <div className="space-y-2 flex-1">
-        <h3 className="text-h3 text-ink leading-tight">
+        <h3 className="text-h3 text-ink leading-tight font-heading group-hover:text-[#F1F5F9]">
           {item.item_name}
         </h3>
         
@@ -65,7 +65,7 @@ export function MenuCard({ item }) {
       <div className="mt-4 pt-3 border-t border-divider flex items-center justify-between gap-2">
         <div>
           <span className="text-micro text-muted block">Price</span>
-          <div className="text-xl font-bold text-[#FF6B35] tabular-nums">
+          <div className="text-xl font-bold text-gradient tabular-nums font-heading">
             {item.price} <span className="text-xs font-semibold text-muted">Credits</span>
           </div>
         </div>
@@ -74,27 +74,27 @@ export function MenuCard({ item }) {
           {isOutOfStock ? (
             <button
               disabled
-              className="px-3.5 py-2 bg-slate-100 text-muted font-semibold text-xs rounded-btn cursor-not-allowed border border-border"
+              className="px-3.5 py-2 bg-white/5 text-muted font-semibold text-xs rounded-btn cursor-not-allowed border border-border"
             >
               Unavailable
             </button>
           ) : cartItem ? (
-            <div className="flex items-center gap-2 bg-[#FAFAFB] border border-border p-1 rounded-btn shadow-level-1">
+            <div className="flex items-center gap-2 bg-[#0B0E1A] border border-border p-1 rounded-btn shadow-level-1">
               <button
                 type="button"
                 onClick={() => updateQuantity && updateQuantity(item.item_id, cartItem.quantity - 1)}
-                className="w-7 h-7 rounded-[8px] bg-white border border-border text-ink hover:bg-slate-50 flex items-center justify-center transition active:scale-95 shadow-level-1"
+                className="w-7 h-7 rounded-[8px] bg-[#131728] border border-border text-ink hover:bg-[#1A1F3A] flex items-center justify-center transition active:scale-95 shadow-level-1"
               >
                 <Minus className="w-3.5 h-3.5" />
               </button>
-              <span className="font-bold text-xs tabular-nums text-ink px-1.5 min-w-[18px] text-center">
+              <span className="font-bold text-xs tabular-nums text-ink px-1.5 min-w-[18px] text-center font-heading">
                 {cartItem.quantity}
               </span>
               <button
                 type="button"
                 onClick={() => addToCart && addToCart(item)}
                 disabled={cartItem.quantity >= item.available_quantity}
-                className="w-7 h-7 rounded-[8px] bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white flex items-center justify-center transition active:scale-95 disabled:opacity-40 shadow-level-4"
+                className="w-7 h-7 rounded-[8px] bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] text-white flex items-center justify-center transition active:scale-95 disabled:opacity-40 shadow-glow-primary"
               >
                 <Plus className="w-3.5 h-3.5" />
               </button>

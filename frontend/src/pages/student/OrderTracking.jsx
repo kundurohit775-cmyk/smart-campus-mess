@@ -7,9 +7,9 @@ import {
   ChevronUp, 
   Sparkles, 
   UtensilsCrossed, 
-  RotateCcw,
-  ArrowRight,
-  BellRing
+  RotateCcw, 
+  ArrowRight, 
+  BellRing 
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { OrderStepper } from '../../components/OrderStepper';
@@ -50,7 +50,7 @@ export function OrderTracking({ onBrowseMenu }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-h1 text-ink">
+          <h1 className="text-h1 text-ink font-heading">
             Live Order Tracking
           </h1>
           <p className="text-body text-xs sm:text-sm mt-0.5">
@@ -70,7 +70,7 @@ export function OrderTracking({ onBrowseMenu }) {
       {/* 1. ACTIVE ORDERS SECTION */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <span className="text-micro text-[#FF6B35] font-semibold">Active In-Kitchen Orders</span>
+          <span className="text-micro text-[#8B5CF6] font-semibold">Active In-Kitchen Orders</span>
           <span className="status-pill status-pill-warning text-[11px] py-0.5 px-2">
             {activeOrders.length} In Progress
           </span>
@@ -78,14 +78,14 @@ export function OrderTracking({ onBrowseMenu }) {
 
         {loading ? (
           <div className="card text-center py-12 text-muted">
-            <div className="w-8 h-8 border-2 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto mb-2 shadow-glow-primary" />
             <p className="text-xs font-semibold">Syncing with kitchen queue...</p>
           </div>
         ) : activeOrders.length === 0 ? (
           <div className="card text-center py-12 text-muted space-y-3">
-            <ShoppingBag className="w-10 h-10 mx-auto text-slate-300" />
+            <ShoppingBag className="w-10 h-10 mx-auto text-muted" />
             <div>
-              <h3 className="text-h3 text-ink">No active orders</h3>
+              <h3 className="text-h3 text-ink font-heading">No active orders</h3>
               <p className="text-body text-xs mt-1">You don't have any meals currently cooking in the mess kitchen.</p>
             </div>
             {onBrowseMenu && (
@@ -107,11 +107,11 @@ export function OrderTracking({ onBrowseMenu }) {
                 <div 
                   key={order.order_id} 
                   className={`card relative overflow-hidden ${
-                    isReady ? 'border-status-success bg-gradient-to-br from-white to-emerald-50/20' : ''
+                    isReady ? 'border-[#34D399]/50 shadow-glow-emerald bg-[#131728]/90' : ''
                   }`}
                 >
                   {isReady && (
-                    <div className="absolute top-0 right-0 bg-status-success text-white px-4 py-1 text-[11px] font-semibold rounded-bl-xl shadow-level-1 flex items-center gap-1.5 animate-pulse">
+                    <div className="absolute top-0 right-0 bg-status-success text-white px-4 py-1 text-[11px] font-semibold rounded-bl-xl shadow-glow-emerald flex items-center gap-1.5 animate-pulse font-heading">
                       <BellRing className="w-3.5 h-3.5" />
                       <span>Ready for Counter Pickup!</span>
                     </div>
@@ -122,7 +122,7 @@ export function OrderTracking({ onBrowseMenu }) {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xl font-bold text-ink">
+                          <span className="text-xl font-bold text-ink font-heading">
                             Order #{order.order_id}
                           </span>
                           <span className="status-pill status-pill-info text-xs">
@@ -136,7 +136,7 @@ export function OrderTracking({ onBrowseMenu }) {
 
                       <div className="text-left sm:text-right">
                         <span className="text-micro text-muted block">Total Paid</span>
-                        <span className="text-lg font-bold text-[#FF6B35] tabular-nums">
+                        <span className="text-lg font-bold text-gradient tabular-nums font-heading">
                           {order.total_amount} Credits
                         </span>
                       </div>
@@ -148,13 +148,13 @@ export function OrderTracking({ onBrowseMenu }) {
                     </div>
 
                     {/* Items List */}
-                    <div className="p-4 bg-[#FAFAFB] rounded-xl border border-border space-y-2">
+                    <div className="p-4 bg-[#0B0E1A]/80 rounded-xl border border-border space-y-2">
                       <span className="text-micro text-muted block">Order Dishes</span>
                       <div className="space-y-1 text-xs">
                         {(order.items || []).map((item, idx) => (
                           <div key={idx} className="flex justify-between text-ink">
-                            <span>{item.quantity}x {item.item_name}</span>
-                            <span className="text-muted tabular-nums">{item.price_at_order * item.quantity} Cr</span>
+                            <span className="font-heading">{item.quantity}x {item.item_name}</span>
+                            <span className="text-muted tabular-nums font-heading">{item.price_at_order * item.quantity} Cr</span>
                           </div>
                         ))}
                       </div>
@@ -171,7 +171,7 @@ export function OrderTracking({ onBrowseMenu }) {
       {pastOrders.length > 0 && (
         <div className="card-static space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-divider">
-            <h2 className="text-h2 text-ink">
+            <h2 className="text-h2 text-ink font-heading">
               Past Completed Orders
             </h2>
             <span className="text-xs text-muted">
@@ -188,16 +188,16 @@ export function OrderTracking({ onBrowseMenu }) {
                 <div key={order.order_id} className="py-3.5 space-y-2">
                   <div 
                     onClick={() => toggleExpand(order.order_id)}
-                    className="flex items-center justify-between cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition"
+                    className="flex items-center justify-between cursor-pointer hover:bg-[#1A1F3A]/60 p-2 rounded-xl transition"
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${
-                        isCancelled ? 'bg-rose-50 text-status-danger' : 'bg-emerald-50 text-status-success'
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs border ${
+                        isCancelled ? 'bg-[#F87171]/15 text-status-danger border-[#F87171]/30' : 'bg-[#34D399]/15 text-status-success border-[#34D399]/30'
                       }`}>
                         #{order.order_id}
                       </div>
                       <div>
-                        <span className="font-semibold text-xs sm:text-sm text-ink block">
+                        <span className="font-semibold text-xs sm:text-sm text-ink block font-heading">
                           Token: {order.pickup_token}
                         </span>
                         <span className="text-[11px] text-muted">
@@ -207,7 +207,7 @@ export function OrderTracking({ onBrowseMenu }) {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-ink tabular-nums">
+                      <span className="text-xs font-bold text-ink tabular-nums font-heading">
                         {order.total_amount} Cr
                       </span>
                       <span className={`status-pill text-[11px] ${
@@ -220,12 +220,12 @@ export function OrderTracking({ onBrowseMenu }) {
                   </div>
 
                   {isExpanded && (
-                    <div className="p-3.5 bg-[#FAFAFB] rounded-xl border border-border text-xs space-y-1.5 animate-fade-in">
+                    <div className="p-3.5 bg-[#0B0E1A]/80 rounded-xl border border-border text-xs space-y-1.5 animate-fade-in">
                       <span className="text-micro text-muted block">Items Breakdown:</span>
                       {(order.items || []).map((item, idx) => (
                         <div key={idx} className="flex justify-between text-body">
-                          <span>{item.quantity}x {item.item_name}</span>
-                          <span className="tabular-nums font-semibold">{item.price_at_order * item.quantity} Credits</span>
+                          <span className="font-heading">{item.quantity}x {item.item_name}</span>
+                          <span className="tabular-nums font-semibold font-heading">{item.price_at_order * item.quantity} Credits</span>
                         </div>
                       ))}
                     </div>

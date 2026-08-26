@@ -4,52 +4,60 @@ export function StatCard({
   title, 
   value, 
   icon: Icon, 
-  color = 'orange', 
+  color = 'violet', 
   subtitle,
   trend,
   trendPositive = true,
   onClick
 }) {
   const colorMap = {
+    violet: {
+      iconBg: 'bg-[#8B5CF6]/15 text-[#8B5CF6] border-[#8B5CF6]/30 shadow-glow-primary',
+      accent: 'text-[#8B5CF6]',
+    },
+    cyan: {
+      iconBg: 'bg-[#06B6D4]/15 text-[#06B6D4] border-[#06B6D4]/30 shadow-glow-secondary',
+      accent: 'text-[#06B6D4]',
+    },
     orange: {
-      iconBg: 'bg-orange-50 text-[#FF6B35] border-orange-100',
-      accent: 'text-[#FF6B35]',
+      iconBg: 'bg-[#8B5CF6]/15 text-[#8B5CF6] border-[#8B5CF6]/30',
+      accent: 'text-[#8B5CF6]',
     },
     amber: {
-      iconBg: 'bg-amber-50 text-[#D97706] border-amber-100',
-      accent: 'text-[#D97706]',
+      iconBg: 'bg-[#FBBF24]/15 text-[#FBBF24] border-[#FBBF24]/30 shadow-glow-amber',
+      accent: 'text-[#FBBF24]',
     },
     emerald: {
-      iconBg: 'bg-emerald-50 text-[#16A34A] border-emerald-100',
-      accent: 'text-[#16A34A]',
+      iconBg: 'bg-[#34D399]/15 text-[#34D399] border-[#34D399]/30 shadow-glow-emerald',
+      accent: 'text-[#34D399]',
     },
     indigo: {
-      iconBg: 'bg-indigo-50 text-[#6366F1] border-indigo-100',
-      accent: 'text-[#6366F1]',
+      iconBg: 'bg-[#8B5CF6]/15 text-[#8B5CF6] border-[#8B5CF6]/30',
+      accent: 'text-[#8B5CF6]',
     },
     purple: {
-      iconBg: 'bg-purple-50 text-purple-600 border-purple-100',
-      accent: 'text-purple-600',
+      iconBg: 'bg-[#8B5CF6]/15 text-[#8B5CF6] border-[#8B5CF6]/30 shadow-glow-primary',
+      accent: 'text-[#8B5CF6]',
     },
     rose: {
-      iconBg: 'bg-rose-50 text-[#DC2626] border-rose-100',
-      accent: 'text-[#DC2626]',
+      iconBg: 'bg-[#F87171]/15 text-[#F87171] border-[#F87171]/30 shadow-glow-rose',
+      accent: 'text-[#F87171]',
     }
   };
 
-  const scheme = colorMap[color] || colorMap.orange;
+  const scheme = colorMap[color] || colorMap.violet;
 
   return (
     <div 
       onClick={onClick}
-      className={`card ${onClick ? 'cursor-pointer' : ''}`}
+      className={`card ${onClick ? 'cursor-pointer hover:scale-[1.01]' : ''}`}
     >
       <div className="flex items-start justify-between">
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <span className="text-micro text-muted block">
             {title}
           </span>
-          <div className="text-2xl sm:text-3xl font-bold text-ink tracking-tight tabular-nums">
+          <div className="text-2xl sm:text-3.5xl font-bold font-heading text-ink tracking-tight tabular-nums">
             {value}
           </div>
         </div>

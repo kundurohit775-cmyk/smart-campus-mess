@@ -83,8 +83,8 @@ export function StudentManager() {
       {/* Header */}
       <div className="card-static flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6">
         <div>
-          <h1 className="text-h1 text-ink flex items-center gap-2.5">
-            <Users className="w-6 h-6 text-[#6366F1]" />
+          <h1 className="text-h1 text-ink flex items-center gap-2.5 font-heading">
+            <Users className="w-6 h-6 text-[#8B5CF6]" />
             <span>Student Accounts & Balances</span>
           </h1>
           <p className="text-body text-xs mt-0.5">
@@ -108,7 +108,7 @@ export function StudentManager() {
       <div className="card-static p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="text-micro text-muted border-b border-divider bg-[#FAFAFB]">
+            <thead className="text-micro text-muted border-b border-divider bg-[#0B0E1A]/60">
               <tr>
                 <th className="py-3.5 px-6">Student</th>
                 <th className="py-3.5 px-4">Room & Contact</th>
@@ -135,14 +135,14 @@ export function StudentManager() {
                   const isLow = (student.remaining_credits ?? 0) < 500;
 
                   return (
-                    <tr key={student.student_id} className="h-14 hover:bg-[#FAFAFB] transition-colors">
+                    <tr key={student.student_id} className="h-14 hover:bg-[#1A1F3A]/70 transition-colors">
                       <td className="py-3 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 text-[#6366F1] flex items-center justify-center font-bold shrink-0">
+                          <div className="w-8 h-8 rounded-xl bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#8B5CF6] flex items-center justify-center font-bold shrink-0 font-heading">
                             {student.name ? student.name.charAt(0) : 'S'}
                           </div>
                           <div>
-                            <span className="font-bold text-ink block">{student.name}</span>
+                            <span className="font-bold text-ink block font-heading">{student.name}</span>
                             <span className="text-xs text-muted font-medium">{student.email}</span>
                           </div>
                         </div>
@@ -151,11 +151,11 @@ export function StudentManager() {
                         <span className="font-semibold text-ink block">{student.room_number || 'Hostel'}</span>
                         <span className="text-[11px] text-muted">{student.phone || 'No phone'}</span>
                       </td>
-                      <td className="py-3 px-4 text-right text-muted font-bold tabular-nums">
+                      <td className="py-3 px-4 text-right text-muted font-bold tabular-nums font-heading">
                         {student.used_credits?.toLocaleString() ?? student.used_credits}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <span className={`status-pill text-xs ${
+                        <span className={`status-pill text-xs font-heading ${
                           isLow ? 'status-pill-danger' : 'status-pill-success'
                         }`}>
                           {student.remaining_credits?.toLocaleString() ?? student.remaining_credits} / 9k
@@ -173,7 +173,7 @@ export function StudentManager() {
                           </button>
                           <button
                             onClick={() => setAdjustingStudent(student)}
-                            className="btn-primary py-1.5 px-3 text-xs bg-gradient-to-r from-[#4F46E5] to-[#6366F1]"
+                            className="btn-primary py-1.5 px-3 text-xs"
                           >
                             <span>Adjust</span>
                           </button>
@@ -195,9 +195,9 @@ export function StudentManager() {
         title={`Adjust Credits: ${adjustingStudent?.name}`}
       >
         <form onSubmit={handleAdjustSubmit} className="space-y-4">
-          <div className="p-3.5 bg-indigo-50/80 rounded-xl border border-indigo-200 flex items-center justify-between text-xs">
-            <span className="text-indigo-900 font-semibold">Current Balance:</span>
-            <span className="font-bold text-indigo-900 text-sm tabular-nums">
+          <div className="p-3.5 bg-[#8B5CF6]/10 rounded-xl border border-[#8B5CF6]/30 flex items-center justify-between text-xs">
+            <span className="text-[#F1F5F9] font-semibold">Current Balance:</span>
+            <span className="font-bold text-[#06B6D4] text-sm tabular-nums font-heading">
               {adjustingStudent?.remaining_credits?.toLocaleString() ?? adjustingStudent?.remaining_credits} Credits
             </span>
           </div>
@@ -240,7 +240,7 @@ export function StudentManager() {
             <button
               type="submit"
               disabled={submitting}
-              className="btn-primary py-2 px-4 text-xs bg-gradient-to-r from-[#4F46E5] to-[#6366F1]"
+              className="btn-primary py-2 px-4 text-xs"
             >
               {submitting ? 'Applying...' : 'Apply Adjustment'}
             </button>

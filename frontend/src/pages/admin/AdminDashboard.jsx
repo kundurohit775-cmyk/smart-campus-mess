@@ -47,7 +47,7 @@ export function AdminDashboard({ onNavigate }) {
           value={stats ? stats.total_students : '--'}
           subtitle="Enrolled campus accounts"
           icon={Users}
-          color="indigo"
+          color="violet"
           onClick={() => onNavigate && onNavigate('students')}
         />
         <StatCard
@@ -55,7 +55,7 @@ export function AdminDashboard({ onNavigate }) {
           value={stats ? stats.total_menu_items : '--'}
           subtitle="Catalog food items"
           icon={UtensilsCrossed}
-          color="orange"
+          color="cyan"
           onClick={() => onNavigate && onNavigate('menu-mgr')}
         />
         <StatCard
@@ -84,14 +84,14 @@ export function AdminDashboard({ onNavigate }) {
           <div className="card-static space-y-4 p-5 sm:p-6">
             <div className="flex items-center justify-between pb-3 border-b border-divider">
               <div>
-                <h2 className="text-h2 text-ink">
+                <h2 className="text-h2 text-ink font-heading">
                   Top Ordered Dishes
                 </h2>
                 <p className="text-body text-xs mt-0.5">
                   Leaderboard of most popular campus meals ordered
                 </p>
               </div>
-              <span className="status-pill status-pill-success text-xs">
+              <span className="status-pill status-pill-success text-xs font-heading">
                 Popularity
               </span>
             </div>
@@ -109,22 +109,22 @@ export function AdminDashboard({ onNavigate }) {
                 {topItems.map((item, index) => (
                   <div 
                     key={index}
-                    className="h-14 flex items-center justify-between hover:bg-[#FAFAFB] px-2 rounded-xl transition-colors"
+                    className="h-14 flex items-center justify-between hover:bg-[#1A1F3A]/60 px-2 rounded-xl transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#FF6B35] font-bold text-xs flex items-center justify-center border border-orange-100 shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-[#8B5CF6]/15 text-[#8B5CF6] font-bold text-xs flex items-center justify-center border border-[#8B5CF6]/30 shrink-0 font-heading">
                         #{index + 1}
                       </div>
-                      <span className="font-semibold text-xs sm:text-sm text-ink">
+                      <span className="font-semibold text-xs sm:text-sm text-ink font-heading">
                         {item.item_name}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-muted">
-                        Ordered <strong className="text-ink font-bold">{item.order_count}</strong> times
+                        Ordered <strong className="text-ink font-bold font-heading">{item.order_count}</strong> times
                       </span>
-                      <span className="status-pill status-pill-info text-xs tabular-nums">
+                      <span className="status-pill status-pill-info text-xs tabular-nums font-heading">
                         {item.total_credits} Credits
                       </span>
                     </div>
@@ -139,13 +139,13 @@ export function AdminDashboard({ onNavigate }) {
         <div className="lg:col-span-4 space-y-5">
           
           {/* Low Balance Warning Widget */}
-          <div className="card bg-gradient-to-br from-amber-50/60 via-white to-white border-amber-200/80 space-y-3.5">
-            <div className="flex items-center justify-between pb-2 border-b border-amber-200/50">
+          <div className="card bg-gradient-to-br from-[#1A1F3A] via-[#131728] to-[#0B0E1A] border-[#FBBF24]/30 space-y-3.5 shadow-glow-amber">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-[#D97706]" />
-                <h3 className="text-sm font-bold text-ink">Low Credit Accounts</h3>
+                <AlertTriangle className="w-4 h-4 text-[#FBBF24]" />
+                <h3 className="text-sm font-bold text-ink font-heading">Low Credit Accounts</h3>
               </div>
-              <span className="status-pill status-pill-warning text-[11px]">
+              <span className="status-pill status-pill-warning text-[11px] font-heading">
                 {lowBalanceStudents.length} Students
               </span>
             </div>
@@ -165,40 +165,40 @@ export function AdminDashboard({ onNavigate }) {
 
           {/* Quick Admin Actions */}
           <div className="card space-y-3">
-            <h3 className="text-h3 text-ink pb-2 border-b border-divider">
+            <h3 className="text-h3 text-ink pb-2 border-b border-divider font-heading">
               Quick Management
             </h3>
 
             <div className="space-y-2 text-xs">
               <button
                 onClick={() => onNavigate && onNavigate('menu-mgr')}
-                className="w-full p-2.5 rounded-xl border border-border bg-[#FAFAFB] hover:bg-slate-100 flex items-center justify-between transition"
+                className="w-full p-2.5 rounded-xl border border-border bg-[#0B0E1A] hover:bg-[#1A1F3A] flex items-center justify-between transition"
               >
                 <div className="flex items-center gap-2.5">
-                  <UtensilsCrossed className="w-4 h-4 text-[#FF6B35]" />
-                  <span className="font-semibold text-ink">Menu Items Catalog</span>
+                  <UtensilsCrossed className="w-4 h-4 text-[#06B6D4]" />
+                  <span className="font-semibold text-ink font-heading">Menu Items Catalog</span>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-muted" />
               </button>
 
               <button
                 onClick={() => onNavigate && onNavigate('students')}
-                className="w-full p-2.5 rounded-xl border border-border bg-[#FAFAFB] hover:bg-slate-100 flex items-center justify-between transition"
+                className="w-full p-2.5 rounded-xl border border-border bg-[#0B0E1A] hover:bg-[#1A1F3A] flex items-center justify-between transition"
               >
                 <div className="flex items-center gap-2.5">
-                  <Users className="w-4 h-4 text-[#6366F1]" />
-                  <span className="font-semibold text-ink">Student Accounts & Resets</span>
+                  <Users className="w-4 h-4 text-[#8B5CF6]" />
+                  <span className="font-semibold text-ink font-heading">Student Accounts & Resets</span>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-muted" />
               </button>
 
               <button
                 onClick={() => onNavigate && onNavigate('audit')}
-                className="w-full p-2.5 rounded-xl border border-border bg-[#FAFAFB] hover:bg-slate-100 flex items-center justify-between transition"
+                className="w-full p-2.5 rounded-xl border border-border bg-[#0B0E1A] hover:bg-[#1A1F3A] flex items-center justify-between transition"
               >
                 <div className="flex items-center gap-2.5">
-                  <Receipt className="w-4 h-4 text-purple-600" />
-                  <span className="font-semibold text-ink">Campus Financial Audit Logs</span>
+                  <Receipt className="w-4 h-4 text-[#34D399]" />
+                  <span className="font-semibold text-ink font-heading">Campus Financial Audit Logs</span>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-muted" />
               </button>

@@ -8,8 +8,8 @@ import {
   UtensilsCrossed, 
   RotateCcw, 
   Layers, 
-  ArrowRight,
-  TrendingUp
+  ArrowRight, 
+  TrendingUp 
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { StatCard } from '../../components/StatCard';
@@ -86,7 +86,7 @@ export function ChefDashboard() {
           value={cookingCount}
           subtitle="On stove / active"
           icon={Flame}
-          color="orange"
+          color="violet"
         />
         <StatCard
           title="Ready for Pickup"
@@ -102,7 +102,7 @@ export function ChefDashboard() {
           value={completedToday}
           subtitle="Dispatched today"
           icon={CheckCircle2}
-          color="indigo"
+          color="cyan"
         />
       </div>
 
@@ -115,7 +115,7 @@ export function ChefDashboard() {
           {/* Filter Bar */}
           <div className="card-static flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5">
             <div>
-              <h2 className="text-h2 text-ink">
+              <h2 className="text-h2 text-ink font-heading">
                 Kitchen Prep Queue
               </h2>
               <p className="text-body text-xs mt-0.5">
@@ -124,14 +124,14 @@ export function ChefDashboard() {
             </div>
 
             {/* Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto bg-[#FAFAFB] p-1 rounded-xl border border-border">
+            <div className="flex items-center gap-1.5 overflow-x-auto bg-[#0B0E1A] p-1 rounded-xl border border-border">
               {['ACTIVE', 'ALL', 'Pending', 'Cooking', 'Ready', 'Completed'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
                   className={`px-3 py-1.5 rounded-[8px] text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
                     statusFilter === status
-                      ? 'bg-white text-ink shadow-level-1'
+                      ? 'bg-[#131728] text-[#F1F5F9] border border-[#FBBF24]/40 shadow-glow-amber'
                       : 'text-muted hover:text-ink'
                   }`}
                 >
@@ -144,13 +144,13 @@ export function ChefDashboard() {
           {/* Orders List */}
           {loading ? (
             <div className="card text-center py-16 text-muted">
-              <div className="w-8 h-8 border-2 border-[#D97706] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              <div className="w-8 h-8 border-2 border-[#FBBF24] border-t-transparent rounded-full animate-spin mx-auto mb-2 shadow-glow-amber" />
               <p className="text-xs font-semibold">Loading live kitchen queue...</p>
             </div>
           ) : filteredOrders.length === 0 ? (
             <div className="card text-center py-16 text-muted space-y-2">
-              <ChefHat className="w-10 h-10 mx-auto text-slate-300" />
-              <h3 className="text-h3 text-ink">Queue is Empty</h3>
+              <ChefHat className="w-10 h-10 mx-auto text-muted" />
+              <h3 className="text-h3 text-ink font-heading">Queue is Empty</h3>
               <p className="text-body text-xs">No orders matching this filter right now.</p>
             </div>
           ) : (
@@ -165,7 +165,7 @@ export function ChefDashboard() {
                   <div 
                     key={order.order_id} 
                     className={`card relative overflow-hidden transition-all duration-200 ${
-                      isReady ? 'border-status-success bg-emerald-50/20' : isCooking ? 'border-amber-300' : ''
+                      isReady ? 'border-[#34D399]/50 shadow-glow-emerald bg-[#131728]/90' : isCooking ? 'border-[#FBBF24]/50 shadow-glow-amber' : ''
                     }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -173,7 +173,7 @@ export function ChefDashboard() {
                       {/* Left: Token & Student Details */}
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
-                          <span className="text-xl font-bold text-ink">
+                          <span className="text-xl font-bold text-ink font-heading">
                             #{order.order_id}
                           </span>
                           <span className="status-pill status-pill-info text-xs">
@@ -187,15 +187,15 @@ export function ChefDashboard() {
                         </div>
 
                         <div className="text-xs text-body font-medium flex items-center gap-3">
-                          <span>Student: <strong className="text-ink">{order.student_name}</strong></span>
+                          <span>Student: <strong className="text-ink font-heading">{order.student_name}</strong></span>
                           <span>•</span>
-                          <span>Room: <strong className="text-ink">{order.room_number || 'Hostel'}</strong></span>
+                          <span>Room: <strong className="text-ink font-heading">{order.room_number || 'Hostel'}</strong></span>
                         </div>
 
                         {/* Dishes list */}
-                        <div className="p-3 bg-[#FAFAFB] rounded-xl border border-border space-y-1 text-xs">
+                        <div className="p-3 bg-[#0B0E1A]/80 rounded-xl border border-border space-y-1 text-xs">
                           {(order.items || []).map((item, idx) => (
-                            <div key={idx} className="flex justify-between font-semibold text-ink">
+                            <div key={idx} className="flex justify-between font-semibold text-ink font-heading">
                               <span>{item.quantity}x {item.item_name}</span>
                             </div>
                           ))}
@@ -212,7 +212,7 @@ export function ChefDashboard() {
                           <button
                             onClick={() => handleUpdateStatus(order.order_id, 'Cooking')}
                             disabled={processingId === order.order_id}
-                            className="btn-primary py-2 px-4 text-xs bg-gradient-to-r from-[#D97706] to-[#F59E0B]"
+                            className="btn-primary py-2 px-4 text-xs bg-gradient-to-r from-[#FBBF24] to-[#06B6D4] shadow-glow-amber"
                           >
                             <Flame className="w-3.5 h-3.5" />
                             <span>Start Cooking</span>
@@ -223,7 +223,7 @@ export function ChefDashboard() {
                           <button
                             onClick={() => handleUpdateStatus(order.order_id, 'Ready')}
                             disabled={processingId === order.order_id}
-                            className="btn-primary py-2 px-4 text-xs bg-gradient-to-r from-[#16A34A] to-[#10B981]"
+                            className="btn-primary py-2 px-4 text-xs bg-gradient-to-r from-[#06B6D4] to-[#34D399] shadow-glow-emerald"
                           >
                             <Bell className="w-3.5 h-3.5" />
                             <span>Mark Ready</span>
@@ -234,7 +234,7 @@ export function ChefDashboard() {
                           <button
                             onClick={() => handleUpdateStatus(order.order_id, 'Completed')}
                             disabled={processingId === order.order_id}
-                            className="btn-secondary py-2 px-4 text-xs bg-white text-status-success border-status-success/30 hover:bg-emerald-50"
+                            className="btn-secondary py-2 px-4 text-xs text-status-success border-[#34D399]/40 hover:bg-[#34D399]/15 shadow-glow-emerald"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Dispatch / Collect</span>
@@ -255,36 +255,36 @@ export function ChefDashboard() {
           
           <div className="card space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-divider">
-              <ChefHat className="w-5 h-5 text-[#D97706]" />
-              <h3 className="text-h3 text-ink">Kitchen Queue Overview</h3>
+              <ChefHat className="w-5 h-5 text-[#FBBF24]" />
+              <h3 className="text-h3 text-ink font-heading">Kitchen Queue Overview</h3>
             </div>
 
             <div className="space-y-2.5 text-xs text-body">
               <div className="flex justify-between py-1.5 border-b border-divider">
                 <span>Pending Preparation</span>
-                <span className="font-bold text-[#D97706] tabular-nums">{pendingCount}</span>
+                <span className="font-bold text-[#FBBF24] tabular-nums font-heading">{pendingCount}</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-divider">
                 <span>On the Stove</span>
-                <span className="font-bold text-[#FF6B35] tabular-nums">{cookingCount}</span>
+                <span className="font-bold text-[#8B5CF6] tabular-nums font-heading">{cookingCount}</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-divider">
                 <span>Waiting for Pickup</span>
-                <span className="font-bold text-status-success tabular-nums">{readyCount}</span>
+                <span className="font-bold text-status-success tabular-nums font-heading">{readyCount}</span>
               </div>
               <div className="flex justify-between py-1.5">
                 <span>Completed Today</span>
-                <span className="font-bold text-ink tabular-nums">{completedToday}</span>
+                <span className="font-bold text-ink tabular-nums font-heading">{completedToday}</span>
               </div>
             </div>
           </div>
 
-          <div className="card bg-amber-50/60 border-amber-200/80 p-4 space-y-2 text-xs text-amber-900">
-            <div className="flex items-center gap-2 font-bold">
-              <Bell className="w-4 h-4 text-[#D97706]" />
+          <div className="card bg-[#FBBF24]/10 border-[#FBBF24]/30 p-4 space-y-2 text-xs text-[#FBBF24]">
+            <div className="flex items-center gap-2 font-bold font-heading">
+              <Bell className="w-4 h-4 text-[#FBBF24]" />
               <span>Token Pickup System</span>
             </div>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#F1F5F9]/80">
               When food is marked <strong>Ready</strong>, students receive an instant real-time pickup banner to collect their meal token at the counter.
             </p>
           </div>

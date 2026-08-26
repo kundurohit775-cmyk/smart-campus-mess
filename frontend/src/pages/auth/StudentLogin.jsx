@@ -11,7 +11,8 @@ import {
   CheckCircle, 
   Smartphone, 
   ArrowLeft,
-  Coins
+  Coins,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -162,65 +163,69 @@ export function StudentLogin({ onBack }) {
   const isVitEmail = email.trim().toLowerCase().endsWith('@vitstudent.ac.in');
 
   return (
-    <div className="min-h-screen bg-[#FAFAFB] flex flex-col md:flex-row">
+    <div className="min-h-screen bg-space-mesh bg-starfield flex flex-col md:flex-row relative overflow-hidden">
       
-      {/* LEFT 45% PANEL: Branded Gradient Panel with Messaging */}
-      <div className="w-full md:w-[45%] bg-gradient-to-br from-[#FF6B35] via-[#FF7A45] to-[#F7931E] text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden shrink-0">
-        {/* Subtle geometric overlay pattern */}
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+      {/* LEFT 45% PANEL: Branded Space-Tech Glowing Panel */}
+      <div className="w-full md:w-[45%] bg-gradient-to-br from-[#1A1F3A] via-[#131728] to-[#0B0E1A] border-b md:border-b-0 md:border-r border-border text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden shrink-0">
+        
+        {/* Ambient atmospheric glow inside panel */}
+        <div className="absolute -top-12 -left-12 w-64 h-64 bg-[#8B5CF6]/20 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-10 right-0 w-64 h-64 bg-[#06B6D4]/15 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute inset-0 opacity-15 bg-cyber-grid pointer-events-none" />
         
         {/* Top Back / Logo */}
         <div className="relative z-10 space-y-6">
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold backdrop-blur-md transition active:scale-95 border border-white/20"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#131728]/80 hover:bg-[#1A1F3A] text-[#F1F5F9] text-xs font-semibold backdrop-blur-md transition active:scale-95 border border-border"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 text-[#8B5CF6]" />
             <span>Back to Role Selection</span>
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 shadow-level-1">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#06B6D4] flex items-center justify-center text-white border border-white/20 shadow-level-4">
               <UtensilsCrossed className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-xl font-bold tracking-tight block">SmartMess</span>
-              <span className="text-xs text-orange-100 font-medium">Campus Food & Credit Hub</span>
+              <span className="text-xl font-bold tracking-tight block text-ink">SmartMess</span>
+              <span className="text-xs text-[#06B6D4] font-medium">Campus Food & Credit Hub</span>
             </div>
           </div>
         </div>
 
         {/* Middle Messaging */}
         <div className="relative z-10 py-8 space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-white text-[#FF6B35] flex items-center justify-center shadow-level-2 mb-2">
+          <div className="w-12 h-12 rounded-2xl bg-[#8B5CF6]/15 text-[#8B5CF6] flex items-center justify-center shadow-level-1 border border-[#8B5CF6]/30 mb-2">
             <GraduationCap className="w-6 h-6" />
           </div>
 
-          <h2 className="text-2xl sm:text-3.5xl font-bold tracking-tight leading-snug">
-            Student Meal Portal & Credit Management
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-ink">
+            Student Meal Portal & <br />
+            <span className="text-gradient">Credit Management</span>
           </h2>
           
-          <p className="text-orange-100 text-sm sm:text-[15px] leading-relaxed max-w-md">
-            Order food without waiting in lines. Every active student receives <strong>9,000 monthly credits</strong> with instant Razorpay top-ups.
+          <p className="text-body text-sm sm:text-[15px] leading-relaxed max-w-md">
+            Order food without waiting in lines. Every active student receives <strong className="text-ink">9,000 monthly credits</strong> with instant Razorpay top-ups.
           </p>
 
-          <div className="pt-4 space-y-2.5 text-xs text-orange-50/90 font-medium">
+          <div className="pt-4 space-y-2.5 text-xs text-body font-medium">
             <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-white" />
+              <div className="w-5 h-5 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-3.5 h-3.5 text-[#8B5CF6]" />
               </div>
               <span>Instant pickup token queue system</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-white" />
+              <div className="w-5 h-5 rounded-full bg-[#06B6D4]/20 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-3.5 h-3.5 text-[#06B6D4]" />
               </div>
-              <span>Transparent credit audit ledger & refunds</span>
+              <span>Transparent credit audit ledger & instant refunds</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-white" />
+              <div className="w-5 h-5 rounded-full bg-[#34D399]/20 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-3.5 h-3.5 text-[#34D399]" />
               </div>
               <span>Exclusive access for VIT student accounts (@vitstudent.ac.in)</span>
             </div>
@@ -228,18 +233,18 @@ export function StudentLogin({ onBack }) {
         </div>
 
         {/* Bottom Footer note */}
-        <div className="relative z-10 pt-4 border-t border-white/20 text-xs text-orange-100/80">
+        <div className="relative z-10 pt-4 border-t border-border text-xs text-muted">
           VIT University Campus Mess Network
         </div>
       </div>
 
       {/* RIGHT 55% PANEL: Form Panel Centered Vertically */}
-      <div className="w-full md:w-[55%] flex items-center justify-center p-6 sm:p-10 lg:p-14 bg-[#FAFAFB]">
-        <div className="max-w-md w-full bg-white p-7 sm:p-9 rounded-2xl shadow-level-1 border border-border space-y-6">
+      <div className="w-full md:w-[55%] flex items-center justify-center p-6 sm:p-10 lg:p-14">
+        <div className="max-w-md w-full card space-y-6 shadow-level-2">
           
           {/* Header */}
           <div>
-            <span className="text-micro text-[#FF6B35] font-semibold block mb-1">Student Portal</span>
+            <span className="text-micro text-[#8B5CF6] block mb-1">Student Portal</span>
             <h2 className="text-h2 text-ink">
               {isRegister ? 'Register Student Account' : 'Sign in to Your Account'}
             </h2>
@@ -249,13 +254,13 @@ export function StudentLogin({ onBack }) {
           </div>
 
           {/* Tab Switcher: Sign In vs Register */}
-          <div className="flex bg-[#FAFAFB] p-1 rounded-xl border border-border">
+          <div className="flex bg-[#0B0E1A] p-1 rounded-xl border border-border">
             <button
               type="button"
               onClick={() => setIsRegister(false)}
               className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 ${
                 !isRegister 
-                  ? 'bg-white text-ink shadow-level-1' 
+                  ? 'bg-gradient-to-r from-[#8B5CF6]/30 to-[#06B6D4]/30 text-white border border-[#8B5CF6]/40 shadow-level-1' 
                   : 'text-muted hover:text-ink'
               }`}
             >
@@ -266,7 +271,7 @@ export function StudentLogin({ onBack }) {
               onClick={() => setIsRegister(true)}
               className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 ${
                 isRegister 
-                  ? 'bg-white text-ink shadow-level-1' 
+                  ? 'bg-gradient-to-r from-[#8B5CF6]/30 to-[#06B6D4]/30 text-white border border-[#8B5CF6]/40 shadow-level-1' 
                   : 'text-muted hover:text-ink'
               }`}
             >
@@ -280,13 +285,13 @@ export function StudentLogin({ onBack }) {
           {!isRegister ? (
             <div className="space-y-5">
               {/* Method Switcher */}
-              <div className="flex items-center justify-center gap-1.5 p-1 bg-[#FAFAFB] border border-border rounded-xl">
+              <div className="flex items-center justify-center gap-1.5 p-1 bg-[#0B0E1A] border border-border rounded-xl">
                 <button
                   type="button"
                   onClick={() => setLoginMethod('password')}
                   className={`flex-1 py-1.5 px-3 rounded-[8px] text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
                     loginMethod === 'password'
-                      ? 'bg-white text-[#FF6B35] shadow-level-1 border border-border'
+                      ? 'bg-[#131728] text-[#8B5CF6] border border-border shadow-level-1'
                       : 'text-muted hover:text-ink'
                   }`}
                 >
@@ -298,7 +303,7 @@ export function StudentLogin({ onBack }) {
                   onClick={() => setLoginMethod('otp')}
                   className={`flex-1 py-1.5 px-3 rounded-[8px] text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
                     loginMethod === 'otp'
-                      ? 'bg-white text-[#FF6B35] shadow-level-1 border border-border'
+                      ? 'bg-[#131728] text-[#06B6D4] border border-border shadow-level-1'
                       : 'text-muted hover:text-ink'
                   }`}
                 >
@@ -372,7 +377,7 @@ export function StudentLogin({ onBack }) {
                           type="button"
                           onClick={handleSendMobileSms}
                           disabled={sendingSms || !otpPhone}
-                          className="px-4 bg-ink text-white font-semibold text-xs rounded-btn shadow-level-1 hover:bg-black transition shrink-0"
+                          className="px-4 bg-[#8B5CF6]/20 hover:bg-[#8B5CF6]/30 text-[#8B5CF6] border border-[#8B5CF6]/40 font-semibold text-xs rounded-btn shadow-level-1 transition shrink-0"
                         >
                           {sendingSms ? 'Sending...' : 'Send SMS'}
                         </button>
@@ -380,7 +385,7 @@ export function StudentLogin({ onBack }) {
                         <button
                           type="button"
                           onClick={() => { setSmsOtpSent(false); setSmsOtpCode(''); }}
-                          className="px-3 bg-slate-100 hover:bg-slate-200 text-ink rounded-btn text-xs font-semibold"
+                          className="px-3 bg-[#1A1F3A] hover:bg-[#23294C] text-ink rounded-btn text-xs font-semibold border border-border"
                         >
                           Edit
                         </button>
@@ -395,7 +400,7 @@ export function StudentLogin({ onBack }) {
                           <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
                             6-Digit SMS Code
                           </label>
-                          <span className="text-xs font-mono font-bold text-[#FF6B35]">
+                          <span className="text-xs font-mono font-bold text-[#06B6D4]">
                             ⏱️ {formatTimer(smsCountdown)}
                           </span>
                         </div>
@@ -432,7 +437,7 @@ export function StudentLogin({ onBack }) {
                           type="button"
                           onClick={handleSendMobileSms}
                           disabled={sendingSms || smsCountdown > 240}
-                          className="font-semibold text-[#FF6B35] hover:underline disabled:opacity-40"
+                          className="font-semibold text-[#8B5CF6] hover:underline disabled:opacity-40"
                         >
                           Resend SMS
                         </button>
@@ -503,7 +508,7 @@ export function StudentLogin({ onBack }) {
                 />
                 {email && !isVitEmail && (
                   <p className="text-xs text-status-danger mt-1">
-                    Only official VIT student email addresses (@vitstudent.ac.in) are permitted.
+                    Only official VIT student email addresses are permitted.
                   </p>
                 )}
               </div>
@@ -520,9 +525,9 @@ export function StudentLogin({ onBack }) {
                 />
               </div>
 
-              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200/80 text-xs text-emerald-900 flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 text-status-success shrink-0 mt-0.5" />
-                <span>Upon registration, <strong>9,000 monthly dining credits</strong> will be allocated to your account immediately.</span>
+              <div className="p-3 bg-[#34D399]/10 rounded-xl border border-[#34D399]/30 text-xs text-[#34D399] flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-[#34D399] shrink-0 mt-0.5" />
+                <span>Upon registration, <strong>9,000 monthly dining credits</strong> will be allocated immediately.</span>
               </div>
 
               <button

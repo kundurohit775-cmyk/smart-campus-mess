@@ -60,7 +60,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       
-      {/* 1. HERO STAT STRIP (3-4 Stat Cards in a row) */}
+      {/* 1. HERO STAT STRIP (4 Stat Cards in a row) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Stat 1: Available Balance */}
@@ -69,7 +69,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
           value={`${remainingCredits.toLocaleString()}`}
           subtitle="9,000 monthly allowance"
           icon={Coins}
-          color={isLow ? 'rose' : 'orange'}
+          color={isLow ? 'rose' : 'violet'}
           trend={isLow ? 'Low Balance' : 'Active'}
           trendPositive={!isLow}
         />
@@ -80,7 +80,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
           value={`${usedCredits.toLocaleString()}`}
           subtitle="Monthly dining spend"
           icon={CreditCard}
-          color="indigo"
+          color="cyan"
         />
 
         {/* Stat 3: Active Meal Tray */}
@@ -122,8 +122,8 @@ export function StudentDashboard({ onNavigateToOrders }) {
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
                     selectedCategory === cat
-                      ? 'bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white shadow-level-4'
-                      : 'bg-[#FAFAFB] text-body hover:text-ink hover:bg-slate-100 border border-border'
+                      ? 'bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] text-white shadow-glow-primary'
+                      : 'bg-[#0B0E1A] text-body hover:text-ink hover:bg-[#1A1F3A] border border-border'
                   }`}
                 >
                   {cat}
@@ -147,13 +147,13 @@ export function StudentDashboard({ onNavigateToOrders }) {
           {/* Dishes Catalog Grid */}
           {loading ? (
             <div className="card text-center py-16 text-muted">
-              <div className="w-8 h-8 border-2 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <div className="w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto mb-3 shadow-glow-primary" />
               <p className="text-xs font-semibold">Loading daily fresh menu...</p>
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="card text-center py-16 text-muted space-y-2">
-              <UtensilsCrossed className="w-10 h-10 mx-auto text-slate-300" />
-              <h3 className="text-h3 text-ink">No dishes found</h3>
+              <UtensilsCrossed className="w-10 h-10 mx-auto text-muted" />
+              <h3 className="text-h3 text-ink font-heading">No dishes found</h3>
               <p className="text-body text-xs">Try selecting a different meal category or clearing your search.</p>
             </div>
           ) : (
@@ -172,10 +172,10 @@ export function StudentDashboard({ onNavigateToOrders }) {
           <div className="card space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-divider">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#FF6B35] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30 flex items-center justify-center">
                   <ShoppingBag className="w-4 h-4" />
                 </div>
-                <h3 className="text-h3 text-ink">Your Meal Tray</h3>
+                <h3 className="text-h3 text-ink font-heading">Your Meal Tray</h3>
               </div>
               <span className="status-pill status-pill-info text-[11px]">
                 {(cart || []).length} items
@@ -193,10 +193,10 @@ export function StudentDashboard({ onNavigateToOrders }) {
                   {(cart || []).map((i) => (
                     <div key={i.item_id} className="py-2 flex items-center justify-between">
                       <div>
-                        <span className="font-semibold text-ink block">{i.item_name}</span>
+                        <span className="font-semibold text-ink block font-heading">{i.item_name}</span>
                         <span className="text-muted text-[11px]">{i.quantity} × {i.price} credits</span>
                       </div>
-                      <span className="font-bold text-ink tabular-nums">
+                      <span className="font-bold text-ink tabular-nums font-heading">
                         {i.quantity * i.price} Cr
                       </span>
                     </div>
@@ -205,7 +205,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
 
                 <div className="pt-3 border-t border-divider flex items-center justify-between">
                   <span className="text-xs font-semibold text-muted uppercase">Total Amount</span>
-                  <span className="text-xl font-bold text-[#FF6B35] tabular-nums">
+                  <span className="text-xl font-bold text-gradient tabular-nums font-heading">
                     {totalAmount} Credits
                   </span>
                 </div>
@@ -222,14 +222,14 @@ export function StudentDashboard({ onNavigateToOrders }) {
           </div>
 
           {/* Quick Credit Refill Promo Card */}
-          <div className="card bg-gradient-to-br from-orange-50/80 via-amber-50/50 to-white border-orange-200/60 space-y-3.5">
+          <div className="card bg-gradient-to-br from-[#1A1F3A] via-[#131728] to-[#0B0E1A] border-[#8B5CF6]/30 shadow-glow-primary space-y-3.5">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FF6B35] to-[#F7931E] text-white flex items-center justify-center shadow-level-4">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#06B6D4] text-white flex items-center justify-center shadow-glow-primary">
                 <CreditCard className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-ink">Buy Dining Credits</h3>
-                <span className="text-[11px] text-muted font-medium">Instant Razorpay Top-Up</span>
+                <h3 className="text-sm font-bold text-ink font-heading">Buy Dining Credits</h3>
+                <span className="text-[11px] text-[#06B6D4] font-medium">Instant Razorpay Top-Up</span>
               </div>
             </div>
 
@@ -241,7 +241,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
               onClick={() => setIsTopupOpen(true)}
               className="w-full btn-secondary text-xs py-2 justify-center"
             >
-              <Plus className="w-3.5 h-3.5 text-[#FF6B35]" />
+              <Plus className="w-3.5 h-3.5 text-[#8B5CF6]" />
               <span>Add Credits Now</span>
             </button>
           </div>
@@ -249,18 +249,18 @@ export function StudentDashboard({ onNavigateToOrders }) {
           {/* Live Pickup Orders Link */}
           <div className="card p-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-status-success flex items-center justify-center border border-emerald-100 shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[#34D399]/15 text-status-success border border-[#34D399]/30 flex items-center justify-center shrink-0">
                 <Clock className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-ink block">Track Orders Live</span>
+                <span className="text-xs font-bold text-ink block font-heading">Track Orders Live</span>
                 <span className="text-[11px] text-muted">View tokens & prep stage</span>
               </div>
             </div>
 
             <button
               onClick={onNavigateToOrders}
-              className="w-8 h-8 rounded-full bg-[#FAFAFB] border border-border text-ink hover:bg-[#FF6B35] hover:text-white hover:border-transparent flex items-center justify-center transition"
+              className="w-8 h-8 rounded-full bg-[#0B0E1A] border border-border text-ink hover:bg-gradient-to-r hover:from-[#8B5CF6] hover:to-[#06B6D4] hover:text-white hover:border-transparent flex items-center justify-center transition shadow-level-1"
             >
               <ArrowRight className="w-4 h-4" />
             </button>

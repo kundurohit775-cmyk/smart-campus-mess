@@ -3,169 +3,238 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #FF6B35;
-  --color-primary-hover: #E85A2A;
-  --color-ink: #0F172A;
-  --color-body: #475569;
-  --color-muted: #94A3B8;
-  --color-base: #FAFAFB;
-  --color-elevated: #FFFFFF;
-  --color-border: rgba(15, 23, 42, 0.08);
-  --color-divider: rgba(15, 23, 42, 0.05);
+  --color-base: #0B0E1A;
+  --color-elevated: #131728;
+  --color-elevated-glass: rgba(19, 23, 40, 0.6);
+  --color-surface-subtle: #1A1F3A;
 
-  --shadow-level-1: 0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.06);
-  --shadow-level-2: 0 4px 12px rgba(15,23,42,0.08);
-  --shadow-level-3: 0 20px 40px rgba(15,23,42,0.12), 0 0 0 1px rgba(15,23,42,0.04);
-  --shadow-level-4: 0 8px 24px rgba(255,107,53,0.25);
-  --shadow-level-4-hover: 0 8px 24px rgba(255,107,53,0.35);
+  --color-primary: #8B5CF6;
+  --color-primary-hover: #7C3AED;
+  --color-secondary: #06B6D4;
+
+  --color-ink: #F1F5F9;
+  --color-body: #94A3B8;
+  --color-muted: #64748B;
+
+  --color-border: rgba(139, 92, 246, 0.15);
+  --color-border-hover: rgba(139, 92, 246, 0.4);
+  --color-divider: rgba(139, 92, 246, 0.1);
+
+  --shadow-level-1: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.15);
+  --shadow-level-2: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(139, 92, 246, 0.35);
+  --shadow-level-3: 0 24px 48px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(139, 92, 246, 0.4);
+  --shadow-level-4: 0 0 24px rgba(139, 92, 246, 0.4);
 }
 
 @layer base {
   body {
-    font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    background-color: var(--color-base);
-    color: var(--color-ink);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #0B0E1A;
+    color: #F1F5F9;
     font-size: 15px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+  }
 }
 
-/* Custom smooth scrollbar */
+/* Custom Cyber/Space Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0B0E1A;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: rgba(139, 92, 246, 0.3);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: rgba(139, 92, 246, 0.6);
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
 }
 
-/* Design System Background Blobs */
-.bg-blobs {
-  background-color: #FAFAFB;
-  background-image: 
-    radial-gradient(circle at 10% 15%, rgba(255, 107, 53, 0.08) 0%, transparent 45%),
-    radial-gradient(circle at 90% 85%, rgba(99, 102, 241, 0.06) 0%, transparent 45%);
+/* Space-Tech Backgrounds & Animated Starfield */
+.bg-space {
+  background-color: #0B0E1A;
+  background-image: radial-gradient(ellipse at top, #1A1F3A 0%, #0B0E1A 65%);
 }
 
-.bg-blobs-subtle {
+.bg-space-mesh {
+  background-color: #0B0E1A;
   background-image: 
-    radial-gradient(circle at 15% 10%, rgba(255, 107, 53, 0.05) 0%, transparent 35%),
-    radial-gradient(circle at 85% 90%, rgba(99, 102, 241, 0.04) 0%, transparent 35%);
+    radial-gradient(circle at 20% 15%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 80% 85%, rgba(6, 182, 212, 0.09) 0%, transparent 45%),
+    radial-gradient(ellipse at top, #1A1F3A 0%, #0B0E1A 70%);
+}
+
+.bg-starfield {
+  position: relative;
+}
+.bg-starfield::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(1px 1px at 25px 35px, #8B5CF6, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 75px 125px, #06B6D4, rgba(0,0,0,0)),
+    radial-gradient(1.5px 1.5px at 150px 75px, #F1F5F9, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 225px 185px, #8B5CF6, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 320px 240px, #34D399, rgba(0,0,0,0)),
+    radial-gradient(1.5px 1.5px at 450px 110px, #F1F5F9, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 550px 320px, #06B6D4, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 600px 600px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* Subtle Cyber Grid */
+.bg-cyber-grid {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(139, 92, 246, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(139, 92, 246, 0.05) 1px, transparent 1px);
 }
 
 /* Typography Hierarchy */
 .text-display {
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 48px;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.1;
+  background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .text-h1 {
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 32px;
   font-weight: 700;
   letter-spacing: -0.015em;
   line-height: 1.2;
+  color: #F1F5F9;
 }
 
 .text-h2 {
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 24px;
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.3;
+  color: #F1F5F9;
 }
 
 .text-h3 {
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 18px;
   font-weight: 600;
   line-height: 1.4;
+  color: #F1F5F9;
 }
 
 .text-body {
+  font-family: 'Inter', sans-serif;
   font-size: 15px;
   font-weight: 400;
   line-height: 1.6;
-  color: #475569;
-}
-
-.text-label-small {
-  font-size: 13px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: #94A3B8;
 }
 
-.text-micro {
-  font-size: 11px;
+.text-label-small {
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
+  color: #8B5CF6;
 }
 
-/* Component Classes */
+.text-micro {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8B5CF6;
+}
+
+/* Glassmorphic Cards */
 .card {
-  background-color: #FFFFFF;
+  background: rgba(19, 23, 40, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-radius: 16px;
-  box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.06);
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   padding: 24px;
-  transition: all 200ms ease-out;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .card:hover {
-  box-shadow: 0 4px 12px rgba(15,23,42,0.08);
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 24px rgba(139, 92, 246, 0.2);
   transform: translateY(-2px);
 }
 
 .card-static {
-  background-color: #FFFFFF;
+  background: rgba(19, 23, 40, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-radius: 16px;
-  box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.06);
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
+/* Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+  background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%);
   color: #FFFFFF;
   border-radius: 12px;
-  padding: 14px 24px;
+  padding: 12px 24px;
+  font-family: 'Space Grotesk', sans-serif;
   font-weight: 600;
   font-size: 14px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.35);
   transition: all 200ms ease-out;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  border: none;
 }
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #E85A2A 0%, #EA580C 100%);
-  box-shadow: 0 8px 24px rgba(255, 107, 53, 0.35);
-  transform: scale(1.02);
+  box-shadow: 0 0 24px rgba(139, 92, 246, 0.55), 0 0 32px rgba(6, 182, 212, 0.3);
+  transform: scale(1.03);
 }
 .btn-primary:active:not(:disabled) {
   transform: scale(0.98);
 }
 .btn-primary:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-secondary {
-  background-color: #FFFFFF;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  color: #0F172A;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(139, 92, 246, 0.3);
+  color: #F1F5F9;
   border-radius: 12px;
-  padding: 12px 20px;
+  padding: 10px 20px;
+  font-family: 'Space Grotesk', sans-serif;
   font-weight: 600;
   font-size: 14px;
   transition: all 200ms ease-out;
@@ -175,37 +244,40 @@
   gap: 8px;
 }
 .btn-secondary:hover:not(:disabled) {
-  background-color: #F8FAFC;
-  border-color: rgba(15, 23, 42, 0.15);
+  background-color: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.6);
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.25);
   transform: scale(1.01);
 }
 .btn-secondary:active:not(:disabled) {
   transform: scale(0.98);
 }
 
+/* Space-Tech Input Fields */
 .input-field {
-  background-color: #FFFFFF;
-  border: 1.5px solid rgba(15, 23, 42, 0.08);
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(139, 92, 246, 0.2);
   border-radius: 10px;
   height: 44px;
   padding: 0 16px;
   font-size: 14px;
-  color: #0F172A;
+  color: #F1F5F9;
   transition: all 200ms ease-out;
   width: 100%;
 }
 .input-field:focus {
   outline: none;
-  border-color: #FF6B35;
-  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+  border-color: #8B5CF6;
+  background-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15), 0 0 16px rgba(139, 92, 246, 0.25);
 }
 .input-field::placeholder {
-  color: #94A3B8;
+  color: #64748B;
 }
 
-/* Status Pills */
+/* Status Pills with Sci-Fi Glow */
 .status-pill {
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
@@ -214,24 +286,28 @@
   gap: 6px;
 }
 .status-pill-success {
-  background-color: #F0FDF4;
-  color: #16A34A;
-  border: 1px solid rgba(22, 163, 74, 0.2);
+  background-color: rgba(52, 211, 153, 0.12);
+  color: #34D399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.15);
 }
 .status-pill-warning {
-  background-color: #FFFBEB;
-  color: #D97706;
-  border: 1px solid rgba(217, 119, 6, 0.2);
+  background-color: rgba(251, 191, 36, 0.12);
+  color: #FBBF24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
 }
 .status-pill-danger {
-  background-color: #FEF2F2;
-  color: #DC2626;
-  border: 1px solid rgba(220, 38, 38, 0.2);
+  background-color: rgba(248, 113, 113, 0.12);
+  color: #F87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  box-shadow: 0 0 12px rgba(248, 113, 113, 0.15);
 }
 .status-pill-info {
-  background-color: #EEF2FF;
-  color: #6366F1;
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background-color: rgba(6, 182, 212, 0.12);
+  color: #06B6D4;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.15);
 }
 
 .tabular-nums {

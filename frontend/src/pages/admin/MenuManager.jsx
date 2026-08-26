@@ -116,8 +116,8 @@ export function MenuManager() {
       {/* Header */}
       <div className="card-static flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6">
         <div>
-          <h1 className="text-h1 text-ink flex items-center gap-2.5">
-            <UtensilsCrossed className="w-6 h-6 text-[#FF6B35]" />
+          <h1 className="text-h1 text-ink flex items-center gap-2.5 font-heading">
+            <UtensilsCrossed className="w-6 h-6 text-[#06B6D4]" />
             <span>Menu Items Catalog</span>
           </h1>
           <p className="text-body text-xs mt-0.5">
@@ -151,7 +151,7 @@ export function MenuManager() {
       <div className="card-static p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="text-micro text-muted border-b border-divider bg-[#FAFAFB]">
+            <thead className="text-micro text-muted border-b border-divider bg-[#0B0E1A]/60">
               <tr>
                 <th className="py-3.5 px-6">Dish</th>
                 <th className="py-3.5 px-4">Category</th>
@@ -176,7 +176,7 @@ export function MenuManager() {
                 </tr>
               ) : (
                 filteredItems.map(item => (
-                  <tr key={item.item_id} className="h-14 hover:bg-[#FAFAFB] transition-colors">
+                  <tr key={item.item_id} className="h-14 hover:bg-[#1A1F3A]/70 transition-colors">
                     <td className="py-3 px-6">
                       <div className="flex items-center gap-3">
                         <img
@@ -185,7 +185,7 @@ export function MenuManager() {
                           className="w-10 h-10 rounded-xl object-cover shrink-0 border border-border shadow-level-1"
                         />
                         <div>
-                          <span className="font-bold text-ink block">{item.item_name}</span>
+                          <span className="font-bold text-ink block font-heading">{item.item_name}</span>
                           <span className="text-xs text-muted line-clamp-1 max-w-xs">{item.description}</span>
                         </div>
                       </div>
@@ -195,11 +195,11 @@ export function MenuManager() {
                         {item.category}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right font-bold text-[#FF6B35] tabular-nums">
+                    <td className="py-3 px-4 text-right font-bold text-gradient tabular-nums font-heading">
                       {item.price} Credits
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <span className={`status-pill text-xs ${
+                      <span className={`status-pill text-xs font-heading ${
                         item.available_quantity <= 0
                           ? 'status-pill-danger'
                           : 'status-pill-success'
@@ -210,7 +210,7 @@ export function MenuManager() {
                     <td className="py-3 px-4 text-center">
                       <button
                         onClick={() => handleToggleActive(item)}
-                        className={`status-pill text-xs cursor-pointer transition ${
+                        className={`status-pill text-xs cursor-pointer transition font-heading ${
                           item.is_active === 1
                             ? 'status-pill-success hover:opacity-80'
                             : 'status-pill-danger hover:opacity-80'
@@ -261,10 +261,10 @@ export function MenuManager() {
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="input-field"
+                className="input-field bg-[#0B0E1A] text-ink"
               >
                 {(CATEGORIES || []).map(c => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c} className="bg-[#131728] text-ink">{c}</option>
                 ))}
               </select>
             </div>

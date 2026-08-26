@@ -4,11 +4,11 @@ import {
   Mail, 
   Lock, 
   ArrowRight, 
-  ArrowLeft,
-  Flame,
-  CheckCircle,
-  UtensilsCrossed,
-  ShieldCheck
+  ArrowLeft, 
+  Flame, 
+  CheckCircle, 
+  UtensilsCrossed, 
+  ShieldCheck 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -42,65 +42,69 @@ export function ChefLogin({ onBack }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFB] flex flex-col md:flex-row">
+    <div className="min-h-screen bg-space-mesh bg-starfield flex flex-col md:flex-row relative overflow-hidden">
       
-      {/* LEFT 45% PANEL: Branded Warm Amber Gradient Panel */}
-      <div className="w-full md:w-[45%] bg-gradient-to-br from-[#F59E0B] via-[#D97706] to-[#B45309] text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden shrink-0">
-        {/* Subtle geometric overlay pattern */}
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+      {/* LEFT 45% PANEL: Branded Cosmic Amber Panel */}
+      <div className="w-full md:w-[45%] bg-gradient-to-br from-[#1E1B18] via-[#131728] to-[#0B0E1A] border-b md:border-b-0 md:border-r border-border text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden shrink-0">
+        
+        {/* Ambient atmospheric glow inside panel */}
+        <div className="absolute -top-12 -left-12 w-64 h-64 bg-[#FBBF24]/15 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-10 right-0 w-64 h-64 bg-[#06B6D4]/15 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute inset-0 opacity-15 bg-cyber-grid pointer-events-none" />
         
         {/* Top Back / Logo */}
         <div className="relative z-10 space-y-6">
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold backdrop-blur-md transition active:scale-95 border border-white/20"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#131728]/80 hover:bg-[#1A1F3A] text-[#F1F5F9] text-xs font-semibold backdrop-blur-md transition active:scale-95 border border-border"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 text-[#FBBF24]" />
             <span>Back to Role Selection</span>
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 shadow-level-1">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#FBBF24] to-[#06B6D4] flex items-center justify-center text-white border border-white/20 shadow-level-4">
               <ChefHat className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-xl font-bold tracking-tight block">SmartMess Kitchen</span>
-              <span className="text-xs text-amber-100 font-medium">Live Order Dispatch & Controls</span>
+              <span className="text-xl font-bold tracking-tight block text-ink">SmartMess Kitchen</span>
+              <span className="text-xs text-[#06B6D4] font-medium">Live Order Dispatch & Controls</span>
             </div>
           </div>
         </div>
 
         {/* Middle Messaging */}
         <div className="relative z-10 py-8 space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-white text-[#D97706] flex items-center justify-center shadow-level-2 mb-2">
+          <div className="w-12 h-12 rounded-2xl bg-[#FBBF24]/15 text-[#FBBF24] flex items-center justify-center shadow-level-1 border border-[#FBBF24]/30 mb-2">
             <Flame className="w-6 h-6" />
           </div>
 
-          <h2 className="text-2xl sm:text-3.5xl font-bold tracking-tight leading-snug">
-            Real-Time Kitchen Queue & Inventory Dispatch
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-ink">
+            Real-Time Kitchen Queue & <br />
+            <span className="text-gradient">Inventory Dispatch</span>
           </h2>
           
-          <p className="text-amber-100 text-sm sm:text-[15px] leading-relaxed max-w-md">
+          <p className="text-body text-sm sm:text-[15px] leading-relaxed max-w-md">
             Manage active meal preparation, update cooking progress, and notify students instantly when their tokens are ready.
           </p>
 
-          <div className="pt-4 space-y-2.5 text-xs text-amber-50/90 font-medium">
+          <div className="pt-4 space-y-2.5 text-xs text-body font-medium">
             <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-white" />
+              <div className="w-5 h-5 rounded-full bg-[#FBBF24]/20 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-3.5 h-3.5 text-[#FBBF24]" />
               </div>
               <span>Live status advancement (Pending → Cooking → Ready)</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-white" />
+              <div className="w-5 h-5 rounded-full bg-[#06B6D4]/20 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-3.5 h-3.5 text-[#06B6D4]" />
               </div>
-              <span>1-click inventory portion restocking & sold out toggle</span>
+              <span>1-click portion restock & live sold-out toggle</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-white" />
+              <div className="w-5 h-5 rounded-full bg-[#34D399]/20 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-3.5 h-3.5 text-[#34D399]" />
               </div>
               <span>Pickup token verification and completion matching</span>
             </div>
@@ -108,26 +112,26 @@ export function ChefLogin({ onBack }) {
         </div>
 
         {/* Bottom Footer note */}
-        <div className="relative z-10 pt-4 border-t border-white/20 text-xs text-amber-100/80">
+        <div className="relative z-10 pt-4 border-t border-border text-xs text-muted">
           Authorized Campus Culinary Staff Only
         </div>
       </div>
 
       {/* RIGHT 55% PANEL: Form Panel Centered Vertically */}
-      <div className="w-full md:w-[55%] flex items-center justify-center p-6 sm:p-10 lg:p-14 bg-[#FAFAFB]">
-        <div className="max-w-md w-full bg-white p-7 sm:p-9 rounded-2xl shadow-level-1 border border-border space-y-6">
+      <div className="w-full md:w-[55%] flex items-center justify-center p-6 sm:p-10 lg:p-14">
+        <div className="max-w-md w-full card space-y-6 shadow-level-2">
           
           {/* Header */}
           <div>
-            <span className="text-micro text-[#D97706] font-semibold block mb-1">Kitchen Operations</span>
+            <span className="text-micro text-[#06B6D4] block mb-1">Kitchen Operations</span>
             <h2 className="text-h2 text-ink">Chef Staff Sign In</h2>
             <p className="text-body text-xs sm:text-sm mt-1">
               Sign in with your authorized chef credentials
             </p>
           </div>
 
-          <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200/80 text-xs text-amber-900 flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-[#D97706] shrink-0 mt-0.5" />
+          <div className="p-3.5 bg-[#FBBF24]/10 rounded-xl border border-[#FBBF24]/30 text-xs text-[#FBBF24] flex items-start gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-[#FBBF24] shrink-0 mt-0.5" />
             <span>Single-account authorized access. Self-registration is restricted.</span>
           </div>
 
@@ -163,7 +167,7 @@ export function ChefLogin({ onBack }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-6 rounded-btn text-white font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-level-1 hover:shadow-level-2 active:scale-[0.98] bg-gradient-to-r from-[#F59E0B] via-[#D97706] to-[#B45309] hover:from-[#D97706] hover:to-[#92400E] disabled:opacity-50"
+              className="w-full py-3.5 px-6 rounded-btn text-white font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-level-1 hover:shadow-glow-secondary active:scale-[0.98] bg-gradient-to-r from-[#06B6D4] to-[#34D399] disabled:opacity-50"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -176,7 +180,7 @@ export function ChefLogin({ onBack }) {
             </button>
           </form>
 
-          <div className="pt-4 border-t border-divider text-center">
+          <div className="pt-4 border-t border-border text-center">
             <span className="text-xs text-muted">
               Need access? Contact campus dining administration.
             </span>

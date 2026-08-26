@@ -51,8 +51,8 @@ export function AuditLogs() {
       {/* Header */}
       <div className="card-static flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6">
         <div>
-          <h1 className="text-h1 text-ink flex items-center gap-2.5">
-            <Receipt className="w-6 h-6 text-[#6366F1]" />
+          <h1 className="text-h1 text-ink flex items-center gap-2.5 font-heading">
+            <Receipt className="w-6 h-6 text-[#8B5CF6]" />
             <span>Campus Audit Logs & Records</span>
           </h1>
           <p className="text-body text-xs mt-0.5">
@@ -73,23 +73,23 @@ export function AuditLogs() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1.5 p-1 bg-[#FAFAFB] border border-border rounded-xl w-fit">
+      <div className="flex items-center gap-1.5 p-1 bg-[#0B0E1A] border border-border rounded-xl w-fit">
         <button
           onClick={() => setActiveTab('orders')}
           className={`flex items-center gap-2 px-4 py-1.5 rounded-[8px] text-xs font-semibold transition-all duration-200 ${
-            activeTab === 'orders' ? 'bg-white text-ink shadow-level-1' : 'text-muted hover:text-ink'
+            activeTab === 'orders' ? 'bg-[#131728] text-white border border-[#8B5CF6]/40 shadow-glow-primary' : 'text-muted hover:text-ink'
           }`}
         >
-          <ShoppingBag className="w-3.5 h-3.5 text-[#6366F1]" />
+          <ShoppingBag className="w-3.5 h-3.5 text-[#8B5CF6]" />
           <span>All Orders ({ordersList.length})</span>
         </button>
         <button
           onClick={() => setActiveTab('transactions')}
           className={`flex items-center gap-2 px-4 py-1.5 rounded-[8px] text-xs font-semibold transition-all duration-200 ${
-            activeTab === 'transactions' ? 'bg-white text-ink shadow-level-1' : 'text-muted hover:text-ink'
+            activeTab === 'transactions' ? 'bg-[#131728] text-white border border-[#8B5CF6]/40 shadow-glow-primary' : 'text-muted hover:text-ink'
           }`}
         >
-          <Coins className="w-3.5 h-3.5 text-[#6366F1]" />
+          <Coins className="w-3.5 h-3.5 text-[#06B6D4]" />
           <span>Credit Transactions ({transList.length})</span>
         </button>
       </div>
@@ -103,7 +103,7 @@ export function AuditLogs() {
         ) : activeTab === 'orders' ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="text-micro text-muted border-b border-divider bg-[#FAFAFB]">
+              <thead className="text-micro text-muted border-b border-divider bg-[#0B0E1A]/60">
                 <tr>
                   <th className="py-3.5 px-6">Order / Token</th>
                   <th className="py-3.5 px-4">Student</th>
@@ -120,24 +120,24 @@ export function AuditLogs() {
                   </tr>
                 ) : (
                   filteredOrders.map(order => (
-                    <tr key={order.order_id} className="h-14 hover:bg-[#FAFAFB] transition-colors">
+                    <tr key={order.order_id} className="h-14 hover:bg-[#1A1F3A]/70 transition-colors">
                       <td className="py-3 px-6">
-                        <span className="font-bold text-ink block">
-                          #{order.order_id} <span className="text-[#FF6B35] font-semibold text-xs">({order.pickup_token})</span>
+                        <span className="font-bold text-ink block font-heading">
+                          #{order.order_id} <span className="text-[#06B6D4] font-semibold text-xs font-heading">({order.pickup_token})</span>
                         </span>
                       </td>
                       <td className="py-3 px-4 text-ink">
-                        <span className="font-semibold block">{order.student_name}</span>
+                        <span className="font-semibold block font-heading">{order.student_name}</span>
                         <span className="text-[11px] text-muted">{order.room_number || 'Hostel'}</span>
                       </td>
-                      <td className="py-3 px-4 text-body">
+                      <td className="py-3 px-4 text-body font-heading">
                         {(order.items || []).map(i => `${i.quantity}x ${i.item_name}`).join(', ') || 'No items'}
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-[#FF6B35] tabular-nums">
+                      <td className="py-3 px-4 text-right font-bold text-gradient tabular-nums font-heading">
                         {order.total_amount} Credits
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className={`status-pill text-xs ${
+                        <span className={`status-pill text-xs font-heading ${
                           order.order_status === 'Completed' ? 'status-pill-success' :
                           order.order_status === 'Cancelled' ? 'status-pill-danger' :
                           order.order_status === 'Ready' ? 'status-pill-success' :
@@ -158,7 +158,7 @@ export function AuditLogs() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="text-micro text-muted border-b border-divider bg-[#FAFAFB]">
+              <thead className="text-micro text-muted border-b border-divider bg-[#0B0E1A]/60">
                 <tr>
                   <th className="py-3.5 px-6">Tx ID</th>
                   <th className="py-3.5 px-4">Student</th>
@@ -178,25 +178,25 @@ export function AuditLogs() {
                     const isDebit = tx.transaction_type === 'DEBIT_ORDER';
 
                     return (
-                      <tr key={tx.transaction_id} className="h-14 hover:bg-[#FAFAFB] transition-colors">
-                        <td className="py-3 px-6 font-bold text-muted">
+                      <tr key={tx.transaction_id} className="h-14 hover:bg-[#1A1F3A]/70 transition-colors">
+                        <td className="py-3 px-6 font-bold text-muted font-heading">
                           #{tx.transaction_id}
                         </td>
-                        <td className="py-3 px-4 text-ink font-semibold">
+                        <td className="py-3 px-4 text-ink font-semibold font-heading">
                           {tx.student_name}
                         </td>
                         <td className="py-3 px-4">
                           <span className="font-semibold text-ink block">{tx.notes || tx.transaction_type}</span>
-                          <span className="text-[10px] uppercase font-bold text-muted">
+                          <span className="text-[10px] uppercase font-bold text-muted font-heading">
                             {tx.transaction_type}
                           </span>
                         </td>
-                        <td className={`py-3 px-4 text-right font-bold tabular-nums ${
+                        <td className={`py-3 px-4 text-right font-bold tabular-nums font-heading ${
                           isDebit ? 'text-status-danger' : 'text-status-success'
                         }`}>
                           {isDebit ? `-${tx.amount}` : `+${tx.amount}`} Credits
                         </td>
-                        <td className="py-3 px-4 text-right font-bold text-ink tabular-nums">
+                        <td className="py-3 px-4 text-right font-bold text-ink tabular-nums font-heading">
                           {tx.balance_after?.toLocaleString() ?? tx.balance_after}
                         </td>
                         <td className="py-3 px-6 text-right text-muted whitespace-nowrap text-xs">

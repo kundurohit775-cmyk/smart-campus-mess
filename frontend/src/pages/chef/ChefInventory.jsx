@@ -59,8 +59,8 @@ export function ChefInventory() {
       {/* Header */}
       <div className="card-static flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6">
         <div>
-          <h1 className="text-h1 text-ink flex items-center gap-2">
-            <Layers className="w-6 h-6 text-[#D97706]" />
+          <h1 className="text-h1 text-ink flex items-center gap-2 font-heading">
+            <Layers className="w-6 h-6 text-[#FBBF24]" />
             <span>Kitchen Portion Inventory</span>
           </h1>
           <p className="text-body text-xs mt-0.5">
@@ -83,7 +83,7 @@ export function ChefInventory() {
       {/* Inventory Grid */}
       {loading ? (
         <div className="card text-center py-16 text-muted">
-          <div className="w-8 h-8 border-2 border-[#D97706] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <div className="w-8 h-8 border-2 border-[#FBBF24] border-t-transparent rounded-full animate-spin mx-auto mb-2 shadow-glow-amber" />
           <p className="text-xs font-semibold">Loading kitchen stock...</p>
         </div>
       ) : filteredItems.length === 0 ? (
@@ -100,7 +100,7 @@ export function ChefInventory() {
               <div
                 key={item.item_id}
                 className={`card flex flex-col justify-between ${
-                  isSoldOut ? 'border-status-danger/40 bg-rose-50/10' : ''
+                  isSoldOut ? 'border-status-danger/40 bg-[#F87171]/5' : ''
                 }`}
               >
                 <div className="space-y-3">
@@ -112,10 +112,10 @@ export function ChefInventory() {
                     />
                     <div className="flex-1 min-w-0">
                       <span className="text-micro text-muted block">{item.category}</span>
-                      <h3 className="text-base font-bold text-ink truncate leading-snug">
+                      <h3 className="text-base font-bold text-ink truncate leading-snug font-heading">
                         {item.item_name}
                       </h3>
-                      <span className="text-xs font-bold text-[#FF6B35] tabular-nums">
+                      <span className="text-xs font-bold text-gradient tabular-nums font-heading">
                         {item.price} Credits
                       </span>
                     </div>
@@ -135,12 +135,12 @@ export function ChefInventory() {
                 {/* Stepper Controls */}
                 <div className="mt-4 pt-3 border-t border-divider space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 bg-[#FAFAFB] border border-border p-1 rounded-xl">
+                    <div className="flex items-center gap-1.5 bg-[#0B0E1A] border border-border p-1 rounded-xl">
                       <button
                         type="button"
                         onClick={() => handleUpdateStock(item.item_id, item.available_quantity, -5)}
                         disabled={item.available_quantity <= 0}
-                        className="px-2 py-1 bg-white border border-border text-ink rounded-lg text-xs font-bold hover:bg-slate-50 transition active:scale-95 disabled:opacity-40 shadow-level-1"
+                        className="px-2 py-1 bg-[#131728] border border-border text-ink rounded-lg text-xs font-bold hover:bg-[#1A1F3A] transition active:scale-95 disabled:opacity-30 shadow-level-1"
                       >
                         -5
                       </button>
@@ -148,26 +148,26 @@ export function ChefInventory() {
                         type="button"
                         onClick={() => handleUpdateStock(item.item_id, item.available_quantity, -1)}
                         disabled={item.available_quantity <= 0}
-                        className="w-7 h-7 bg-white border border-border text-ink rounded-lg flex items-center justify-center text-xs hover:bg-slate-50 transition active:scale-95 disabled:opacity-40 shadow-level-1"
+                        className="w-7 h-7 bg-[#131728] border border-border text-ink rounded-lg flex items-center justify-center text-xs hover:bg-[#1A1F3A] transition active:scale-95 disabled:opacity-30 shadow-level-1"
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
                       
-                      <span className="font-bold text-sm tabular-nums text-ink px-2 min-w-[28px] text-center">
+                      <span className="font-bold text-sm tabular-nums text-ink px-2 min-w-[28px] text-center font-heading">
                         {item.available_quantity}
                       </span>
 
                       <button
                         type="button"
                         onClick={() => handleUpdateStock(item.item_id, item.available_quantity, 1)}
-                        className="w-7 h-7 bg-white border border-border text-ink rounded-lg flex items-center justify-center text-xs hover:bg-slate-50 transition active:scale-95 shadow-level-1"
+                        className="w-7 h-7 bg-[#131728] border border-border text-ink rounded-lg flex items-center justify-center text-xs hover:bg-[#1A1F3A] transition active:scale-95 shadow-level-1"
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleUpdateStock(item.item_id, item.available_quantity, 5)}
-                        className="px-2 py-1 bg-white border border-border text-ink rounded-lg text-xs font-bold hover:bg-slate-50 transition active:scale-95 shadow-level-1"
+                        className="px-2 py-1 bg-[#131728] border border-border text-ink rounded-lg text-xs font-bold hover:bg-[#1A1F3A] transition active:scale-95 shadow-level-1"
                       >
                         +5
                       </button>
@@ -176,10 +176,10 @@ export function ChefInventory() {
                     <button
                       type="button"
                       onClick={() => handleToggleSoldOut(item.item_id, isSoldOut)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-level-1 ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold font-heading transition shadow-level-1 ${
                         isSoldOut 
-                          ? 'bg-status-success text-white hover:bg-emerald-700' 
-                          : 'bg-rose-50 text-status-danger hover:bg-rose-100 border border-rose-200'
+                          ? 'bg-status-success text-white hover:bg-emerald-600 shadow-glow-emerald' 
+                          : 'bg-[#F87171]/15 text-status-danger hover:bg-[#F87171]/25 border border-[#F87171]/30'
                       }`}
                     >
                       {isSoldOut ? 'Restock (40)' : 'Mark Out'}
