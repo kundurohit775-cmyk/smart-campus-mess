@@ -14,6 +14,8 @@ import {
   ChefHat, 
   ShieldCheck, 
   CheckCircle, 
+  Smartphone, 
+  RotateCw, 
   Sparkles 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -21,7 +23,7 @@ import { useToast } from '../context/ToastContext';
 import confetti from 'canvas-confetti';
 
 export function Login() {
-  const { login, register } = useAuth();
+  const { login, sendRegistrationOtp, verifyRegistrationOtp } = useAuth();
   const { showToast } = useToast();
 
   // Determine current view from pathname: 'role_select' | 'student' | 'chef' | 'admin' | 'register'
@@ -49,7 +51,26 @@ export function Login() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Registration OTP step state
+  const [regStep, setRegStep] = useState('form'); // 'form' | 'otp'
+  const [otpCode, setOtpCode] = useState('');
+  const [countdown, setCountdown] = useState(60);
+  const [resending, setResending] = useState(false);
+
   const [loading, setLoading] = useState(false);
+
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    let timer = null;
+    if (regStep === 'otp' && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [regStep, countdown]);
 
   // Handle browser back/forward buttons
   useEffect(() => {
@@ -62,6 +83,10 @@ export function Login() {
 
   const navigateTo = (targetView, routePath) => {
     setView(targetView);
+    if (targetView === 'register') {
+      setRegStep('form');
+      setOtpCode('');
+    }
     window.history.pushState({}, '', routePath);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -87,17 +112,22 @@ export function Login() {
     }
   };
 
-  // Register Submit Handler (Student Only)
-  const handleRegisterSubmit = async (e) => {
+  // Student Registration — Step 1: Send Mobile OTP via Twilio Verify
+  const handleRegisterFormSubmit = async (e) => {
     e.preventDefault();
 
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !phone || !password || !confirmPassword) {
       showToast('Please fill in all required fields.', 'warning');
       return;
     }
 
     if (password !== confirmPassword) {
       showToast('Passwords do not match.', 'warning');
+      return;
+    }
+
+    if (password.length < 6) {
+      showToast('Password must be at least 6 characters long.', 'warning');
       return;
     }
 
@@ -109,27 +139,87 @@ export function Login() {
       return;
     }
 
+    const cleanPhone = phone.replace(/[^0-9+]/g, '').trim();
+    if (cleanPhone.length < 10) {
+      showToast('Please enter a valid 10-digit mobile number.', 'warning');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await register({
+      const res = await sendRegistrationOtp({
         name: name.trim(),
         email: cleanEmail,
         password,
-        phone,
-        roomNumber
+        phone: cleanPhone,
+        roomNumber: roomNumber.trim()
       });
 
-      confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
-      showToast('🎉 Account created successfully! 9,000 monthly dining credits granted.', 'success', 7000);
+      setRegStep('otp');
+      setCountdown(60);
+      showToast(res.message || 'Verification code sent via SMS to your mobile number.', 'success', 6000);
     } catch (err) {
-      showToast(err.message || 'Registration failed', 'error', 6000);
+      showToast(err.message || 'Failed to send verification SMS.', 'error', 6000);
     } finally {
       setLoading(false);
     }
   };
 
+  // Student Registration — Step 2: Verify Mobile OTP & Create Account
+  const handleVerifyOtpSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!otpCode || otpCode.trim().length !== 6) {
+      showToast('Please enter the complete 6-digit verification code.', 'warning');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await verifyRegistrationOtp(phone, otpCode.trim());
+      confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+      showToast('🎉 Mobile verified & account created! 9,000 monthly dining credits granted.', 'success', 7000);
+    } catch (err) {
+      showToast(err.message || 'Invalid or expired verification code. Please try again.', 'error', 6000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Resend Mobile OTP Handler
+  const handleResendOtp = async () => {
+    if (countdown > 0) return;
+
+    setResending(true);
+    try {
+      const res = await sendRegistrationOtp({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        phone: phone.trim(),
+        roomNumber: roomNumber.trim()
+      });
+      setCountdown(60);
+      showToast(res.message || 'New verification code sent to your mobile.', 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to resend verification code.', 'error');
+    } finally {
+      setResending(false);
+    }
+  };
+
   const isVitEmail = email.trim().toLowerCase().endsWith('@vitstudent.ac.in');
+
+  const maskPhoneNumber = (rawPhone) => {
+    if (!rawPhone) return '';
+    const digits = rawPhone.replace(/\D/g, '');
+    if (digits.length >= 10) {
+      return `+91 ******${digits.slice(-4)}`;
+    }
+    return rawPhone;
+  };
 
   // =========================================================================
   // VIEW 1: DARK HERO ROLE-SELECTION LANDING PAGE (route: "/")
@@ -500,83 +590,124 @@ export function Login() {
       )}
 
       {/* =================================================================== */}
-      {/* REGISTER STUDENT CARD (route: "/register")                          */}
+      {/* STUDENT REGISTRATION CARD (2-STEP MOBILE OTP FLOW)                  */}
       {/* =================================================================== */}
       {view === 'register' && (
         <div className="max-w-[480px] w-full my-auto space-y-4 animate-fade-in">
           
-          {/* Back to Login Link */}
+          {/* Back Link */}
           <button
             type="button"
-            onClick={() => navigateTo('student', '/login/student')}
+            onClick={() => {
+              if (regStep === 'otp') {
+                setRegStep('form');
+              } else {
+                navigateTo('student', '/login/student');
+              }
+            }}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#1E293B] transition"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>← Back to login</span>
+            <span>{regStep === 'otp' ? '← Edit registration details' : '← Back to login'}</span>
           </button>
 
           {/* White Register Card */}
           <div className="bg-white rounded-2xl p-7 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-slate-200/80 space-y-6">
             
+            {/* Header */}
             <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#6366F1]">
+                  Student Registration
+                </span>
+                <span className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100">
+                  {regStep === 'form' ? 'Step 1 of 2' : 'Step 2 of 2: Mobile OTP'}
+                </span>
+              </div>
               <h2 className="text-xl font-bold text-[#1E293B]">
-                Create student account
+                {regStep === 'form' ? 'Create student account' : 'Verify your mobile number'}
               </h2>
               <p className="text-xs text-[#64748B] mt-1">
-                Enter your details to receive your 9,000 monthly dining credits
+                {regStep === 'form' 
+                  ? 'Official @vitstudent.ac.in registration with SMS verification' 
+                  : `Enter the 6-digit verification code sent via SMS to ${maskPhoneNumber(phone)}`}
               </p>
             </div>
 
-            <form onSubmit={handleRegisterSubmit} className="space-y-4">
-              
-              {/* Full Name */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#1E293B]">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Alex Chen"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
-                  />
-                </div>
-              </div>
-
-              {/* VIT Student Email */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-[#1E293B]">
-                    VIT Student Email
-                  </label>
-                  {email && (
-                    <span className={`text-[11px] font-bold ${isVitEmail ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {isVitEmail ? '✓ Valid VIT Email' : '✗ Must be @vitstudent.ac.in'}
-                    </span>
-                  )}
-                </div>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    required
-                    placeholder="name2024@vitstudent.ac.in"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
-                  />
-                </div>
-              </div>
-
-              {/* Hostel Room & Phone (2-column) */}
-              <div className="grid grid-cols-2 gap-3">
+            {/* ============================================================= */}
+            {/* STEP 1: REGISTRATION DETAILS FORM                             */}
+            {/* ============================================================= */}
+            {regStep === 'form' ? (
+              <form onSubmit={handleRegisterFormSubmit} className="space-y-4">
+                
+                {/* Full Name */}
                 <div className="space-y-1.5">
                   <label className="block text-xs font-semibold text-[#1E293B]">
-                    Hostel Room
+                    Full Name <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Alex Chen"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    />
+                  </div>
+                </div>
+
+                {/* VIT Student Email */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-[#1E293B]">
+                      VIT Student Email <span className="text-rose-500">*</span>
+                    </label>
+                    {email && (
+                      <span className={`text-[11px] font-bold ${isVitEmail ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {isVitEmail ? '✓ Valid VIT Email' : '✗ Must be @vitstudent.ac.in'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="name2024@vitstudent.ac.in"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    />
+                  </div>
+                </div>
+
+                {/* Mobile Phone (Required for Twilio Verify) */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-[#1E293B]">
+                    Mobile Phone Number <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      required
+                      placeholder="+91 98765 43210"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    />
+                  </div>
+                  <p className="text-[11px] text-[#64748B]">
+                    We will send a 6-digit SMS verification code via Twilio Verify to this number.
+                  </p>
+                </div>
+
+                {/* Hostel Room */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-[#1E293B]">
+                    Hostel Room (Optional)
                   </label>
                   <div className="relative">
                     <Home className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -590,95 +721,156 @@ export function Login() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#1E293B]">
-                    Mobile Phone
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="tel"
-                      placeholder="+91-9876543210"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
-                    />
+                {/* Password & Confirm Password */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-[#1E293B]">
+                      Password <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-[#1E293B]">
+                      Confirm <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        required
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Password */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#1E293B]">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                {/* Allowance info banner */}
+                <div className="p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl text-xs text-indigo-900 flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-[#6366F1] shrink-0 mt-0.5" />
+                  <span>Upon SMS mobile verification, <strong>9,000 monthly dining credits</strong> will be allocated immediately.</span>
+                </div>
+
+                {/* Primary Button */}
+                <button
+                  type="submit"
+                  disabled={loading || !isVitEmail}
+                  className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Send Verification Code</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              /* ============================================================= */
+              /* STEP 2: ENTER OTP FORM (TWILIO VERIFY 6-DIGIT CODE)           */
+              /* ============================================================= */
+              <form onSubmit={handleVerifyOtpSubmit} className="space-y-5 animate-slide-up">
+                
+                <div className="p-3.5 bg-indigo-50/80 border border-indigo-100 rounded-xl flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-white border border-indigo-200 text-[#6366F1] flex items-center justify-center shrink-0 shadow-sm">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-[#1E293B] block">
+                      SMS Dispatched
+                    </span>
+                    <span className="text-[11px] text-[#64748B]">
+                      Code sent to <strong className="text-[#1E293B]">{maskPhoneNumber(phone)}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-[#1E293B] uppercase tracking-wider">
+                      6-Digit Verification Code
+                    </label>
+                    <span className="text-xs font-mono font-bold text-[#6366F1]">
+                      ⏱️ {countdown > 0 ? `0:${countdown < 10 ? '0' : ''}${countdown}` : 'Code expired'}
+                    </span>
+                  </div>
+
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type="text"
+                    maxLength="6"
                     required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    autoFocus
+                    placeholder="••••••"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] text-center font-mono text-2xl tracking-[0.4em] py-3 rounded-[10px] focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
                   />
+                  <p className="text-[11px] text-[#94A3B8] text-center">
+                    Enter the digits sent to your phone via SMS.
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <button
+                  type="submit"
+                  disabled={loading || otpCode.length !== 6}
+                  className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Verify Code & Create Account</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+
+                {/* Resend OTP */}
+                <div className="flex items-center justify-between text-xs text-[#64748B] pt-1">
+                  <span>Didn't receive SMS?</span>
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
+                    onClick={handleResendOtp}
+                    disabled={countdown > 0 || resending}
+                    className="font-semibold text-[#6366F1] hover:underline disabled:opacity-40 flex items-center gap-1"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    <RotateCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+                    <span>{resending ? 'Sending...' : 'Resend OTP'}</span>
                   </button>
                 </div>
-              </div>
 
-              {/* Confirm Password */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#1E293B]">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    required
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Monthly Allowance Note */}
-              <div className="p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl text-xs text-indigo-900 flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 text-[#6366F1] shrink-0 mt-0.5" />
-                <span>Direct registration grants <strong>9,000 monthly dining credits</strong> immediately with zero OTP required.</span>
-              </div>
-
-              {/* Full-width Primary Button */}
-              <button
-                type="submit"
-                disabled={loading || !isVitEmail}
-                className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <span>Create Account</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
+              </form>
+            )}
 
             {/* Bottom Link to Sign In */}
             <div className="pt-3 border-t border-slate-100 text-center">

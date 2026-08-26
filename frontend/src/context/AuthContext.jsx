@@ -96,8 +96,6 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const cleanEmail = (email || '').trim().toLowerCase();
-
-    // Direct API Login with Email + Password (NO OTP)
     const data = await api.login(cleanEmail, password);
     if (data.token && data.user) {
       localStorage.setItem('mess_auth_token', data.token);
@@ -122,6 +120,26 @@ export function AuthProvider({ children }) {
       return data.user;
     }
     return data;
+  };
+
+  // Student Mobile OTP Registration Handlers (Twilio Verify)
+  const sendRegistrationOtp = async (payload) => {
+    const cleanEmail = (payload.email || '').trim().toLowerCase();
+    if (!cleanEmail.endsWith('@vitstudent.ac.in')) {
+      throw new Error('Only VIT student email addresses (@vitstudent.ac.in) are allowed to register.');
+    }
+    return await api.sendRegistrationOtp({ ...payload, email: cleanEmail });
+  };
+
+  const verifyRegistrationOtp = async (phone, code) => {
+    const data = await api.verifyRegistrationOtp(phone, code);
+    if (data.token && data.user) {
+      localStorage.setItem('mess_auth_token', data.token);
+      localStorage.setItem('mess_user_session', JSON.stringify(data.user));
+      setUser(data.user);
+      return data.user;
+    }
+    throw new Error(data.error || 'Verification failed');
   };
 
   const sendOtp = async (phone) => {
@@ -177,6 +195,8 @@ export function AuthProvider({ children }) {
       loading, 
       login, 
       register, 
+      sendRegistrationOtp, 
+      verifyRegistrationOtp, 
       sendOtp, 
       loginWithOtp, 
       logout, 
