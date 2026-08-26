@@ -242,6 +242,47 @@ export function Login() {
     return rawPhone;
   };
 
+  // Role Accent Configurations for Theme Harmony
+  const isStudentView = view === 'student' || view === 'register';
+  const isChefView = view === 'chef';
+  const isAdminView = view === 'admin';
+
+  const roleGlowColor = isStudentView
+    ? 'from-[#8B5CF6]/15 via-[#6366F1]/10 to-transparent'
+    : isChefView
+    ? 'from-[#F59E0B]/15 via-[#EA580C]/10 to-transparent'
+    : 'from-[#F43F5E]/15 via-[#06B6D4]/10 to-transparent';
+
+  const roleSecondaryGlow = isStudentView
+    ? 'bg-[#06B6D4]/10'
+    : isChefView
+    ? 'bg-[#38BDF8]/10'
+    : 'bg-[#06B6D4]/10';
+
+  const roleCardBorder = isStudentView
+    ? 'border-[#8B5CF6]/25 hover:border-[#8B5CF6]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(139,92,246,0.12)]'
+    : isChefView
+    ? 'border-[#F59E0B]/25 hover:border-[#F59E0B]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(245,158,11,0.12)]'
+    : 'border-[#F43F5E]/25 hover:border-[#F43F5E]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(244,63,94,0.12)]';
+
+  const roleAccentText = isStudentView
+    ? 'text-[#A78BFA]'
+    : isChefView
+    ? 'text-amber-400'
+    : 'text-rose-400';
+
+  const rolePrimaryButton = isStudentView
+    ? 'bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] hover:from-[#7C3AED] hover:to-[#0891B2] text-white shadow-[0_0_24px_rgba(139,92,246,0.4)]'
+    : isChefView
+    ? 'bg-gradient-to-r from-[#F59E0B] to-[#EA580C] hover:from-[#D97706] hover:to-[#C2410C] text-white shadow-[0_0_24px_rgba(245,158,11,0.4)]'
+    : 'bg-gradient-to-r from-[#F43F5E] to-[#06B6D4] hover:from-[#E11D48] hover:to-[#0891B2] text-white shadow-[0_0_24px_rgba(244,63,94,0.4)]';
+
+  const roleInputFocus = isStudentView
+    ? 'focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20'
+    : isChefView
+    ? 'focus:border-[#F59E0B] focus:ring-2 focus:ring-[#F59E0B]/20'
+    : 'focus:border-[#F43F5E] focus:ring-2 focus:ring-[#F43F5E]/20';
+
   // =========================================================================
   // VIEW 1: DARK HERO ROLE-SELECTION LANDING PAGE (route: "/")
   // =========================================================================
@@ -389,13 +430,13 @@ export function Login() {
                 </div>
               </div>
 
-              {/* Card 3: Admin (Cyan #06B6D4) */}
+              {/* Card 3: Admin (Rose #F43F5E) */}
               <div
                 onClick={() => navigateTo('admin', '/login/admin')}
-                className="group cursor-pointer bg-[rgba(19,23,40,0.65)] backdrop-blur-xl border border-[#06B6D4]/20 hover:border-[#06B6D4]/70 rounded-2xl p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_32px_rgba(6,182,212,0.3)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between space-y-6"
+                className="group cursor-pointer bg-[rgba(19,23,40,0.65)] backdrop-blur-xl border border-[#F43F5E]/20 hover:border-[#F43F5E]/70 rounded-2xl p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_32px_rgba(244,63,94,0.3)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between space-y-6"
               >
                 <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#06B6D4]/15 text-[#06B6D4] border border-[#06B6D4]/30 flex items-center justify-center shadow-[0_0_16px_rgba(6,182,212,0.3)] group-hover:scale-105 transition-transform">
+                  <div className="w-12 h-12 rounded-xl bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30 flex items-center justify-center shadow-[0_0_16px_rgba(244,63,94,0.3)] group-hover:scale-105 transition-transform">
                     <ShieldCheck className="w-6 h-6" />
                   </div>
                   <div>
@@ -409,10 +450,10 @@ export function Login() {
                 </div>
 
                 <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
-                  <span className="text-xs font-semibold text-[#06B6D4] group-hover:text-cyan-400 transition-colors">
+                  <span className="text-xs font-semibold text-[#F43F5E] group-hover:text-rose-400 transition-colors">
                     Enter Console
                   </span>
-                  <div className="w-7 h-7 rounded-full bg-[#1A1F3A] border border-[#06B6D4]/30 group-hover:bg-[#06B6D4] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#06B6D4]">
+                  <div className="w-7 h-7 rounded-full bg-[#1A1F3A] border border-[#F43F5E]/30 group-hover:bg-[#F43F5E] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#F43F5E]">
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </div>
@@ -433,74 +474,78 @@ export function Login() {
   }
 
   // =========================================================================
-  // VIEW 2: LOGIN PAGES (Student, Chef, Admin) & REGISTER (Student)
+  // VIEW 2: LOGIN PAGES (Student, Chef, Admin) & REGISTER (Student) — DARK SPACE-TECH
   // =========================================================================
   return (
-    <div className="min-h-screen bg-[#F8F9FC] text-[#1E293B] font-sans flex flex-col justify-between items-center py-12 px-4 sm:px-6 relative selection:bg-[#6366F1] selection:text-white">
+    <div className="min-h-screen bg-[#0B0E1A] text-[#F1F5F9] font-sans flex flex-col justify-between items-center py-12 px-4 sm:px-6 relative overflow-x-hidden selection:bg-[#8B5CF6] selection:text-white">
       
+      {/* Dynamic Role-Tinted Radial Glows */}
+      <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-b ${roleGlowColor} blur-[130px] pointer-events-none`} />
+      <div className={`absolute bottom-[10%] right-[-100px] w-[500px] h-[500px] ${roleSecondaryGlow} blur-[150px] pointer-events-none`} />
+
       {/* Top Centered Brand Header */}
-      <div className="text-center mb-6 space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-[#6366F1] flex items-center justify-center text-white shadow-md mx-auto">
+      <div className="text-center mb-6 space-y-2 relative z-10 animate-fade-in">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#8B5CF6] to-[#06B6D4] flex items-center justify-center text-white shadow-[0_0_20px_rgba(139,92,246,0.4)] border border-white/20 mx-auto">
           <UtensilsCrossed className="w-6 h-6" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-[#1E293B]">
-          Smart<span className="text-[#6366F1]">Mess</span>
+        <h1 className="text-2xl font-bold tracking-tight text-[#F1F5F9] font-heading">
+          Smart<span className="text-[#8B5CF6]">Mess</span>
         </h1>
-        <p className="text-xs text-[#64748B] font-medium">
+        <p className="text-xs text-[#94A3B8] font-medium">
           Campus Food & Credit Platform
         </p>
       </div>
 
       {/* =================================================================== */}
-      {/* LOGIN CARD (Student, Chef, Admin)                                   */}
+      {/* LOGIN CARD (Student, Chef, Admin) — DARK GLASSMORPHIC               */}
       {/* =================================================================== */}
       {(view === 'student' || view === 'chef' || view === 'admin') && (
-        <div className="max-w-[460px] w-full my-auto space-y-4 animate-fade-in">
+        <div className="max-w-[460px] w-full my-auto space-y-4 relative z-10 animate-fade-in">
           
           {/* Back to Role Selection Link */}
           <button
             type="button"
             onClick={() => navigateTo('role_select', '/')}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#1E293B] transition"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#94A3B8] hover:text-[#F1F5F9] transition"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>← Back to role selection</span>
           </button>
 
-          {/* White Login Card */}
-          <div className="bg-white rounded-2xl p-7 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-slate-200/80 space-y-6">
+          {/* Dark Glass Card */}
+          <div className={`bg-[rgba(19,23,40,0.7)] backdrop-blur-xl rounded-2xl p-7 sm:p-8 border ${roleCardBorder} space-y-6 transition-all duration-300`}>
             
             {/* Header */}
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#6366F1]">
+                <span className={`text-xs font-bold uppercase tracking-wider ${roleAccentText}`}>
                   {view === 'student' ? 'Student Portal' : view === 'chef' ? 'Chef Station' : 'Admin Console'}
                 </span>
               </div>
-              <h2 className="text-xl font-bold text-[#1E293B]">
+              <h2 className="text-xl font-bold text-[#F1F5F9] font-heading">
                 Sign in to your account
               </h2>
-              <p className="text-xs text-[#64748B] mt-1">
+              <p className="text-xs text-[#94A3B8] mt-1">
                 {view === 'student'
                   ? 'Access your daily meal tray, live queue tokens, and dining credits'
                   : view === 'chef'
-                  ? 'Enter your kitchen credentials to manage orders'
-                  : 'Enter your admin credentials to access the dashboard'}
+                  ? 'Enter kitchen credentials to dispatch and advance cooking orders'
+                  : 'Enter campus administrator credentials to access governance console'}
               </p>
             </div>
 
-            {/* Chef / Admin Security Badges */}
+            {/* Chef / Admin Security Notice Banners */}
             {view === 'chef' && (
-              <div className="p-3 bg-amber-50/80 border border-amber-100 rounded-xl text-xs text-amber-900 flex items-start gap-2">
-                <ChefHat className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span>Single-account authorized access for kitchen culinary staff.</span>
+              <div className="p-3 bg-[#F59E0B]/10 border border-[#F59E0B]/25 rounded-xl text-xs text-amber-300 flex items-start gap-2.5">
+                <ChefHat className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>Single-account authorized portal for campus kitchen culinary staff.</span>
               </div>
             )}
 
             {view === 'admin' && (
-              <div className="p-3 bg-cyan-50/80 border border-cyan-100 rounded-xl text-xs text-cyan-900 flex items-start gap-2">
-                <ShieldCheck className="w-4 h-4 text-cyan-600 shrink-0 mt-0.5" />
-                <span>Restricted campus dining governance & financial audit portal.</span>
+              <div className="p-3 bg-[#F43F5E]/10 border border-[#F43F5E]/25 rounded-xl text-xs text-rose-300 flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <span>Restricted campus dining governance & financial ledger console.</span>
               </div>
             )}
 
@@ -508,31 +553,30 @@ export function Login() {
             {/* STUDENT ONLY: 2-METHOD TOGGLE TABS (Password | Mobile OTP)    */}
             {/* ============================================================= */}
             {view === 'student' && (
-              <div className="relative bg-[#F1F5F9] p-1 rounded-xl flex items-center">
-                <div
-                  className="absolute top-1 bottom-1 w-[calc((100%-8px)/2)] bg-white rounded-lg shadow-sm transition-all duration-200 ease-out"
-                  style={{ left: studentLoginMethod === 'password' ? '4px' : 'calc(50% + 0px)' }}
-                />
-
+              <div className="bg-[#0B0E1A] p-1 rounded-xl border border-slate-800 flex items-center gap-1 shadow-inner">
                 <button
                   type="button"
                   onClick={() => setStudentLoginMethod('password')}
-                  className={`relative z-10 flex-1 py-1.5 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg transition-colors duration-150 ${
-                    studentLoginMethod === 'password' ? 'text-[#1E293B]' : 'text-[#64748B] hover:text-[#1E293B]'
+                  className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
+                    studentLoginMethod === 'password'
+                      ? 'bg-[#8B5CF6]/20 text-[#F1F5F9] border border-[#8B5CF6]/40 shadow-[0_0_12px_rgba(139,92,246,0.3)]'
+                      : 'text-[#94A3B8] hover:text-[#F1F5F9]'
                   }`}
                 >
-                  <Mail className={`w-3.5 h-3.5 ${studentLoginMethod === 'password' ? 'text-[#6366F1]' : 'text-[#64748B]'}`} />
+                  <Mail className={`w-3.5 h-3.5 ${studentLoginMethod === 'password' ? 'text-[#8B5CF6]' : 'text-[#64748B]'}`} />
                   <span>Password</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setStudentLoginMethod('otp')}
-                  className={`relative z-10 flex-1 py-1.5 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg transition-colors duration-150 ${
-                    studentLoginMethod === 'otp' ? 'text-[#1E293B]' : 'text-[#64748B] hover:text-[#1E293B]'
+                  className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
+                    studentLoginMethod === 'otp'
+                      ? 'bg-[#8B5CF6]/20 text-[#F1F5F9] border border-[#8B5CF6]/40 shadow-[0_0_12px_rgba(139,92,246,0.3)]'
+                      : 'text-[#94A3B8] hover:text-[#F1F5F9]'
                   }`}
                 >
-                  <Smartphone className={`w-3.5 h-3.5 ${studentLoginMethod === 'otp' ? 'text-[#6366F1]' : 'text-[#64748B]'}`} />
+                  <Smartphone className={`w-3.5 h-3.5 ${studentLoginMethod === 'otp' ? 'text-[#8B5CF6]' : 'text-[#64748B]'}`} />
                   <span>Mobile OTP</span>
                 </button>
               </div>
@@ -546,41 +590,41 @@ export function Login() {
                 
                 {/* Email Field */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#1E293B]">
+                  <label className="block text-xs font-semibold text-[#F1F5F9]">
                     {view === 'student' ? 'VIT Student Email' : `${view.charAt(0).toUpperCase() + view.slice(1)} Email`}
                   </label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Mail className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="email"
                       required
                       placeholder={view === 'student' ? 'student@vitstudent.ac.in' : `${view}@campus.internal`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                      className={`w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-3.5 py-2.5 rounded-xl text-sm outline-none transition ${roleInputFocus}`}
                     />
                   </div>
                 </div>
 
                 {/* Password Field */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#1E293B]">
+                  <label className="block text-xs font-semibold text-[#F1F5F9]">
                     Password
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Lock className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                      className={`w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-10 py-2.5 rounded-xl text-sm outline-none transition ${roleInputFocus}`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#94A3B8] p-1"
                       title={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -590,12 +634,12 @@ export function Login() {
 
                 {/* Remember Me & Forgot Password */}
                 <div className="flex items-center justify-between text-xs pt-0.5">
-                  <label className="flex items-center gap-2 cursor-pointer text-[#64748B] select-none">
+                  <label className="flex items-center gap-2 cursor-pointer text-[#94A3B8] select-none">
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 text-[#6366F1] rounded border-slate-300 focus:ring-[#6366F1]"
+                      className="w-4 h-4 rounded bg-[#0B0E1A] border-slate-700 text-[#8B5CF6] focus:ring-0"
                     />
                     <span>Remember me</span>
                   </label>
@@ -603,7 +647,7 @@ export function Login() {
                   <button
                     type="button"
                     onClick={() => showToast('Please contact your mess administrator for password resets.', 'info')}
-                    className="text-[#6366F1] font-semibold hover:underline"
+                    className={`${roleAccentText} font-semibold hover:underline`}
                   >
                     Forgot password?
                   </button>
@@ -613,7 +657,7 @@ export function Login() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+                  className={`w-full font-semibold py-3 rounded-xl text-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 ${rolePrimaryButton}`}
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -637,21 +681,21 @@ export function Login() {
                   /* Step 1: Enter Phone Number */
                   <form onSubmit={handleSendLoginOtp} className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#1E293B]">
+                      <label className="block text-xs font-semibold text-[#F1F5F9]">
                         Registered Mobile Number
                       </label>
                       <div className="relative">
-                        <Phone className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <Phone className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
                           type="tel"
                           required
                           placeholder="+91 98765 43210"
                           value={otpPhone}
                           onChange={(e) => setOtpPhone(e.target.value)}
-                          className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                          className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
                         />
                       </div>
-                      <p className="text-[11px] text-[#64748B]">
+                      <p className="text-[11px] text-[#94A3B8]">
                         We'll send a 6-digit verification code via Twilio Verify SMS to this number.
                       </p>
                     </div>
@@ -659,7 +703,7 @@ export function Login() {
                     <button
                       type="submit"
                       disabled={loading || !otpPhone}
-                      className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+                      className={`w-full font-semibold py-3 rounded-xl text-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 ${rolePrimaryButton}`}
                     >
                       {loading ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -675,17 +719,17 @@ export function Login() {
                   /* Step 2: Enter 6-digit OTP */
                   <form onSubmit={handleVerifyLoginOtp} className="space-y-4 animate-slide-up">
                     
-                    <div className="p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl flex items-center justify-between">
+                    <div className="p-3 bg-[#8B5CF6]/10 border border-[#8B5CF6]/25 rounded-xl flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <Smartphone className="w-4 h-4 text-[#6366F1]" />
-                        <span className="text-xs text-[#1E293B]">
+                        <Smartphone className="w-4 h-4 text-[#8B5CF6]" />
+                        <span className="text-xs text-[#F1F5F9]">
                           Sent to <strong>{maskPhoneNumber(otpPhone)}</strong>
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => { setOtpSent(false); setOtpCode(''); }}
-                        className="text-xs font-semibold text-[#6366F1] hover:underline"
+                        className="text-xs font-semibold text-[#A78BFA] hover:underline"
                       >
                         Edit
                       </button>
@@ -693,10 +737,10 @@ export function Login() {
 
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <label className="block text-xs font-semibold text-[#1E293B]">
+                        <label className="block text-xs font-semibold text-[#F1F5F9]">
                           6-Digit Verification Code
                         </label>
-                        <span className="text-xs font-mono font-bold text-[#6366F1]">
+                        <span className="text-xs font-mono font-bold text-[#A78BFA]">
                           ⏱️ {countdown > 0 ? `0:${countdown < 10 ? '0' : ''}${countdown}` : 'Expired'}
                         </span>
                       </div>
@@ -708,14 +752,14 @@ export function Login() {
                         placeholder="••••••"
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                        className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] text-center font-mono text-xl tracking-[0.35em] py-2.5 rounded-[10px] focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                        className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] text-center font-mono text-xl tracking-[0.35em] py-2.5 rounded-xl focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={loading || otpCode.length !== 6}
-                      className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+                      className={`w-full font-semibold py-3 rounded-xl text-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 ${rolePrimaryButton}`}
                     >
                       {loading ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -727,13 +771,13 @@ export function Login() {
                       )}
                     </button>
 
-                    <div className="flex items-center justify-between text-xs text-[#64748B] pt-0.5">
+                    <div className="flex items-center justify-between text-xs text-[#94A3B8] pt-0.5">
                       <span>Didn't receive SMS?</span>
                       <button
                         type="button"
                         onClick={handleResendLoginOtp}
                         disabled={countdown > 0 || resending}
-                        className="font-semibold text-[#6366F1] hover:underline disabled:opacity-40 flex items-center gap-1"
+                        className="font-semibold text-[#A78BFA] hover:underline disabled:opacity-40 flex items-center gap-1"
                       >
                         <RotateCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
                         <span>{resending ? 'Sending...' : 'Resend OTP'}</span>
@@ -748,13 +792,13 @@ export function Login() {
 
             {/* Bottom Registration Link (Student only) */}
             {view === 'student' && (
-              <div className="pt-4 border-t border-slate-100 text-center">
-                <p className="text-xs text-[#64748B]">
+              <div className="pt-4 border-t border-slate-800 text-center">
+                <p className="text-xs text-[#94A3B8]">
                   New here?{' '}
                   <button
                     type="button"
                     onClick={() => navigateTo('register', '/register')}
-                    className="font-semibold text-[#6366F1] hover:underline"
+                    className="font-semibold text-[#8B5CF6] hover:text-[#A78BFA] hover:underline"
                   >
                     Create an account
                   </button>
@@ -771,31 +815,31 @@ export function Login() {
       {/* DIRECT 1-STEP STUDENT REGISTRATION CARD (route: "/register")        */}
       {/* =================================================================== */}
       {view === 'register' && (
-        <div className="max-w-[480px] w-full my-auto space-y-4 animate-fade-in">
+        <div className="max-w-[480px] w-full my-auto space-y-4 relative z-10 animate-fade-in">
           
           {/* Back to Login Link */}
           <button
             type="button"
             onClick={() => navigateTo('student', '/login/student')}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#1E293B] transition"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#94A3B8] hover:text-[#F1F5F9] transition"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>← Back to login</span>
           </button>
 
-          {/* White Register Card */}
-          <div className="bg-white rounded-2xl p-7 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-slate-200/80 space-y-6">
+          {/* Dark Glass Register Card */}
+          <div className="bg-[rgba(19,23,40,0.7)] backdrop-blur-xl rounded-2xl p-7 sm:p-8 border border-[#8B5CF6]/25 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(139,92,246,0.12)] space-y-6">
             
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#6366F1]">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#A78BFA]">
                   Student Registration
                 </span>
               </div>
-              <h2 className="text-xl font-bold text-[#1E293B]">
+              <h2 className="text-xl font-bold text-[#F1F5F9] font-heading">
                 Create student account
               </h2>
-              <p className="text-xs text-[#64748B] mt-1">
+              <p className="text-xs text-[#94A3B8] mt-1">
                 Enter your details to receive your 9,000 monthly dining credits
               </p>
             </div>
@@ -804,18 +848,18 @@ export function Login() {
               
               {/* Full Name */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#1E293B]">
-                  Full Name <span className="text-rose-500">*</span>
+                <label className="block text-xs font-semibold text-[#F1F5F9]">
+                  Full Name <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <User className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
                     placeholder="e.g. Alex Chen"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
                   />
                 </div>
               </div>
@@ -823,59 +867,59 @@ export function Login() {
               {/* VIT Student Email */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-[#1E293B]">
-                    VIT Student Email <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-semibold text-[#F1F5F9]">
+                    VIT Student Email <span className="text-rose-400">*</span>
                   </label>
                   {email && (
-                    <span className={`text-[11px] font-bold ${isVitEmail ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <span className={`text-[11px] font-bold ${isVitEmail ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {isVitEmail ? '✓ Valid VIT Email' : '✗ Must be @vitstudent.ac.in'}
                     </span>
                   )}
                 </div>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     required
                     placeholder="name2024@vitstudent.ac.in"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
                   />
                 </div>
               </div>
 
-              {/* Mobile Phone Number (Required & Collected) */}
+              {/* Mobile Phone Number (Required & Stored) */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#1E293B]">
-                  Mobile Phone Number <span className="text-rose-500">*</span>
+                <label className="block text-xs font-semibold text-[#F1F5F9]">
+                  Mobile Phone Number <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Phone className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="tel"
                     required
                     placeholder="+91 98765 43210"
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
                   />
                 </div>
               </div>
 
               {/* Hostel Room (Optional) */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#1E293B]">
+                <label className="block text-xs font-semibold text-[#F1F5F9]">
                   Hostel Room (Optional)
                 </label>
                 <div className="relative">
-                  <Home className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Home className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     placeholder="e.g. B-302"
                     value={roomNumber}
                     onChange={(e) => setRoomNumber(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
                   />
                 </div>
               </div>
@@ -883,23 +927,23 @@ export function Login() {
               {/* Password & Confirm Password */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#1E293B]">
-                    Password <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-semibold text-[#F1F5F9]">
+                    Password <span className="text-rose-400">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Lock className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                      className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-10 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#94A3B8] p-1"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -907,23 +951,23 @@ export function Login() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#1E293B]">
-                    Confirm <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-semibold text-[#F1F5F9]">
+                    Confirm <span className="text-rose-400">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Lock className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                      className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-10 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#94A3B8] p-1"
                     >
                       {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -932,8 +976,8 @@ export function Login() {
               </div>
 
               {/* Monthly Allowance Information Banner */}
-              <div className="p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl text-xs text-indigo-900 flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 text-[#6366F1] shrink-0 mt-0.5" />
+              <div className="p-3 bg-[#8B5CF6]/10 border border-[#8B5CF6]/25 rounded-xl text-xs text-[#A78BFA] flex items-start gap-2.5">
+                <CheckCircle className="w-4 h-4 text-[#8B5CF6] shrink-0 mt-0.5" />
                 <span>Upon registration, <strong>9,000 monthly dining credits</strong> will be allocated immediately to your student wallet.</span>
               </div>
 
@@ -941,7 +985,7 @@ export function Login() {
               <button
                 type="submit"
                 disabled={loading || !isVitEmail}
-                className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] hover:from-[#7C3AED] hover:to-[#0891B2] text-white font-semibold py-3 rounded-xl text-sm shadow-[0_0_24px_rgba(139,92,246,0.4)] transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -955,13 +999,13 @@ export function Login() {
             </form>
 
             {/* Bottom Link to Sign In */}
-            <div className="pt-3 border-t border-slate-100 text-center">
-              <p className="text-xs text-[#64748B]">
+            <div className="pt-3 border-t border-slate-800 text-center">
+              <p className="text-xs text-[#94A3B8]">
                 Already have an account?{' '}
                 <button
                   type="button"
                   onClick={() => navigateTo('student', '/login/student')}
-                  className="font-semibold text-[#6366F1] hover:underline"
+                  className="font-semibold text-[#8B5CF6] hover:text-[#A78BFA] hover:underline"
                 >
                   Sign in
                 </button>
@@ -974,7 +1018,7 @@ export function Login() {
       )}
 
       {/* Bottom Footer Text */}
-      <div className="mt-8 text-center text-xs text-[#94A3B8]">
+      <div className="mt-8 text-center text-xs text-[#64748B] relative z-10">
         VIT University Campus Mess Network • 256-bit SSL Encrypted
       </div>
 
