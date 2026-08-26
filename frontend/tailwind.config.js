@@ -8,14 +8,52 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Space-Tech Color System
+        // Space-Tech Base Foundations
         base: '#0B0E1A',
         elevated: '#131728',
-        'elevated-glass': 'rgba(19, 23, 40, 0.6)',
+        'elevated-glass': 'rgba(19, 23, 40, 0.7)',
         'surface-card': '#131728',
         'surface-subtle': '#1A1F3A',
 
-        // Accents
+        // Purposeful Accent Palette
+        violet: {
+          DEFAULT: '#8B5CF6',
+          hover: '#7C3AED',
+          light: '#A78BFA',
+          glow: 'rgba(139, 92, 246, 0.4)'
+        },
+        cyan: {
+          DEFAULT: '#06B6D4',
+          hover: '#0891B2',
+          light: '#67E8F9',
+          glow: 'rgba(6, 182, 212, 0.4)'
+        },
+        amber: {
+          DEFAULT: '#F59E0B',
+          hover: '#D97706',
+          light: '#FCD34D',
+          glow: 'rgba(245, 158, 11, 0.4)'
+        },
+        emerald: {
+          DEFAULT: '#10B981',
+          hover: '#059669',
+          light: '#6EE7B7',
+          glow: 'rgba(16, 185, 129, 0.4)'
+        },
+        rose: {
+          DEFAULT: '#F43F5E',
+          hover: '#E11D48',
+          light: '#FDA4AF',
+          glow: 'rgba(244, 63, 94, 0.4)'
+        },
+        sky: {
+          DEFAULT: '#38BDF8',
+          hover: '#0284C7',
+          light: '#BAE6FD',
+          glow: 'rgba(56, 189, 248, 0.4)'
+        },
+
+        // Primary / Secondary Brand Aliases
         primary: {
           DEFAULT: '#8B5CF6',
           hover: '#7C3AED',
@@ -27,12 +65,8 @@ export default {
           hover: '#0891B2',
           glow: 'rgba(6, 182, 212, 0.4)'
         },
-        accent: {
-          violet: '#8B5CF6',
-          cyan: '#06B6D4'
-        },
 
-        // Text
+        // Typography Hierarchy
         ink: '#F1F5F9',
         body: '#94A3B8',
         muted: '#64748B',
@@ -42,11 +76,11 @@ export default {
         'border-hover': 'rgba(139, 92, 246, 0.4)',
         divider: 'rgba(139, 92, 246, 0.1)',
 
-        // Status
+        // Universal Status States
         status: {
-          success: '#34D399',
-          warning: '#FBBF24',
-          danger: '#F87171',
+          success: '#10B981',
+          warning: '#F59E0B',
+          danger: '#F43F5E',
           info: '#06B6D4'
         }
       },
@@ -60,11 +94,14 @@ export default {
         'level-2': '0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(139, 92, 246, 0.35)',
         'level-3': '0 24px 48px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(139, 92, 246, 0.4)',
         'level-4': '0 0 24px rgba(139, 92, 246, 0.4)',
+        'glow-violet': '0 0 24px rgba(139, 92, 246, 0.4)',
         'glow-primary': '0 0 24px rgba(139, 92, 246, 0.4)',
+        'glow-cyan': '0 0 24px rgba(6, 182, 212, 0.4)',
         'glow-secondary': '0 0 24px rgba(6, 182, 212, 0.4)',
-        'glow-emerald': '0 0 24px rgba(52, 211, 153, 0.3)',
-        'glow-amber': '0 0 24px rgba(251, 191, 36, 0.3)',
-        'glow-rose': '0 0 24px rgba(248, 113, 113, 0.3)'
+        'glow-amber': '0 0 24px rgba(245, 158, 11, 0.4)',
+        'glow-emerald': '0 0 24px rgba(16, 185, 129, 0.4)',
+        'glow-rose': '0 0 24px rgba(244, 63, 94, 0.4)',
+        'glow-sky': '0 0 24px rgba(56, 189, 248, 0.4)'
       },
       borderRadius: {
         'card': '16px',
