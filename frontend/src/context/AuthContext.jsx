@@ -97,7 +97,7 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const cleanEmail = (email || '').trim().toLowerCase();
 
-    // 1. Direct API Login with Email + Password (NO OTP)
+    // Direct API Login with Email + Password (NO OTP)
     const data = await api.login(cleanEmail, password);
     if (data.token && data.user) {
       localStorage.setItem('mess_auth_token', data.token);
@@ -108,17 +108,20 @@ export function AuthProvider({ children }) {
     throw new Error(data.error || 'Invalid credentials');
   };
 
-  const sendRegisterOtp = async (payload) => {
+  const register = async (payload) => {
     const cleanEmail = (payload.email || '').trim().toLowerCase();
     if (!cleanEmail.endsWith('@vitstudent.ac.in')) {
       throw new Error('Only VIT student email addresses (@vitstudent.ac.in) are allowed to register.');
     }
-    return await api.sendRegisterOtp({ ...payload, email: cleanEmail });
-  };
-
-  const verifyRegisterOtp = async (payload) => {
-    const cleanEmail = (payload.email || '').trim().toLowerCase();
-    return await api.verifyRegisterOtp({ ...payload, email: cleanEmail });
+    
+    const data = await api.register({ ...payload, email: cleanEmail });
+    if (data.token && data.user) {
+      localStorage.setItem('mess_auth_token', data.token);
+      localStorage.setItem('mess_user_session', JSON.stringify(data.user));
+      setUser(data.user);
+      return data.user;
+    }
+    return data;
   };
 
   const sendOtp = async (phone) => {
@@ -169,7 +172,16 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, sendRegisterOtp, verifyRegisterOtp, sendOtp, loginWithOtp, logout, refreshUser }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      login, 
+      register, 
+      sendOtp, 
+      loginWithOtp, 
+      logout, 
+      refreshUser 
+    }}>
       {children}
     </AuthContext.Provider>
   );

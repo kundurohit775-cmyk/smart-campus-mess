@@ -6,28 +6,26 @@ import { config } from '../config/config.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { creditService } from '../services/creditService.js';
 import { otpService } from '../services/otpService.js';
-import { emailOtpService } from '../services/emailOtpService.js';
 
 const router = express.Router();
 
 /**
  * =============================================================================
- * REGISTRATION EMAIL OTP FLOW (OTP REQUIRED FOR REGISTRATION ONLY)
+ * STUDENT REGISTRATION (DIRECT 1-STEP REGISTRATION — STRICT @vitstudent.ac.in)
  * =============================================================================
  */
 
 /**
- * POST /api/auth/register/send-otp (also accepts /register/send-otp, /send-otp)
+ * POST /api/auth-helpers/register (and /register)
  * Body: { name, email, password, phone, roomNumber }
- * Generates 6-digit OTP, stores securely hashed with 10-minute expiry, and emails student.
- * Rate limit: max 3 requests per email per 10 minutes.
+ * Directly creates student account, allocates 9,000 monthly credits, and returns JWT session token.
  */
-router.post(['/register/send-otp', '/send-otp', '/email/send-otp'], async (req, res, next) => {
+router.post('/register', async (req, res, next) => {
   try {
-    const { email } = req.body;
+    const { name, email, password, phone, roomNumber } = req.body;
 
-    if (!email || !email.includes('@')) {
-      return res.status(400).json({ error: 'Valid email address is required.' });
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Name, email, and password are required.' });
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -46,57 +44,9 @@ router.post(['/register/send-otp', '/send-otp', '/email/send-otp'], async (req, 
       return res.status(400).json({ error: 'An account with this email already exists.' });
     }
 
-    // 3. Request Email OTP (Rate limited to max 3 per 10m, hashed storage, 10m expiry)
-    const result = await emailOtpService.requestEmailOtp(cleanEmail, 'register');
-
-    // Security: never leak OTP in response
-    return res.json({
-      success: true,
-      message: result.message || `Verification code sent to ${cleanEmail}. Valid for ${config.otpExpiryMinutes} minutes.`,
-      expiresAt: result.expiresAt
-    });
-  } catch (err) {
-    if (err.message.includes('limit reached')) {
-      return res.status(429).json({ error: err.message });
-    }
-    return res.status(400).json({ error: err.message });
-  }
-});
-
-/**
- * POST /api/auth/register/verify-otp (also accepts /register/verify-otp, /verify-otp)
- * Body: { name, email, password, phone, roomNumber, otp }
- * Verifies 6-digit OTP, creates verified student in database, allocates 9,000 credits.
- * Invalidates OTP after 5 failed attempts.
- */
-router.post(['/register/verify-otp', '/verify-otp', '/email/verify-otp'], async (req, res, next) => {
-  try {
-    const { name, email, password, phone, roomNumber, otp } = req.body;
-
-    if (!email || !otp) {
-      return res.status(400).json({ error: 'Email and 6-digit verification code are required.' });
-    }
-
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (!cleanEmail.endsWith('@vitstudent.ac.in')) {
-      return res.status(400).json({
-        error: 'Only VIT student email addresses (@vitstudent.ac.in) are allowed to register.'
-      });
-    }
-
-    // 1. Verify OTP with brute-force protection (max 5 attempts, single use cleanup)
-    await emailOtpService.verifyEmailOtp(cleanEmail, otp, 'register');
-
-    // 2. Check if student was already created
-    const existingStudent = await db.get('SELECT student_id FROM students WHERE LOWER(email) = ?', cleanEmail);
-    if (existingStudent) {
-      return res.status(400).json({ error: 'An account with this email already exists.' });
-    }
-
-    // 3. Create Verified Student Account in PostgreSQL
-    const passwordHash = await bcrypt.hash(password || 'defaultPass123!', 10);
-    const studentName = (name || 'VIT Student').trim();
+    // 3. Create Student in PostgreSQL
+    const passwordHash = await bcrypt.hash(password, 10);
+    const studentName = name.trim();
 
     const result = await db.run(`
       INSERT INTO students (name, email, phone, password_hash, room_number, status)
@@ -131,24 +81,45 @@ router.post(['/register/verify-otp', '/verify-otp', '/email/verify-otp'], async 
     // Allocate 9,000 monthly credits allowance
     const credits = await creditService.getOrCreateMonthlyCredits(studentId);
 
+    // Generate session JWT token
+    const token = jwt.sign(
+      { id: studentId, email: cleanEmail, role: 'student', name: studentName },
+      config.jwtSecret,
+      { expiresIn: config.jwtExpiresIn }
+    );
+
+    const userObj = {
+      id: studentId,
+      name: studentName,
+      email: cleanEmail,
+      phone: phone || '',
+      roomNumber: roomNumber || 'Hostel',
+      role: 'student',
+      isChef: false,
+      isAdmin: false,
+      isStudent: true,
+      credits: {
+        remaining: credits.remaining_credits,
+        used: credits.used_credits,
+        limit: credits.monthly_limit,
+        isLowBalance: credits.is_low_balance
+      }
+    };
+
     return res.status(201).json({
       success: true,
-      message: 'Account verified & created successfully! You can now sign in with your email and password.',
-      student: {
-        id: studentId,
-        name: studentName,
-        email: cleanEmail,
-        credits: credits.remaining_credits
-      }
+      message: 'Account created successfully! Welcome to Smart Campus Mess.',
+      token,
+      user: userObj
     });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    next(err);
   }
 });
 
 /**
  * =============================================================================
- * STANDARD LOGIN FLOW (EMAIL + PASSWORD ONLY - NO OTP REQUIRED)
+ * STANDARD LOGIN FLOW (EMAIL + PASSWORD — NO OTP)
  * =============================================================================
  */
 
@@ -248,6 +219,9 @@ router.post('/login', async (req, res, next) => {
           phone: student.phone,
           roomNumber: student.room_number,
           role: 'student',
+          isChef: false,
+          isAdmin: false,
+          isStudent: true,
           credits: {
             remaining: credits.remaining_credits,
             used: credits.used_credits,
@@ -260,48 +234,6 @@ router.post('/login', async (req, res, next) => {
 
     return res.status(401).json({ error: 'Account not found with this email.' });
   } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * POST /api/auth-helpers/register
- * Legacy direct registration route redirecting to OTP flow
- */
-router.post('/register', async (req, res, next) => {
-  try {
-    const { name, email, password, phone, roomNumber } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email, and password are required.' });
-    }
-
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (!cleanEmail.endsWith('@vitstudent.ac.in')) {
-      return res.status(400).json({
-        error: 'Only VIT student email addresses (@vitstudent.ac.in) are allowed to register.'
-      });
-    }
-
-    const existingStudent = await db.get('SELECT student_id FROM students WHERE LOWER(email) = ?', cleanEmail);
-    const existingAdmin = await db.get('SELECT admin_id FROM admins WHERE LOWER(email) = ?', cleanEmail);
-    if (existingStudent || existingAdmin) {
-      return res.status(400).json({ error: 'An account with this email already exists.' });
-    }
-
-    // Trigger OTP send
-    const result = await emailOtpService.requestEmailOtp(cleanEmail, 'register');
-    return res.json({
-      requireOtp: true,
-      email: cleanEmail,
-      message: `Verification code sent to ${cleanEmail}. Please verify OTP to complete registration.`,
-      expiresAt: result.expiresAt
-    });
-  } catch (err) {
-    if (err.message?.includes('limit reached')) {
-      return res.status(429).json({ error: err.message });
-    }
     next(err);
   }
 });

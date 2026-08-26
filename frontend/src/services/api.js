@@ -45,8 +45,6 @@ export const api = {
   // Auth
   login: (email, password) => request('/auth-helpers/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   register: (payload) => request('/auth-helpers/register', { method: 'POST', body: JSON.stringify(payload) }),
-  sendRegisterOtp: (payload) => request('/auth-helpers/register/send-otp', { method: 'POST', body: JSON.stringify(payload) }),
-  verifyRegisterOtp: (payload) => request('/auth-helpers/register/verify-otp', { method: 'POST', body: JSON.stringify(payload) }),
   getMe: () => request('/auth-helpers/me'),
   sendOtp: (phone) => request('/auth-helpers/otp/send', { method: 'POST', body: JSON.stringify({ phone }) }),
   verifyOtp: (phone, otp) => request('/auth-helpers/otp/verify', { method: 'POST', body: JSON.stringify({ phone, otp }) }),
@@ -66,8 +64,7 @@ export const api = {
   getCredits: (studentId) => request(`/credits/${studentId}`),
   getTransactions: async (studentId) => {
     try {
-      // First try student credit ledger
-      const me = JSON.parse(localStorage.getItem('mess_user') || '{}');
+      const me = JSON.parse(localStorage.getItem('mess_user_session') || '{}');
       const targetId = studentId || me.student_id || me.id || 'me';
       const res = await request(`/credits/${targetId}`);
       if (res && res.transactions) return res;

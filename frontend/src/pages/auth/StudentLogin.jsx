@@ -10,12 +10,7 @@ import {
   GraduationCap, 
   CheckCircle, 
   Smartphone, 
-  KeyRound, 
-  RotateCcw, 
-  AlertCircle,
   ArrowLeft,
-  ShieldCheck,
-  Sparkles,
   Coins
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -23,18 +18,12 @@ import { useToast } from '../../context/ToastContext';
 import confetti from 'canvas-confetti';
 
 export function StudentLogin({ onBack }) {
-  const { login, sendOtp, loginWithOtp, sendRegisterOtp, verifyRegisterOtp } = useAuth();
+  const { login, register, sendOtp, loginWithOtp } = useAuth();
   const { showToast } = useToast();
 
   const [isRegister, setIsRegister] = useState(false);
   const [loginMethod, setLoginMethod] = useState('password'); // 'password' | 'otp'
   const [loading, setLoading] = useState(false);
-
-  // Registration OTP Step: 'form' | 'otp'
-  const [registerStep, setRegisterStep] = useState('form');
-  const [registerOtpCode, setRegisterOtpCode] = useState('');
-  const [countdown, setCountdown] = useState(600); // 10 minutes
-  const [resendingOtp, setResendingOtp] = useState(false);
 
   // Form fields
   const [email, setEmail] = useState('');
@@ -49,19 +38,6 @@ export function StudentLogin({ onBack }) {
   const [smsOtpSent, setSmsOtpSent] = useState(false);
   const [smsCountdown, setSmsCountdown] = useState(300);
   const [sendingSms, setSendingSms] = useState(false);
-
-  // Countdown timer effect for Registration Email OTP
-  useEffect(() => {
-    let timer = null;
-    if (isRegister && registerStep === 'otp' && countdown > 0) {
-      timer = setInterval(() => {
-        setCountdown(prev => prev - 1);
-      }, 1000);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [isRegister, registerStep, countdown]);
 
   // Countdown timer effect for Mobile SMS OTP
   useEffect(() => {
@@ -82,7 +58,7 @@ export function StudentLogin({ onBack }) {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // 1. Student Sign In (Email + Password - NO OTP)
+  // 1. Student Sign In (Email + Password)
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
@@ -103,7 +79,7 @@ export function StudentLogin({ onBack }) {
     }
   };
 
-  // 2. Student Registration Step 1: Send Email OTP
+  // 2. Student Direct Registration (1-Step, No OTP)
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
 
@@ -123,86 +99,24 @@ export function StudentLogin({ onBack }) {
     setLoading(true);
 
     try {
-      await sendRegisterOtp({
+      await register({
         name: name.trim(),
         email: cleanEmail,
         password,
         phone,
         roomNumber
-      });
-
-      setRegisterStep('otp');
-      setCountdown(600);
-      setRegisterOtpCode('');
-      showToast(`📧 Verification code sent to ${cleanEmail}. Enter the 6-digit OTP to complete registration.`, 'success', 6000);
-    } catch (err) {
-      showToast(err.message || 'Failed to send verification code', 'error', 6000);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 3. Student Registration Step 2: Verify Email OTP
-  const handleVerifyRegisterOtp = async (e) => {
-    e.preventDefault();
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanOtp = registerOtpCode.trim();
-
-    if (!cleanOtp || cleanOtp.length !== 6) {
-      showToast('Please enter the 6-digit verification code.', 'warning');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      await verifyRegisterOtp({
-        name: name.trim(),
-        email: cleanEmail,
-        password,
-        phone,
-        roomNumber,
-        otp: cleanOtp
       });
 
       confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
-      showToast('🎉 Account verified & created successfully! 9,000 monthly credits granted. Please sign in.', 'success', 7000);
-
-      // Redirect to Sign In tab with email prefilled
-      setIsRegister(false);
-      setRegisterStep('form');
-      setRegisterOtpCode('');
+      showToast('🎉 Account created successfully! 9,000 monthly dining credits granted. Welcome to Smart Mess!', 'success', 7000);
     } catch (err) {
-      showToast(err.message || 'OTP verification failed', 'error', 6000);
+      showToast(err.message || 'Registration failed', 'error', 6000);
     } finally {
       setLoading(false);
     }
   };
 
-  // Resend OTP
-  const handleResendRegisterOtp = async () => {
-    const cleanEmail = email.trim().toLowerCase();
-    setResendingOtp(true);
-
-    try {
-      await sendRegisterOtp({
-        name: name.trim(),
-        email: cleanEmail,
-        password,
-        phone,
-        roomNumber
-      });
-      setCountdown(600);
-      setRegisterOtpCode('');
-      showToast(`New verification code sent to ${cleanEmail}.`, 'success', 5000);
-    } catch (err) {
-      showToast(err.message || 'Failed to resend verification code', 'error', 5000);
-    } finally {
-      setResendingOtp(false);
-    }
-  };
-
-  // Mobile SMS OTP
+  // Mobile SMS OTP Handlers
   const handleSendMobileSms = async () => {
     if (!otpPhone || otpPhone.trim().length < 8) {
       showToast('Please enter a valid mobile number with country code.', 'warning');
@@ -308,7 +222,7 @@ export function StudentLogin({ onBack }) {
               <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
                 <CheckCircle className="w-3.5 h-3.5 text-white" />
               </div>
-              <span>Verified student registration via Email OTP</span>
+              <span>Exclusive access for VIT student accounts (@vitstudent.ac.in)</span>
             </div>
           </div>
         </div>
@@ -330,37 +244,35 @@ export function StudentLogin({ onBack }) {
               {isRegister ? 'Register Student Account' : 'Sign in to Your Account'}
             </h2>
             <p className="text-body text-xs sm:text-sm mt-1">
-              {isRegister ? 'Sign up with your official VIT student email' : 'Access your daily menu and credit balance'}
+              {isRegister ? 'Direct registration with your official VIT student email' : 'Access your daily menu and credit balance'}
             </p>
           </div>
 
-          {/* Tab Switcher: Sign In vs Register (Hidden on OTP verification step) */}
-          {(!isRegister || registerStep === 'form') && (
-            <div className="flex bg-[#FAFAFB] p-1 rounded-xl border border-border">
-              <button
-                type="button"
-                onClick={() => { setIsRegister(false); setRegisterStep('form'); }}
-                className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 ${
-                  !isRegister 
-                    ? 'bg-white text-ink shadow-level-1' 
-                    : 'text-muted hover:text-ink'
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => { setIsRegister(true); setRegisterStep('form'); }}
-                className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 ${
-                  isRegister 
-                    ? 'bg-white text-ink shadow-level-1' 
-                    : 'text-muted hover:text-ink'
-                }`}
-              >
-                Register Student
-              </button>
-            </div>
-          )}
+          {/* Tab Switcher: Sign In vs Register */}
+          <div className="flex bg-[#FAFAFB] p-1 rounded-xl border border-border">
+            <button
+              type="button"
+              onClick={() => setIsRegister(false)}
+              className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                !isRegister 
+                  ? 'bg-white text-ink shadow-level-1' 
+                  : 'text-muted hover:text-ink'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsRegister(true)}
+              className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                isRegister 
+                  ? 'bg-white text-ink shadow-level-1' 
+                  : 'text-muted hover:text-ink'
+              }`}
+            >
+              Register Student
+            </button>
+          </div>
 
           {/* =============================================================== */}
           {/* TAB 1: SIGN IN                                                  */}
@@ -532,184 +444,102 @@ export function StudentLogin({ onBack }) {
             </div>
           ) : (
             /* =============================================================== */
-            /* TAB 2: REGISTER STUDENT (EMAIL OTP FLOW)                         */
+            /* TAB 2: REGISTER STUDENT (DIRECT 1-STEP REGISTRATION)             */
             /* =============================================================== */
-            <div>
-              {registerStep === 'form' ? (
-                <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Full Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Alex Chen"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="input-field"
-                    />
-                  </div>
+            <form onSubmit={handleRegisterSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Alex Chen"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="input-field"
+                />
+              </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Hostel Room</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. B-302"
-                        value={roomNumber}
-                        onChange={(e) => setRoomNumber(e.target.value)}
-                        className="input-field"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Mobile Phone</label>
-                      <input
-                        type="tel"
-                        placeholder="+91-9876543210"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="input-field"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
-                        VIT Student Email
-                      </label>
-                      {email && (
-                        <span className={`text-[11px] font-bold ${isVitEmail ? 'text-status-success' : 'text-status-danger'}`}>
-                          {isVitEmail ? '✓ Valid VIT' : '✗ @vitstudent.ac.in'}
-                        </span>
-                      )}
-                    </div>
-                    <input
-                      type="email"
-                      required
-                      placeholder="your.name2024@vitstudent.ac.in"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="input-field"
-                    />
-                    {email && !isVitEmail && (
-                      <p className="text-xs text-status-danger mt-1">
-                        Only official VIT student email addresses are permitted.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Password</label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="input-field"
-                    />
-                  </div>
-
-                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-xs text-amber-900 flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-[#D97706] shrink-0 mt-0.5" />
-                    <span>A <strong>6-digit OTP code</strong> will be sent to verify and allocate your 9,000 monthly credits.</span>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading || !isVitEmail}
-                    className="w-full btn-primary mt-2"
-                  >
-                    {loading ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <span>Continue to Email Verification</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </form>
-              ) : (
-                <div className="space-y-5 animate-fade-in">
-                  <div className="text-center space-y-1">
-                    <div className="w-12 h-12 rounded-2xl bg-orange-50 text-[#FF6B35] flex items-center justify-center mx-auto mb-2 border border-orange-100">
-                      <Mail className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-h3 text-ink">
-                      Verify Your VIT Email
-                    </h3>
-                    <p className="text-body text-xs max-w-xs mx-auto">
-                      Enter the 6-digit verification code sent to <br />
-                      <strong className="text-ink">{email}</strong>
-                    </p>
-                  </div>
-
-                  <form onSubmit={handleVerifyRegisterOtp} className="space-y-4">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
-                          6-Digit Email OTP
-                        </label>
-                        <span className="text-xs font-mono font-bold text-[#FF6B35] bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-200/60">
-                          ⏱️ {formatTimer(countdown)}
-                        </span>
-                      </div>
-                      <input
-                        type="text"
-                        maxLength="6"
-                        required
-                        autoFocus
-                        placeholder="••••••"
-                        value={registerOtpCode}
-                        onChange={(e) => setRegisterOtpCode(e.target.value.replace(/\D/g, ''))}
-                        className="input-field font-mono text-xl font-bold tracking-widest text-center"
-                      />
-                    </div>
-
-                    <div className="p-2.5 bg-[#FAFAFB] border border-border rounded-xl text-xs text-muted flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-status-success shrink-0" />
-                      <span>Code valid for 10 minutes (5 max attempts).</span>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={loading || registerOtpCode.length !== 6 || countdown <= 0}
-                      className="w-full btn-primary"
-                    >
-                      {loading ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <span>Verify & Create Account</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
-
-                    <div className="flex items-center justify-between text-xs text-muted pt-2 border-t border-divider">
-                      <button
-                        type="button"
-                        onClick={() => { setRegisterStep('form'); setRegisterOtpCode(''); }}
-                        className="font-semibold text-ink hover:text-[#FF6B35] flex items-center gap-1"
-                      >
-                        <ArrowLeft className="w-3.5 h-3.5" />
-                        <span>Edit Details</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleResendRegisterOtp}
-                        disabled={resendingOtp || countdown > 0}
-                        className="font-semibold text-[#FF6B35] hover:underline disabled:opacity-40"
-                      >
-                        {resendingOtp ? 'Sending...' : 'Resend Code'}
-                      </button>
-                    </div>
-                  </form>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Hostel Room</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. B-302"
+                    value={roomNumber}
+                    onChange={(e) => setRoomNumber(e.target.value)}
+                    className="input-field"
+                  />
                 </div>
-              )}
-            </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Mobile Phone</label>
+                  <input
+                    type="tel"
+                    placeholder="+91-9876543210"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
+                    VIT Student Email
+                  </label>
+                  {email && (
+                    <span className={`text-[11px] font-bold ${isVitEmail ? 'text-status-success' : 'text-status-danger'}`}>
+                      {isVitEmail ? '✓ Valid VIT' : '✗ @vitstudent.ac.in'}
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="email"
+                  required
+                  placeholder="your.name2024@vitstudent.ac.in"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-field"
+                />
+                {email && !isVitEmail && (
+                  <p className="text-xs text-status-danger mt-1">
+                    Only official VIT student email addresses (@vitstudent.ac.in) are permitted.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Password</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200/80 text-xs text-emerald-900 flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-status-success shrink-0 mt-0.5" />
+                <span>Upon registration, <strong>9,000 monthly dining credits</strong> will be allocated to your account immediately.</span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !isVitEmail}
+                className="w-full btn-primary mt-2"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>Create Account & Grant 9k Credits</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
           )}
 
         </div>
