@@ -36,8 +36,9 @@ export function OrderTracking({ onBrowseMenu }) {
     return () => clearInterval(interval);
   }, []);
 
-  const activeOrders = orders.filter(o => o.order_status !== 'Completed' && o.order_status !== 'Cancelled');
-  const pastOrders = orders.filter(o => o.order_status === 'Completed' || o.order_status === 'Cancelled');
+  const ordersList = Array.isArray(orders) ? orders : [];
+  const activeOrders = ordersList.filter(o => o.order_status !== 'Completed' && o.order_status !== 'Cancelled');
+  const pastOrders = ordersList.filter(o => o.order_status === 'Completed' || o.order_status === 'Cancelled');
 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);
@@ -150,7 +151,7 @@ export function OrderTracking({ onBrowseMenu }) {
                     <div className="p-4 bg-[#FAFAFB] rounded-xl border border-border space-y-2">
                       <span className="text-micro text-muted block">Order Dishes</span>
                       <div className="space-y-1 text-xs">
-                        {order.items?.map((item, idx) => (
+                        {(order.items || []).map((item, idx) => (
                           <div key={idx} className="flex justify-between text-ink">
                             <span>{item.quantity}x {item.item_name}</span>
                             <span className="text-muted tabular-nums">{item.price_at_order * item.quantity} Cr</span>
@@ -221,7 +222,7 @@ export function OrderTracking({ onBrowseMenu }) {
                   {isExpanded && (
                     <div className="p-3.5 bg-[#FAFAFB] rounded-xl border border-border text-xs space-y-1.5 animate-fade-in">
                       <span className="text-micro text-muted block">Items Breakdown:</span>
-                      {order.items?.map((item, idx) => (
+                      {(order.items || []).map((item, idx) => (
                         <div key={idx} className="flex justify-between text-body">
                           <span>{item.quantity}x {item.item_name}</span>
                           <span className="tabular-nums font-semibold">{item.price_at_order * item.quantity} Credits</span>

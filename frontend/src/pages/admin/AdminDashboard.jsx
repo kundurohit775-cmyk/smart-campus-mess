@@ -7,10 +7,10 @@ import {
   TrendingUp, 
   ArrowRight, 
   ShieldCheck, 
-  RotateCcw,
-  Sparkles,
-  AlertTriangle,
-  Receipt
+  RotateCcw, 
+  Sparkles, 
+  AlertTriangle, 
+  Receipt 
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { StatCard } from '../../components/StatCard';
@@ -22,7 +22,7 @@ export function AdminDashboard({ onNavigate }) {
   const fetchStats = async () => {
     try {
       const res = await api.getAdminStats();
-      setStats(res);
+      setStats(res || null);
     } catch (err) {
       console.error('Failed to load admin stats:', err);
     } finally {
@@ -33,6 +33,9 @@ export function AdminDashboard({ onNavigate }) {
   useEffect(() => {
     fetchStats();
   }, []);
+
+  const topItems = Array.isArray(stats?.top_items) ? stats.top_items : [];
+  const lowBalanceStudents = Array.isArray(stats?.low_balance_students) ? stats.low_balance_students : [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
@@ -45,7 +48,7 @@ export function AdminDashboard({ onNavigate }) {
           subtitle="Enrolled campus accounts"
           icon={Users}
           color="indigo"
-          onClick={() => onNavigate('students')}
+          onClick={() => onNavigate && onNavigate('students')}
         />
         <StatCard
           title="Menu Dishes"
@@ -53,7 +56,7 @@ export function AdminDashboard({ onNavigate }) {
           subtitle="Catalog food items"
           icon={UtensilsCrossed}
           color="orange"
-          onClick={() => onNavigate('menu-mgr')}
+          onClick={() => onNavigate && onNavigate('menu-mgr')}
         />
         <StatCard
           title="Orders Processed"
@@ -61,7 +64,7 @@ export function AdminDashboard({ onNavigate }) {
           subtitle="Total campus meals served"
           icon={ShoppingBag}
           color="emerald"
-          onClick={() => onNavigate('audit')}
+          onClick={() => onNavigate && onNavigate('audit')}
         />
         <StatCard
           title="Total Credit Volume"
@@ -69,7 +72,7 @@ export function AdminDashboard({ onNavigate }) {
           subtitle="Credits processed to date"
           icon={Coins}
           color="purple"
-          onClick={() => onNavigate('audit')}
+          onClick={() => onNavigate && onNavigate('audit')}
         />
       </div>
 
@@ -97,13 +100,13 @@ export function AdminDashboard({ onNavigate }) {
               <div className="py-12 text-center text-muted animate-pulse">
                 Loading analytics leaderboard...
               </div>
-            ) : !stats?.top_items || stats.top_items.length === 0 ? (
+            ) : topItems.length === 0 ? (
               <div className="py-12 text-center text-muted">
                 No orders recorded yet.
               </div>
             ) : (
               <div className="divide-y divide-divider">
-                {stats.top_items.map((item, index) => (
+                {topItems.map((item, index) => (
                   <div 
                     key={index}
                     className="h-14 flex items-center justify-between hover:bg-[#FAFAFB] px-2 rounded-xl transition-colors"
@@ -143,7 +146,7 @@ export function AdminDashboard({ onNavigate }) {
                 <h3 className="text-sm font-bold text-ink">Low Credit Accounts</h3>
               </div>
               <span className="status-pill status-pill-warning text-[11px]">
-                {stats?.low_balance_students?.length || 0} Students
+                {lowBalanceStudents.length} Students
               </span>
             </div>
 
@@ -152,7 +155,7 @@ export function AdminDashboard({ onNavigate }) {
             </p>
 
             <button
-              onClick={() => onNavigate('students')}
+              onClick={() => onNavigate && onNavigate('students')}
               className="w-full btn-secondary text-xs py-2 justify-center"
             >
               <span>Manage Student Balances</span>
@@ -168,7 +171,7 @@ export function AdminDashboard({ onNavigate }) {
 
             <div className="space-y-2 text-xs">
               <button
-                onClick={() => onNavigate('menu-mgr')}
+                onClick={() => onNavigate && onNavigate('menu-mgr')}
                 className="w-full p-2.5 rounded-xl border border-border bg-[#FAFAFB] hover:bg-slate-100 flex items-center justify-between transition"
               >
                 <div className="flex items-center gap-2.5">
@@ -179,7 +182,7 @@ export function AdminDashboard({ onNavigate }) {
               </button>
 
               <button
-                onClick={() => onNavigate('students')}
+                onClick={() => onNavigate && onNavigate('students')}
                 className="w-full p-2.5 rounded-xl border border-border bg-[#FAFAFB] hover:bg-slate-100 flex items-center justify-between transition"
               >
                 <div className="flex items-center gap-2.5">
@@ -190,7 +193,7 @@ export function AdminDashboard({ onNavigate }) {
               </button>
 
               <button
-                onClick={() => onNavigate('audit')}
+                onClick={() => onNavigate && onNavigate('audit')}
                 className="w-full p-2.5 rounded-xl border border-border bg-[#FAFAFB] hover:bg-slate-100 flex items-center justify-between transition"
               >
                 <div className="flex items-center gap-2.5">

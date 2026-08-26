@@ -5,8 +5,9 @@ import { useAuth } from '../context/AuthContext';
 export function NotificationBanner({ readyOrders = [], onTrackOrder }) {
   const { user } = useAuth();
 
-  if (!user || user.role !== 'student') return null;
+  if (!user || (user.role !== 'student' && !user.isStudent)) return null;
 
+  const ordersList = Array.isArray(readyOrders) ? readyOrders : [];
   const remaining = user?.credits?.remaining ?? 9000;
   const isLow = remaining < 500;
 
@@ -14,7 +15,7 @@ export function NotificationBanner({ readyOrders = [], onTrackOrder }) {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 space-y-3">
       
       {/* Ready Order Alert Banner */}
-      {readyOrders.length > 0 && (
+      {ordersList.length > 0 && (
         <div className="card p-4 sm:p-5 border-status-success bg-gradient-to-br from-white via-white to-emerald-50/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 relative overflow-hidden animate-slide-up">
           <div className="flex items-center gap-3.5 relative z-10">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 text-status-success flex items-center justify-center shrink-0 shadow-level-1">
@@ -24,7 +25,7 @@ export function NotificationBanner({ readyOrders = [], onTrackOrder }) {
               <h4 className="font-bold text-sm sm:text-base text-ink flex items-center gap-2">
                 <span>🍽️ Food Ready for Pickup!</span>
                 <span className="status-pill status-pill-success text-xs font-bold uppercase">
-                  {readyOrders.map(o => o.pickup_token).join(', ')}
+                  {ordersList.map(o => o.pickup_token).join(', ')}
                 </span>
               </h4>
               <p className="text-xs text-body mt-0.5 font-medium">

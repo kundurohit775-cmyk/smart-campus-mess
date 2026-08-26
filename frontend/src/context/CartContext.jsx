@@ -28,37 +28,39 @@ export function CartProvider({ children }) {
   }, [items]);
 
   const totalAmount = useMemo(() => {
-    return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return (items || []).reduce((sum, item) => sum + (item.price * item.quantity), 0);
   }, [items]);
 
   const totalItemCount = useMemo(() => {
-    return items.reduce((sum, item) => sum + item.quantity, 0);
+    return (items || []).reduce((sum, item) => sum + item.quantity, 0);
   }, [items]);
 
-  const remainingCredits = user?.credits?.remaining || 0;
+  const remainingCredits = user?.credits?.remaining ?? 9000;
   const balanceAfterOrder = remainingCredits - totalAmount;
   const isInsufficientCredit = totalAmount > remainingCredits;
 
   const addItem = (menuItem, qty = 1) => {
+    if (!menuItem) return false;
     if (menuItem.available_quantity <= 0) {
       showToast(`"${menuItem.item_name}" is currently Sold Out.`, 'warning');
       return false;
     }
 
     setItems(prev => {
-      const existing = prev.find(i => i.item_id === menuItem.item_id);
+      const list = prev || [];
+      const existing = list.find(i => i.item_id === menuItem.item_id);
       if (existing) {
         const nextQty = existing.quantity + qty;
         if (nextQty > menuItem.available_quantity) {
           showToast(`Only ${menuItem.available_quantity} available in stock for "${menuItem.item_name}".`, 'warning');
-          return prev.map(i => i.item_id === menuItem.item_id ? { ...i, quantity: menuItem.available_quantity } : i);
+          return list.map(i => i.item_id === menuItem.item_id ? { ...i, quantity: menuItem.available_quantity } : i);
         }
-        showToast(`Updated "${menuItem.item_name}" quantity in cart (${nextQty})`, 'info', 2000);
-        return prev.map(i => i.item_id === menuItem.item_id ? { ...i, quantity: nextQty } : i);
+        showToast(`Updated "${menuItem.item_name}" quantity in tray (${nextQty})`, 'info', 2000);
+        return list.map(i => i.item_id === menuItem.item_id ? { ...i, quantity: nextQty } : i);
       } else {
         const initialQty = Math.min(qty, menuItem.available_quantity);
         showToast(`Added "${menuItem.item_name}" to your tray`, 'success', 2000);
-        return [...prev, {
+        return [...list, {
           item_id: menuItem.item_id,
           item_name: menuItem.item_name,
           category: menuItem.category,
@@ -79,7 +81,7 @@ export function CartProvider({ children }) {
       return;
     }
 
-    setItems(prev => prev.map(item => {
+    setItems(prev => (prev || []).map(item => {
       if (item.item_id === itemId) {
         if (newQty > item.available_quantity) {
           showToast(`Maximum available stock reached (${item.available_quantity})`, 'warning');
@@ -92,8 +94,8 @@ export function CartProvider({ children }) {
   };
 
   const removeItem = (itemId) => {
-    setItems(prev => prev.filter(item => item.item_id !== itemId));
-    showToast('Item removed from cart', 'info', 2000);
+    setItems(prev => (prev || []).filter(item => item.item_id !== itemId));
+    showToast('Item removed from tray', 'info', 2000);
   };
 
   const clearCart = () => {
@@ -103,14 +105,18 @@ export function CartProvider({ children }) {
 
   return (
     <CartContext.Provider value={{
-      items,
+      cart: items || [],
+      items: items || [],
       isOpen,
       setIsOpen,
+      addToCart: addItem,
       addItem,
       updateQuantity,
+      removeFromCart: removeItem,
       removeItem,
       clearCart,
       totalAmount,
+      totalCount: totalItemCount,
       totalItemCount,
       remainingCredits,
       balanceAfterOrder,

@@ -3,10 +3,13 @@ import { Plus, Minus, Check, Sparkles, Utensils, AlertCircle } from 'lucide-reac
 import { useCart } from '../context/CartContext';
 
 export function MenuCard({ item }) {
-  const { cart, addToCart, updateQuantity } = useCart();
-  const cartItem = cart.find(i => i.item_id === item.item_id);
-  const isOutOfStock = item.available_quantity <= 0;
-  const isLowStock = item.available_quantity > 0 && item.available_quantity <= 5;
+  const { cart = [], addToCart, updateQuantity } = useCart();
+  const cartList = cart || [];
+  const cartItem = cartList.find(i => i.item_id === item?.item_id);
+  const isOutOfStock = (item?.available_quantity ?? 0) <= 0;
+  const isLowStock = (item?.available_quantity ?? 0) > 0 && item.available_quantity <= 5;
+
+  if (!item) return null;
 
   return (
     <div className="card flex flex-col justify-between overflow-hidden relative group">
@@ -79,7 +82,7 @@ export function MenuCard({ item }) {
             <div className="flex items-center gap-2 bg-[#FAFAFB] border border-border p-1 rounded-btn shadow-level-1">
               <button
                 type="button"
-                onClick={() => updateQuantity(item.item_id, cartItem.quantity - 1)}
+                onClick={() => updateQuantity && updateQuantity(item.item_id, cartItem.quantity - 1)}
                 className="w-7 h-7 rounded-[8px] bg-white border border-border text-ink hover:bg-slate-50 flex items-center justify-center transition active:scale-95 shadow-level-1"
               >
                 <Minus className="w-3.5 h-3.5" />
@@ -89,7 +92,7 @@ export function MenuCard({ item }) {
               </span>
               <button
                 type="button"
-                onClick={() => addToCart(item)}
+                onClick={() => addToCart && addToCart(item)}
                 disabled={cartItem.quantity >= item.available_quantity}
                 className="w-7 h-7 rounded-[8px] bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white flex items-center justify-center transition active:scale-95 disabled:opacity-40 shadow-level-4"
               >
@@ -99,7 +102,7 @@ export function MenuCard({ item }) {
           ) : (
             <button
               type="button"
-              onClick={() => addToCart(item)}
+              onClick={() => addToCart && addToCart(item)}
               className="btn-primary py-2 px-3.5 text-xs"
             >
               <Plus className="w-3.5 h-3.5" />

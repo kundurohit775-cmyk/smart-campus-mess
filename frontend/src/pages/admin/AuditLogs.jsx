@@ -15,8 +15,8 @@ export function AuditLogs() {
         api.getAdminOrders(),
         api.getAdminTransactions()
       ]);
-      setOrders(ordersRes.orders || []);
-      setTransactions(transRes.transactions || []);
+      setOrders(ordersRes?.orders || []);
+      setTransactions(transRes?.transactions || []);
     } catch (err) {
       console.error('Failed to load audit logs:', err);
     } finally {
@@ -28,14 +28,17 @@ export function AuditLogs() {
     fetchData();
   }, []);
 
-  const filteredOrders = orders.filter(o =>
+  const ordersList = Array.isArray(orders) ? orders : [];
+  const transList = Array.isArray(transactions) ? transactions : [];
+
+  const filteredOrders = ordersList.filter(o =>
     (o.student_name && o.student_name.toLowerCase().includes(search.toLowerCase())) ||
     (o.pickup_token && o.pickup_token.toLowerCase().includes(search.toLowerCase())) ||
     (o.order_status && o.order_status.toLowerCase().includes(search.toLowerCase())) ||
     String(o.order_id).includes(search)
   );
 
-  const filteredTransactions = transactions.filter(t =>
+  const filteredTransactions = transList.filter(t =>
     (t.student_name && t.student_name.toLowerCase().includes(search.toLowerCase())) ||
     (t.transaction_type && t.transaction_type.toLowerCase().includes(search.toLowerCase())) ||
     (t.notes && t.notes.toLowerCase().includes(search.toLowerCase())) ||
@@ -78,7 +81,7 @@ export function AuditLogs() {
           }`}
         >
           <ShoppingBag className="w-3.5 h-3.5 text-[#6366F1]" />
-          <span>All Orders ({orders.length})</span>
+          <span>All Orders ({ordersList.length})</span>
         </button>
         <button
           onClick={() => setActiveTab('transactions')}
@@ -87,7 +90,7 @@ export function AuditLogs() {
           }`}
         >
           <Coins className="w-3.5 h-3.5 text-[#6366F1]" />
-          <span>Credit Transactions ({transactions.length})</span>
+          <span>Credit Transactions ({transList.length})</span>
         </button>
       </div>
 
@@ -128,7 +131,7 @@ export function AuditLogs() {
                         <span className="text-[11px] text-muted">{order.room_number || 'Hostel'}</span>
                       </td>
                       <td className="py-3 px-4 text-body">
-                        {order.items?.map(i => `${i.quantity}x ${i.item_name}`).join(', ') || 'No items'}
+                        {(order.items || []).map(i => `${i.quantity}x ${i.item_name}`).join(', ') || 'No items'}
                       </td>
                       <td className="py-3 px-4 text-right font-bold text-[#FF6B35] tabular-nums">
                         {order.total_amount} Credits
@@ -194,7 +197,7 @@ export function AuditLogs() {
                           {isDebit ? `-${tx.amount}` : `+${tx.amount}`} Credits
                         </td>
                         <td className="py-3 px-4 text-right font-bold text-ink tabular-nums">
-                          {tx.balance_after.toLocaleString()}
+                          {tx.balance_after?.toLocaleString() ?? tx.balance_after}
                         </td>
                         <td className="py-3 px-6 text-right text-muted whitespace-nowrap text-xs">
                           {new Date(tx.transaction_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}

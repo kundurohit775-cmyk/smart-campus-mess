@@ -30,7 +30,7 @@ export function MenuManager() {
   const fetchItems = async () => {
     try {
       const res = await api.getAdminMenu();
-      setItems(res.items || []);
+      setItems(res?.items || []);
     } catch (err) {
       console.error('Failed to load menu items:', err);
     } finally {
@@ -103,9 +103,11 @@ export function MenuManager() {
     }
   };
 
-  const filteredItems = items.filter(i =>
-    i.item_name.toLowerCase().includes(search.toLowerCase()) ||
-    i.category.toLowerCase().includes(search.toLowerCase())
+  const itemsList = Array.isArray(items) ? items : [];
+
+  const filteredItems = itemsList.filter(i =>
+    (i.item_name && i.item_name.toLowerCase().includes(search.toLowerCase())) ||
+    (i.category && i.category.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -261,7 +263,7 @@ export function MenuManager() {
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="input-field"
               >
-                {CATEGORIES.map(c => (
+                {(CATEGORIES || []).map(c => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>

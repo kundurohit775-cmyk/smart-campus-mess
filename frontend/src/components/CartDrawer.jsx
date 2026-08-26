@@ -7,7 +7,7 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 
 export function CartDrawer({ onOrderSuccess }) {
-  const { cart, isOpen, setIsOpen, updateQuantity, removeFromCart, clearCart, totalAmount, remainingCredits, balanceAfterOrder, isInsufficientCredit } = useCart();
+  const { cart = [], isOpen, setIsOpen, updateQuantity, removeFromCart, clearCart, totalAmount = 0, remainingCredits = 0, balanceAfterOrder = 0, isInsufficientCredit = false } = useCart();
   const { refreshUser } = useAuth();
   const { showToast } = useToast();
 
@@ -15,8 +15,10 @@ export function CartDrawer({ onOrderSuccess }) {
 
   if (!isOpen) return null;
 
+  const cartList = cart || [];
+
   const handlePlaceOrder = async () => {
-    if (cart.length === 0) return;
+    if (cartList.length === 0) return;
     if (isInsufficientCredit) {
       showToast('Insufficient credit balance to place this order.', 'error');
       return;
@@ -24,7 +26,7 @@ export function CartDrawer({ onOrderSuccess }) {
 
     setLoading(true);
     try {
-      const orderPayload = cart.map(item => ({
+      const orderPayload = cartList.map(item => ({
         itemId: item.item_id,
         quantity: item.quantity
       }));
@@ -72,7 +74,7 @@ export function CartDrawer({ onOrderSuccess }) {
               </div>
               <div>
                 <h2 className="text-h3 text-ink">Your Meal Tray</h2>
-                <p className="text-xs text-muted font-medium">{cart.length} dish{cart.length === 1 ? '' : 'es'} ready for checkout</p>
+                <p className="text-xs text-muted font-medium">{cartList.length} dish{cartList.length === 1 ? '' : 'es'} ready for checkout</p>
               </div>
             </div>
             <button
@@ -85,7 +87,7 @@ export function CartDrawer({ onOrderSuccess }) {
 
           {/* Drawer Content */}
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
-            {cart.length === 0 ? (
+            {cartList.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4">
                 <div className="w-16 h-16 rounded-2xl bg-orange-50 text-[#FF6B35] flex items-center justify-center mx-auto">
                   <ShoppingBag className="w-8 h-8" />
@@ -105,7 +107,7 @@ export function CartDrawer({ onOrderSuccess }) {
               </div>
             ) : (
               <div className="space-y-3">
-                {cart.map(item => (
+                {cartList.map(item => (
                   <div
                     key={item.item_id}
                     className="flex items-center gap-3 p-3 bg-white rounded-xl border border-border shadow-level-1 hover:shadow-level-2 transition-all duration-150"
@@ -124,18 +126,18 @@ export function CartDrawer({ onOrderSuccess }) {
                       {/* Quantity Stepper */}
                       <div className="flex items-center gap-2 mt-2">
                         <button
-                          onClick={() => updateQuantity(item.item_id, item.quantity - 1)}
+                          onClick={() => updateQuantity && updateQuantity(item.item_id, item.quantity - 1)}
                           className="w-6 h-6 rounded-[6px] bg-[#FAFAFB] border border-border flex items-center justify-center text-ink hover:bg-slate-100 active:scale-95 transition"
                         >
-                          <Minus className="w-3 h-3" />
+                          <Minus className="w-3.5 h-3.5" />
                         </button>
                         <span className="text-xs font-bold text-ink px-1 tabular-nums">{item.quantity}</span>
                         <button
-                          onClick={() => updateQuantity(item.item_id, item.quantity + 1)}
+                          onClick={() => updateQuantity && updateQuantity(item.item_id, item.quantity + 1)}
                           disabled={item.quantity >= item.available_quantity}
                           className="w-6 h-6 rounded-[6px] bg-[#FF6B35] disabled:bg-slate-200 text-white flex items-center justify-center font-bold hover:bg-[#E85A2A] active:scale-95 transition"
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -145,7 +147,7 @@ export function CartDrawer({ onOrderSuccess }) {
                         {item.price * item.quantity} Cr
                       </span>
                       <button
-                        onClick={() => removeFromCart(item.item_id)}
+                        onClick={() => removeFromCart && removeFromCart(item.item_id)}
                         className="text-muted hover:text-status-danger transition p-1"
                         title="Remove item"
                       >
@@ -166,7 +168,7 @@ export function CartDrawer({ onOrderSuccess }) {
           </div>
 
           {/* Drawer Footer & Checkout */}
-          {cart.length > 0 && (
+          {cartList.length > 0 && (
             <div className="p-5 border-t border-divider bg-[#FAFAFB] space-y-4">
               {/* Credit Calculation Box */}
               <div className="bg-white rounded-xl p-4 border border-border shadow-level-1 space-y-2 text-xs">

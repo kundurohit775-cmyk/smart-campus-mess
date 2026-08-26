@@ -23,7 +23,7 @@ const CATEGORIES = ['All', 'Breakfast', 'Lunch', 'Snacks', 'Dinner', 'Beverages'
 
 export function StudentDashboard({ onNavigateToOrders }) {
   const { user } = useAuth();
-  const { cart, totalAmount, totalCount, setIsOpen: setCartOpen } = useCart();
+  const { cart = [], totalAmount = 0, totalCount = 0, setIsOpen: setCartOpen } = useCart();
   
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +50,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
   const usedCredits = user?.credits?.used ?? 0;
   const isLow = remainingCredits < 500;
 
-  const filteredItems = items.filter((item) => {
+  const filteredItems = (items || []).filter((item) => {
     const matchesCategory = selectedCategory === 'All' || item.category.toLowerCase() === selectedCategory.toLowerCase();
     const matchesSearch = item.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -86,8 +86,8 @@ export function StudentDashboard({ onNavigateToOrders }) {
         {/* Stat 3: Active Meal Tray */}
         <StatCard
           title="Meal Tray Items"
-          value={`${totalCount} ${totalCount === 1 ? 'dish' : 'dishes'}`}
-          subtitle={totalCount > 0 ? `Subtotal: ${totalAmount} credits` : 'Tray is empty'}
+          value={`${totalCount || (cart || []).length} ${(totalCount || (cart || []).length) === 1 ? 'dish' : 'dishes'}`}
+          subtitle={totalAmount > 0 ? `Subtotal: ${totalAmount} credits` : 'Tray is empty'}
           icon={ShoppingBag}
           color="emerald"
           onClick={() => setCartOpen(true)}
@@ -116,7 +116,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
             
             {/* Category Segmented Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 max-w-full">
-              {CATEGORIES.map((cat) => (
+              {(CATEGORIES || []).map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
@@ -158,7 +158,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {filteredItems.map((item) => (
+              {(filteredItems || []).map((item) => (
                 <MenuCard key={item.item_id} item={item} />
               ))}
             </div>
@@ -178,11 +178,11 @@ export function StudentDashboard({ onNavigateToOrders }) {
                 <h3 className="text-h3 text-ink">Your Meal Tray</h3>
               </div>
               <span className="status-pill status-pill-info text-[11px]">
-                {totalCount} items
+                {(cart || []).length} items
               </span>
             </div>
 
-            {totalCount === 0 ? (
+            {(cart || []).length === 0 ? (
               <div className="py-6 text-center text-muted text-xs space-y-1">
                 <p>Your meal tray is currently empty.</p>
                 <p className="text-[11px]">Select items from the daily catalog to order.</p>
@@ -190,7 +190,7 @@ export function StudentDashboard({ onNavigateToOrders }) {
             ) : (
               <div className="space-y-3">
                 <div className="max-h-48 overflow-y-auto divide-y divide-divider text-xs">
-                  {cart.map((i) => (
+                  {(cart || []).map((i) => (
                     <div key={i.item_id} className="py-2 flex items-center justify-between">
                       <div>
                         <span className="font-semibold text-ink block">{i.item_name}</span>

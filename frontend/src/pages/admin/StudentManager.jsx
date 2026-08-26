@@ -19,7 +19,7 @@ export function StudentManager() {
   const fetchStudents = async () => {
     try {
       const res = await api.getAdminStudents();
-      setStudents(res.students || []);
+      setStudents(res?.students || []);
     } catch (err) {
       console.error('Failed to load students:', err);
     } finally {
@@ -69,9 +69,11 @@ export function StudentManager() {
     }
   };
 
-  const filteredStudents = students.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.email.toLowerCase().includes(search.toLowerCase()) ||
+  const studentsList = Array.isArray(students) ? students : [];
+
+  const filteredStudents = studentsList.filter(s =>
+    (s.name && s.name.toLowerCase().includes(search.toLowerCase())) ||
+    (s.email && s.email.toLowerCase().includes(search.toLowerCase())) ||
     (s.room_number && s.room_number.toLowerCase().includes(search.toLowerCase()))
   );
 
@@ -130,14 +132,14 @@ export function StudentManager() {
                 </tr>
               ) : (
                 filteredStudents.map(student => {
-                  const isLow = student.remaining_credits < 500;
+                  const isLow = (student.remaining_credits ?? 0) < 500;
 
                   return (
                     <tr key={student.student_id} className="h-14 hover:bg-[#FAFAFB] transition-colors">
                       <td className="py-3 px-6">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 text-[#6366F1] flex items-center justify-center font-bold shrink-0">
-                            {student.name.charAt(0)}
+                            {student.name ? student.name.charAt(0) : 'S'}
                           </div>
                           <div>
                             <span className="font-bold text-ink block">{student.name}</span>
@@ -150,13 +152,13 @@ export function StudentManager() {
                         <span className="text-[11px] text-muted">{student.phone || 'No phone'}</span>
                       </td>
                       <td className="py-3 px-4 text-right text-muted font-bold tabular-nums">
-                        {student.used_credits.toLocaleString()}
+                        {student.used_credits?.toLocaleString() ?? student.used_credits}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <span className={`status-pill text-xs ${
                           isLow ? 'status-pill-danger' : 'status-pill-success'
                         }`}>
-                          {student.remaining_credits.toLocaleString()} / 9k
+                          {student.remaining_credits?.toLocaleString() ?? student.remaining_credits} / 9k
                         </span>
                       </td>
                       <td className="py-3 px-6 text-right">
@@ -196,7 +198,7 @@ export function StudentManager() {
           <div className="p-3.5 bg-indigo-50/80 rounded-xl border border-indigo-200 flex items-center justify-between text-xs">
             <span className="text-indigo-900 font-semibold">Current Balance:</span>
             <span className="font-bold text-indigo-900 text-sm tabular-nums">
-              {adjustingStudent?.remaining_credits.toLocaleString()} Credits
+              {adjustingStudent?.remaining_credits?.toLocaleString() ?? adjustingStudent?.remaining_credits} Credits
             </span>
           </div>
 

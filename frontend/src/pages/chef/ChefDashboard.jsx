@@ -25,7 +25,7 @@ export function ChefDashboard() {
   const fetchOrders = async () => {
     try {
       const res = await api.getChefOrders();
-      setOrders(res.orders || []);
+      setOrders(res?.orders || []);
     } catch (err) {
       console.error('Failed to load kitchen orders:', err);
     } finally {
@@ -52,12 +52,13 @@ export function ChefDashboard() {
     }
   };
 
-  const pendingCount = orders.filter(o => o.order_status === 'Pending').length;
-  const cookingCount = orders.filter(o => o.order_status === 'Cooking').length;
-  const readyCount = orders.filter(o => o.order_status === 'Ready').length;
-  const completedToday = orders.filter(o => o.order_status === 'Completed').length;
+  const ordersList = Array.isArray(orders) ? orders : [];
+  const pendingCount = ordersList.filter(o => o.order_status === 'Pending').length;
+  const cookingCount = ordersList.filter(o => o.order_status === 'Cooking').length;
+  const readyCount = ordersList.filter(o => o.order_status === 'Ready').length;
+  const completedToday = ordersList.filter(o => o.order_status === 'Completed').length;
 
-  const filteredOrders = orders.filter(o => {
+  const filteredOrders = ordersList.filter(o => {
     if (statusFilter === 'ACTIVE') return o.order_status !== 'Completed' && o.order_status !== 'Cancelled';
     if (statusFilter === 'Pending') return o.order_status === 'Pending';
     if (statusFilter === 'Cooking') return o.order_status === 'Cooking';
@@ -193,7 +194,7 @@ export function ChefDashboard() {
 
                         {/* Dishes list */}
                         <div className="p-3 bg-[#FAFAFB] rounded-xl border border-border space-y-1 text-xs">
-                          {order.items?.map((item, idx) => (
+                          {(order.items || []).map((item, idx) => (
                             <div key={idx} className="flex justify-between font-semibold text-ink">
                               <span>{item.quantity}x {item.item_name}</span>
                             </div>

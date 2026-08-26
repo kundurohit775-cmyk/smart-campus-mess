@@ -12,7 +12,7 @@ export function ChefInventory() {
   const fetchItems = async () => {
     try {
       const res = await api.getChefInventory();
-      setItems(res.items || []);
+      setItems(res?.items || []);
     } catch (err) {
       console.error('Failed to load chef inventory:', err);
     } finally {
@@ -46,9 +46,11 @@ export function ChefInventory() {
     }
   };
 
-  const filteredItems = items.filter(i =>
-    i.item_name.toLowerCase().includes(search.toLowerCase()) ||
-    i.category.toLowerCase().includes(search.toLowerCase())
+  const itemsList = Array.isArray(items) ? items : [];
+
+  const filteredItems = itemsList.filter(i =>
+    (i.item_name && i.item_name.toLowerCase().includes(search.toLowerCase())) ||
+    (i.category && i.category.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (

@@ -28,7 +28,7 @@ export function Transactions() {
     const fetchTransactions = async () => {
       try {
         const res = await api.getTransactions();
-        setTransactions(res.transactions || []);
+        setTransactions(res?.transactions || []);
       } catch (err) {
         console.error('Failed to load transactions:', err);
       } finally {
@@ -43,7 +43,9 @@ export function Transactions() {
   const monthlyTotal = 9000;
   const usedPercentage = Math.min(100, Math.round((used / monthlyTotal) * 100));
 
-  const filtered = transactions.filter(t => {
+  const transList = Array.isArray(transactions) ? transactions : [];
+
+  const filtered = transList.filter(t => {
     if (filterType === 'DEBIT') return t.transaction_type === 'DEBIT_ORDER';
     if (filterType === 'TOPUP') return t.transaction_type === 'TOPUP';
     if (filterType === 'CREDIT') return t.transaction_type === 'CREDIT_MONTHLY' || t.transaction_type === 'CREDIT_REFUND';
@@ -205,7 +207,7 @@ export function Transactions() {
                       </td>
 
                       <td className="py-3 px-4 text-right font-semibold text-ink tabular-nums">
-                        {tx.balance_after.toLocaleString()}
+                        {tx.balance_after?.toLocaleString() ?? tx.balance_after}
                       </td>
 
                       <td className="py-3 px-4 text-right text-muted text-xs whitespace-nowrap">
