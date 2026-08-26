@@ -15,6 +15,7 @@ export function Login() {
   };
 
   const [selectedRole, setSelectedRole] = useState(getRoleFromPath);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Sync with browser back/forward buttons
   useEffect(() => {
@@ -26,26 +27,29 @@ export function Login() {
   }, []);
 
   const handleSelectRole = (role) => {
-    setSelectedRole(role);
-    window.history.pushState({ role }, '', `/login/${role}`);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSelectedRole(role);
+      window.history.pushState({ role }, '', `/login/${role}`);
+      setIsTransitioning(false);
+    }, 150);
   };
 
   const handleBackToLanding = () => {
-    setSelectedRole(null);
-    window.history.pushState({}, '', '/');
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSelectedRole(null);
+      window.history.pushState({}, '', '/');
+      setIsTransitioning(false);
+    }, 150);
   };
 
-  if (selectedRole === 'student') {
-    return <StudentLogin onBack={handleBackToLanding} />;
-  }
-
-  if (selectedRole === 'chef') {
-    return <ChefLogin onBack={handleBackToLanding} />;
-  }
-
-  if (selectedRole === 'admin') {
-    return <AdminLogin onBack={handleBackToLanding} />;
-  }
-
-  return <LandingRoleSelect onSelectRole={handleSelectRole} />;
+  return (
+    <div className={`transition-opacity duration-200 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+      {selectedRole === 'student' && <StudentLogin onBack={handleBackToLanding} />}
+      {selectedRole === 'chef' && <ChefLogin onBack={handleBackToLanding} />}
+      {selectedRole === 'admin' && <AdminLogin onBack={handleBackToLanding} />}
+      {!selectedRole && <LandingRoleSelect onSelectRole={handleSelectRole} />}
+    </div>
+  );
 }

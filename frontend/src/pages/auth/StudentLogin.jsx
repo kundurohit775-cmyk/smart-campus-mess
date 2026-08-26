@@ -10,9 +10,9 @@ import {
   GraduationCap, 
   CheckCircle, 
   Smartphone, 
-  ArrowLeft,
-  Coins,
-  Sparkles
+  ArrowLeft, 
+  Coins, 
+  Sparkles 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -165,11 +165,11 @@ export function StudentLogin({ onBack }) {
   return (
     <div className="min-h-screen bg-space-mesh bg-starfield flex flex-col md:flex-row relative overflow-hidden">
       
-      {/* LEFT 45% PANEL: Branded Space-Tech Glowing Panel */}
-      <div className="w-full md:w-[45%] bg-gradient-to-br from-[#1A1F3A] via-[#131728] to-[#0B0E1A] border-b md:border-b-0 md:border-r border-border text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden shrink-0">
+      {/* LEFT 45% PANEL: Violet Gradient & Cosmic Atmosphere */}
+      <div className="w-full md:w-[45%] bg-gradient-to-br from-[#1A1F3A] via-[#131728] to-[#0B0E1A] border-b md:border-b-0 md:border-r border-border text-white p-6 sm:p-10 lg:p-14 flex flex-col justify-between relative overflow-hidden shrink-0">
         
         {/* Ambient atmospheric glow inside panel */}
-        <div className="absolute -top-12 -left-12 w-64 h-64 bg-[#8B5CF6]/20 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute -top-12 -left-12 w-64 h-64 bg-[#8B5CF6]/25 rounded-full blur-[80px] pointer-events-none" />
         <div className="absolute bottom-10 right-0 w-64 h-64 bg-[#06B6D4]/15 rounded-full blur-[80px] pointer-events-none" />
         <div className="absolute inset-0 opacity-15 bg-cyber-grid pointer-events-none" />
         
@@ -181,7 +181,7 @@ export function StudentLogin({ onBack }) {
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#131728]/80 hover:bg-[#1A1F3A] text-[#F1F5F9] text-xs font-semibold backdrop-blur-md transition active:scale-95 border border-border"
           >
             <ArrowLeft className="w-4 h-4 text-[#8B5CF6]" />
-            <span>Back to Role Selection</span>
+            <span>← Back to role selection</span>
           </button>
 
           <div className="flex items-center gap-3">
@@ -189,64 +189,77 @@ export function StudentLogin({ onBack }) {
               <UtensilsCrossed className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-xl font-bold tracking-tight block text-ink">SmartMess</span>
-              <span className="text-xs text-[#06B6D4] font-medium">Campus Food & Credit Hub</span>
+              <span className="text-xl font-bold tracking-tight block text-ink font-heading">SmartMess</span>
+              <span className="text-xs text-[#8B5CF6] font-medium font-heading">Student Dining Hub</span>
             </div>
           </div>
         </div>
 
         {/* Middle Messaging */}
-        <div className="relative z-10 py-8 space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#8B5CF6]/15 text-[#8B5CF6] flex items-center justify-center shadow-level-1 border border-[#8B5CF6]/30 mb-2">
-            <GraduationCap className="w-6 h-6" />
+        <div className="relative z-10 py-6 sm:py-8 space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-[#8B5CF6]/15 text-[#8B5CF6] flex items-center justify-center shadow-glow-primary border border-[#8B5CF6]/30 mb-2">
+            <GraduationCap className="w-8 h-8" />
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-ink">
-            Student Meal Portal & <br />
-            <span className="text-gradient">Credit Management</span>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-ink font-heading">
+            Welcome back, <br />
+            <span className="text-gradient">Student</span>
           </h2>
           
-          <p className="text-body text-sm sm:text-[15px] leading-relaxed max-w-md">
-            Order food without waiting in lines. Every active student receives <strong className="text-ink">9,000 monthly credits</strong> with instant Razorpay top-ups.
+          <p className="text-body text-xs sm:text-sm leading-relaxed max-w-md">
+            Order fresh meals, monitor live queue tokens, and manage your 9,000 monthly dining credits.
           </p>
 
-          <div className="pt-4 space-y-2.5 text-xs text-body font-medium">
+          <div className="pt-3 space-y-2.5 text-xs text-body font-medium hidden sm:block">
             <div className="flex items-center gap-2.5">
               <div className="w-5 h-5 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center shrink-0">
                 <CheckCircle className="w-3.5 h-3.5 text-[#8B5CF6]" />
               </div>
-              <span>Instant pickup token queue system</span>
+              <span>Instant pickup token queue generation</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-[#06B6D4]/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-[#06B6D4]" />
+              <div className="w-5 h-5 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-3.5 h-3.5 text-[#8B5CF6]" />
               </div>
-              <span>Transparent credit audit ledger & instant refunds</span>
+              <span>9,000 monthly credit balance ledger & Razorpay top-up</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-[#34D399]/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-[#34D399]" />
+              <div className="w-5 h-5 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-3.5 h-3.5 text-[#8B5CF6]" />
               </div>
-              <span>Exclusive access for VIT student accounts (@vitstudent.ac.in)</span>
+              <span>Direct registration for @vitstudent.ac.in accounts</span>
             </div>
           </div>
         </div>
 
         {/* Bottom Footer note */}
-        <div className="relative z-10 pt-4 border-t border-border text-xs text-muted">
+        <div className="relative z-10 pt-4 border-t border-border text-xs text-muted hidden md:block">
           VIT University Campus Mess Network
         </div>
       </div>
 
-      {/* RIGHT 55% PANEL: Form Panel Centered Vertically */}
-      <div className="w-full md:w-[55%] flex items-center justify-center p-6 sm:p-10 lg:p-14">
-        <div className="max-w-md w-full card space-y-6 shadow-level-2">
+      {/* RIGHT 55% PANEL: Centered Form with Violet Glow */}
+      <div className="w-full md:w-[55%] flex flex-col justify-center items-center p-6 sm:p-10 lg:p-14">
+        
+        {/* Mobile Back Button (Visible only on mobile) */}
+        <div className="w-full max-w-md md:hidden mb-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-2 text-xs text-muted hover:text-ink transition font-heading"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-[#8B5CF6]" />
+            <span>← Back to role selection</span>
+          </button>
+        </div>
+
+        <div className="max-w-md w-full card space-y-6 shadow-level-2 border-[#8B5CF6]/20">
           
           {/* Header */}
           <div>
             <span className="text-micro text-[#8B5CF6] block mb-1">Student Portal</span>
-            <h2 className="text-h2 text-ink">
-              {isRegister ? 'Register Student Account' : 'Sign in to Your Account'}
+            <h2 className="text-h2 text-ink font-heading">
+              {isRegister ? 'Register Student Account' : 'Sign In'}
             </h2>
             <p className="text-body text-xs sm:text-sm mt-1">
               {isRegister ? 'Direct registration with your official VIT student email' : 'Access your daily menu and credit balance'}
@@ -258,9 +271,9 @@ export function StudentLogin({ onBack }) {
             <button
               type="button"
               onClick={() => setIsRegister(false)}
-              className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 ${
+              className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 font-heading ${
                 !isRegister 
-                  ? 'bg-gradient-to-r from-[#8B5CF6]/30 to-[#06B6D4]/30 text-white border border-[#8B5CF6]/40 shadow-level-1' 
+                  ? 'bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] text-white shadow-glow-primary' 
                   : 'text-muted hover:text-ink'
               }`}
             >
@@ -269,9 +282,9 @@ export function StudentLogin({ onBack }) {
             <button
               type="button"
               onClick={() => setIsRegister(true)}
-              className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 ${
+              className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 font-heading ${
                 isRegister 
-                  ? 'bg-gradient-to-r from-[#8B5CF6]/30 to-[#06B6D4]/30 text-white border border-[#8B5CF6]/40 shadow-level-1' 
+                  ? 'bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] text-white shadow-glow-primary' 
                   : 'text-muted hover:text-ink'
               }`}
             >
@@ -289,9 +302,9 @@ export function StudentLogin({ onBack }) {
                 <button
                   type="button"
                   onClick={() => setLoginMethod('password')}
-                  className={`flex-1 py-1.5 px-3 rounded-[8px] text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 py-1.5 px-3 rounded-[8px] text-xs font-semibold transition flex items-center justify-center gap-1.5 font-heading ${
                     loginMethod === 'password'
-                      ? 'bg-[#131728] text-[#8B5CF6] border border-border shadow-level-1'
+                      ? 'bg-[#131728] text-[#8B5CF6] border border-[#8B5CF6]/30 shadow-level-1'
                       : 'text-muted hover:text-ink'
                   }`}
                 >
@@ -301,9 +314,9 @@ export function StudentLogin({ onBack }) {
                 <button
                   type="button"
                   onClick={() => setLoginMethod('otp')}
-                  className={`flex-1 py-1.5 px-3 rounded-[8px] text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 py-1.5 px-3 rounded-[8px] text-xs font-semibold transition flex items-center justify-center gap-1.5 font-heading ${
                     loginMethod === 'otp'
-                      ? 'bg-[#131728] text-[#06B6D4] border border-border shadow-level-1'
+                      ? 'bg-[#131728] text-[#06B6D4] border border-[#06B6D4]/30 shadow-level-1'
                       : 'text-muted hover:text-ink'
                   }`}
                 >
@@ -313,10 +326,10 @@ export function StudentLogin({ onBack }) {
               </div>
 
               {loginMethod === 'password' ? (
-                <form onSubmit={handleLoginSubmit} className="space-y-5">
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
-                      VIT Student Email Address
+                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider font-heading">
+                      VIT Student Email
                     </label>
                     <input
                       type="email"
@@ -324,12 +337,12 @@ export function StudentLogin({ onBack }) {
                       placeholder="student@vitstudent.ac.in"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="input-field"
+                      className="input-field focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6]/50 shadow-[0_0_12px_rgba(139,92,246,0.1)]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
+                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider font-heading">
                       Password
                     </label>
                     <input
@@ -338,20 +351,20 @@ export function StudentLogin({ onBack }) {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="input-field"
+                      className="input-field focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6]/50 shadow-[0_0_12px_rgba(139,92,246,0.1)]"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full btn-primary"
+                    className="w-full btn-primary bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] shadow-glow-primary hover:from-[#7C3AED] hover:to-[#4F46E5]"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
-                        <span>Sign In to Student Portal</span>
+                        <span>Sign In</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
@@ -360,7 +373,7 @@ export function StudentLogin({ onBack }) {
               ) : (
                 <div className="space-y-5">
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
+                    <label className="block text-xs font-semibold text-ink uppercase tracking-wider font-heading">
                       Registered Mobile Number
                     </label>
                     <div className="flex gap-2">
@@ -370,14 +383,14 @@ export function StudentLogin({ onBack }) {
                         value={otpPhone}
                         onChange={(e) => setOtpPhone(e.target.value)}
                         disabled={smsOtpSent}
-                        className="input-field flex-1"
+                        className="input-field flex-1 focus:border-[#8B5CF6]"
                       />
                       {!smsOtpSent ? (
                         <button
                           type="button"
                           onClick={handleSendMobileSms}
                           disabled={sendingSms || !otpPhone}
-                          className="px-4 bg-[#8B5CF6]/20 hover:bg-[#8B5CF6]/30 text-[#8B5CF6] border border-[#8B5CF6]/40 font-semibold text-xs rounded-btn shadow-level-1 transition shrink-0"
+                          className="px-4 bg-[#8B5CF6]/20 hover:bg-[#8B5CF6]/30 text-[#8B5CF6] border border-[#8B5CF6]/40 font-semibold text-xs rounded-btn shadow-level-1 transition shrink-0 font-heading"
                         >
                           {sendingSms ? 'Sending...' : 'Send SMS'}
                         </button>
@@ -397,7 +410,7 @@ export function StudentLogin({ onBack }) {
                     <form onSubmit={handleVerifyMobileSms} className="space-y-5 pt-2 animate-fade-in">
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
+                          <label className="block text-xs font-semibold text-ink uppercase tracking-wider font-heading">
                             6-Digit SMS Code
                           </label>
                           <span className="text-xs font-mono font-bold text-[#06B6D4]">
@@ -412,14 +425,14 @@ export function StudentLogin({ onBack }) {
                           placeholder="••••••"
                           value={smsOtpCode}
                           onChange={(e) => setSmsOtpCode(e.target.value.replace(/\D/g, ''))}
-                          className="input-field font-mono text-lg tracking-widest text-center"
+                          className="input-field font-mono text-lg tracking-widest text-center focus:border-[#8B5CF6]"
                         />
                       </div>
 
                       <button
                         type="submit"
                         disabled={loading || smsOtpCode.length !== 6 || smsCountdown <= 0}
-                        className="w-full btn-primary"
+                        className="w-full btn-primary bg-gradient-to-r from-[#8B5CF6] to-[#6366F1]"
                       >
                         {loading ? (
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -451,45 +464,45 @@ export function StudentLogin({ onBack }) {
             /* =============================================================== */
             /* TAB 2: REGISTER STUDENT (DIRECT 1-STEP REGISTRATION)             */
             /* =============================================================== */
-            <form onSubmit={handleRegisterSubmit} className="space-y-4">
+            <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Full Name</label>
+                <label className="block text-xs font-semibold text-ink uppercase tracking-wider font-heading">Full Name</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Alex Chen"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="input-field"
+                  className="input-field focus:border-[#8B5CF6]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Hostel Room</label>
+                  <label className="block text-xs font-semibold text-ink uppercase tracking-wider font-heading">Hostel Room</label>
                   <input
                     type="text"
                     placeholder="e.g. B-302"
                     value={roomNumber}
                     onChange={(e) => setRoomNumber(e.target.value)}
-                    className="input-field"
+                    className="input-field focus:border-[#8B5CF6]"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Mobile Phone</label>
+                  <label className="block text-xs font-semibold text-ink uppercase tracking-wider font-heading">Mobile Phone</label>
                   <input
                     type="tel"
                     placeholder="+91-9876543210"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="input-field"
+                    className="input-field focus:border-[#8B5CF6]"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-ink uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-ink uppercase tracking-wider font-heading">
                     VIT Student Email
                   </label>
                   {email && (
@@ -504,7 +517,7 @@ export function StudentLogin({ onBack }) {
                   placeholder="your.name2024@vitstudent.ac.in"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input-field"
+                  className="input-field focus:border-[#8B5CF6]"
                 />
                 {email && !isVitEmail && (
                   <p className="text-xs text-status-danger mt-1">
@@ -514,14 +527,14 @@ export function StudentLogin({ onBack }) {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-ink uppercase tracking-wider">Password</label>
+                <label className="block text-xs font-semibold text-ink uppercase tracking-wider font-heading">Password</label>
                 <input
                   type="password"
                   required
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-field"
+                  className="input-field focus:border-[#8B5CF6]"
                 />
               </div>
 
@@ -533,7 +546,7 @@ export function StudentLogin({ onBack }) {
               <button
                 type="submit"
                 disabled={loading || !isVitEmail}
-                className="w-full btn-primary mt-2"
+                className="w-full btn-primary mt-2 bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] shadow-glow-primary"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
