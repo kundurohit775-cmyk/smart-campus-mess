@@ -44,6 +44,22 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With']
 }));
 
+// Route interceptors for Mobile OTP Login & Registration before Better Auth
+app.post(['/api/auth/login/send-otp', '/api/auth/otp/send'], express.json(), (req, res, next) => {
+  req.url = '/login/send-otp';
+  authRoutes(req, res, next);
+});
+
+app.post(['/api/auth/login/verify-otp', '/api/auth/otp/verify'], express.json(), (req, res, next) => {
+  req.url = '/login/verify-otp';
+  authRoutes(req, res, next);
+});
+
+app.post('/api/auth/register', express.json(), (req, res, next) => {
+  req.url = '/register';
+  authRoutes(req, res, next);
+});
+
 // Validate VIT student email for student registration before Better Auth processing
 app.post('/api/auth/sign-up/email', express.json(), (req, res, next) => {
   const email = (req.body?.email || '').trim().toLowerCase();
@@ -109,17 +125,6 @@ app.post('/api/auth/sign-in/email', express.json(), async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
-
-// Registration Email OTP Endpoints (/api/auth/register/send-otp and /api/auth/register/verify-otp)
-app.post(['/api/auth/register/send-otp', '/api/auth/send-otp'], express.json(), (req, res, next) => {
-  req.url = '/register/send-otp';
-  authRoutes(req, res, next);
-});
-
-app.post(['/api/auth/register/verify-otp', '/api/auth/verify-otp'], express.json(), (req, res, next) => {
-  req.url = '/register/verify-otp';
-  authRoutes(req, res, next);
 });
 
 // Mount Better Auth handler for /api/auth routes

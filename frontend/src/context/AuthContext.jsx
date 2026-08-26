@@ -122,32 +122,13 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  // Student Mobile OTP Registration Handlers (Twilio Verify)
-  const sendRegistrationOtp = async (payload) => {
-    const cleanEmail = (payload.email || '').trim().toLowerCase();
-    if (!cleanEmail.endsWith('@vitstudent.ac.in')) {
-      throw new Error('Only VIT student email addresses (@vitstudent.ac.in) are allowed to register.');
-    }
-    return await api.sendRegistrationOtp({ ...payload, email: cleanEmail });
+  // Student Mobile OTP Login Handlers (Twilio Verify)
+  const sendLoginOtp = async (phone) => {
+    return await api.sendLoginOtp(phone);
   };
 
-  const verifyRegistrationOtp = async (phone, code) => {
-    const data = await api.verifyRegistrationOtp(phone, code);
-    if (data.token && data.user) {
-      localStorage.setItem('mess_auth_token', data.token);
-      localStorage.setItem('mess_user_session', JSON.stringify(data.user));
-      setUser(data.user);
-      return data.user;
-    }
-    throw new Error(data.error || 'Verification failed');
-  };
-
-  const sendOtp = async (phone) => {
-    return await api.sendOtp(phone);
-  };
-
-  const loginWithOtp = async (phone, otp) => {
-    const data = await api.verifyOtp(phone, otp);
+  const loginWithOtp = async (phone, code) => {
+    const data = await api.verifyLoginOtp(phone, code);
     if (data.token && data.user) {
       localStorage.setItem('mess_auth_token', data.token);
       localStorage.setItem('mess_user_session', JSON.stringify(data.user));
@@ -195,9 +176,7 @@ export function AuthProvider({ children }) {
       loading, 
       login, 
       register, 
-      sendRegistrationOtp, 
-      verifyRegistrationOtp, 
-      sendOtp, 
+      sendLoginOtp, 
       loginWithOtp, 
       logout, 
       refreshUser 

@@ -6,43 +6,70 @@ import { config } from '../config/config.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { creditService } from '../services/creditService.js';
 import { smsService } from '../services/smsService.js';
-import { otpService } from '../services/otpService.js';
 
 const router = express.Router();
 
-// In-memory store for pending student registrations during Mobile OTP verification (TTL: 10 minutes)
-const pendingRegistrations = new Map();
+// Rate limiting caches
+const otpSendRateLimit = new Map(); // Map<phone, number[]>
+const otpVerifyAttempts = new Map(); // Map<phone, { count: number, lockedUntil: number }>
 
-// Rate limiting cache: Map<phone, number[]> timestamps
-const rateLimitCache = new Map();
-
-function checkRateLimit(phone) {
+function checkSendRateLimit(phone) {
   const now = Date.now();
   const windowMs = 10 * 60 * 1000; // 10 minutes
-  const timestamps = (rateLimitCache.get(phone) || []).filter(t => now - t < windowMs);
+  const timestamps = (otpSendRateLimit.get(phone) || []).filter(t => now - t < windowMs);
 
   if (timestamps.length >= 3) {
     return false;
   }
 
   timestamps.push(now);
-  rateLimitCache.set(phone, timestamps);
+  otpSendRateLimit.set(phone, timestamps);
   return true;
+}
+
+function checkVerifyAttempts(phone) {
+  const now = Date.now();
+  const record = otpVerifyAttempts.get(phone);
+
+  if (record && record.lockedUntil > now) {
+    const remainingMins = Math.ceil((record.lockedUntil - now) / (60 * 1000));
+    return { allowed: false, message: `Account temporarily locked due to multiple failed verification attempts. Please try again in ${remainingMins} minutes.` };
+  }
+
+  return { allowed: true };
+}
+
+function recordFailedVerifyAttempt(phone) {
+  const now = Date.now();
+  const record = otpVerifyAttempts.get(phone) || { count: 0, lockedUntil: 0 };
+  record.count += 1;
+
+  if (record.count >= 5) {
+    record.lockedUntil = now + 15 * 60 * 1000; // 15 minutes lockout
+    record.count = 0;
+  }
+
+  otpVerifyAttempts.set(phone, record);
+}
+
+function clearVerifyAttempts(phone) {
+  otpVerifyAttempts.delete(phone);
 }
 
 /**
  * =============================================================================
- * 1. STUDENT REGISTRATION — STEP 1: SEND MOBILE OTP (TWILIO VERIFY)
+ * 1. STUDENT REGISTRATION (DIRECT 1-STEP REGISTRATION — STRICT @vitstudent.ac.in)
  * =============================================================================
- * POST /api/auth-helpers/register/send-otp (and /api/auth/register/send-otp)
+ * POST /api/auth-helpers/register (and /api/auth/register)
  * Body: { name, email, password, phone, roomNumber }
+ * Directly creates student account, allocates 9,000 monthly credits, and returns session token.
  */
-router.post(['/register/send-otp', '/send-otp'], async (req, res, next) => {
+router.post('/register', async (req, res, next) => {
   try {
     const { name, email, password, phone, roomNumber } = req.body;
 
     if (!name || !email || !password || !phone) {
-      return res.status(400).json({ error: 'Name, email, password, and mobile number are required.' });
+      return res.status(400).json({ error: 'Name, email, mobile number, and password are required.' });
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -55,112 +82,26 @@ router.post(['/register/send-otp', '/send-otp'], async (req, res, next) => {
       });
     }
 
-    // 2. Validate Phone Number (10+ digits with country code)
+    // 2. Validate Mobile Number (10+ digits)
     if (formattedPhone.length < 10) {
       return res.status(400).json({ error: 'Please enter a valid 10-digit mobile number.' });
     }
 
-    // 3. Rate Limit: Max 3 requests per number per 10 minutes
-    if (!checkRateLimit(formattedPhone)) {
-      return res.status(429).json({
-        error: 'Too many OTP requests. Maximum 3 requests allowed per 10 minutes. Please wait before trying again.'
-      });
-    }
-
-    // 4. Check if email already registered
+    // 3. Check for existing email or phone
     const existingStudentByEmail = await db.get('SELECT student_id FROM students WHERE LOWER(email) = ?', cleanEmail);
     const existingAdmin = await db.get('SELECT admin_id FROM admins WHERE LOWER(email) = ?', cleanEmail);
     if (existingStudentByEmail || existingAdmin) {
       return res.status(400).json({ error: 'An account with this email address already exists.' });
     }
 
-    // 5. Check if phone number already registered
     const existingStudentByPhone = await db.get('SELECT student_id FROM students WHERE phone = ?', formattedPhone);
     if (existingStudentByPhone) {
       return res.status(400).json({ error: 'An account with this mobile number already exists.' });
     }
 
-    // 6. Pre-hash password and hold registration payload temporarily
+    // 4. Create Student in PostgreSQL Database
     const passwordHash = await bcrypt.hash(password, 10);
     const studentName = name.trim();
-
-    pendingRegistrations.set(formattedPhone, {
-      name: studentName,
-      email: cleanEmail,
-      passwordHash,
-      phone: formattedPhone,
-      roomNumber: roomNumber || 'Hostel',
-      createdAt: Date.now()
-    });
-
-    // Clean up stale registrations older than 15 minutes
-    const now = Date.now();
-    for (const [key, val] of pendingRegistrations.entries()) {
-      if (now - val.createdAt > 15 * 60 * 1000) {
-        pendingRegistrations.delete(key);
-      }
-    }
-
-    // 7. Dispatch SMS via Twilio Verify Service API
-    const result = await smsService.sendVerifyOtp(formattedPhone);
-
-    return res.json({
-      success: true,
-      message: `Verification code sent via SMS to ${formattedPhone}.`,
-      phone: formattedPhone
-    });
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * =============================================================================
- * 2. STUDENT REGISTRATION — STEP 2: VERIFY MOBILE OTP & CREATE ACCOUNT
- * =============================================================================
- * POST /api/auth-helpers/register/verify-otp (and /api/auth/register/verify-otp)
- * Body: { phone, code } (or { phone, otp })
- */
-router.post(['/register/verify-otp', '/verify-otp'], async (req, res, next) => {
-  try {
-    const { phone, code, otp } = req.body;
-    const otpCode = (code || otp || '').toString().trim();
-
-    if (!phone || !otpCode) {
-      return res.status(400).json({ error: 'Mobile number and 6-digit verification code are required.' });
-    }
-
-    const formattedPhone = smsService.formatPhoneNumber(phone);
-
-    // 1. Retrieve pending registration payload
-    let pending = pendingRegistrations.get(formattedPhone);
-    if (!pending) {
-      // Try unformatted fallback
-      for (const [key, val] of pendingRegistrations.entries()) {
-        if (key.includes(phone) || phone.includes(key)) {
-          pending = val;
-          break;
-        }
-      }
-    }
-
-    if (!pending) {
-      return res.status(400).json({
-        error: 'Registration session expired or not found. Please submit the registration form again.'
-      });
-    }
-
-    // 2. Verify with Twilio Verify Service (verificationChecks.create)
-    const isApproved = await smsService.checkVerifyOtp(formattedPhone, otpCode);
-
-    if (!isApproved) {
-      return res.status(400).json({
-        error: 'Invalid or expired verification code. Please check your SMS and try again.'
-      });
-    }
-
-    // 3. Create Student Account in Database
-    const { name: studentName, email: cleanEmail, passwordHash, roomNumber } = pending;
 
     const result = await db.run(`
       INSERT INTO students (name, email, phone, password_hash, room_number, status)
@@ -192,13 +133,10 @@ router.post(['/register/verify-otp', '/verify-otp'], async (req, res, next) => {
       console.warn('Better Auth user/account table sync warning:', e.message);
     }
 
-    // Allocate 9,000 monthly dining credits
+    // Allocate 9,000 monthly credits
     const credits = await creditService.getOrCreateMonthlyCredits(studentId);
 
-    // Delete verified pending record
-    pendingRegistrations.delete(formattedPhone);
-
-    // Generate JWT Session Token
+    // Issue JWT Session Token
     const token = jwt.sign(
       { id: studentId, email: cleanEmail, role: 'student', name: studentName, phone: formattedPhone },
       config.jwtSecret,
@@ -225,7 +163,7 @@ router.post(['/register/verify-otp', '/verify-otp'], async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Mobile number verified and student account created successfully! Welcome to Smart Campus Mess.',
+      message: 'Account created successfully! 9,000 monthly dining credits granted.',
       token,
       user: userObj
     });
@@ -236,77 +174,10 @@ router.post(['/register/verify-otp', '/verify-otp'], async (req, res, next) => {
 
 /**
  * =============================================================================
- * 3. DIRECT REGISTRATION (FALLBACK)
+ * 2. STUDENT LOGIN METHOD A: EMAIL + PASSWORD
  * =============================================================================
- */
-router.post('/register', async (req, res, next) => {
-  try {
-    const { name, email, password, phone, roomNumber } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email, and password are required.' });
-    }
-
-    const cleanEmail = email.trim().toLowerCase();
-    const formattedPhone = smsService.formatPhoneNumber(phone || '');
-
-    if (!cleanEmail.endsWith('@vitstudent.ac.in')) {
-      return res.status(400).json({
-        error: 'Only VIT student email addresses (@vitstudent.ac.in) are allowed to register.'
-      });
-    }
-
-    const existingStudent = await db.get('SELECT student_id FROM students WHERE LOWER(email) = ?', cleanEmail);
-    const existingAdmin = await db.get('SELECT admin_id FROM admins WHERE LOWER(email) = ?', cleanEmail);
-    if (existingStudent || existingAdmin) {
-      return res.status(400).json({ error: 'An account with this email already exists.' });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const studentName = name.trim();
-
-    const result = await db.run(`
-      INSERT INTO students (name, email, phone, password_hash, room_number, status)
-      VALUES (?, ?, ?, ?, ?, 'active')
-    `, studentName, cleanEmail, formattedPhone, passwordHash, roomNumber || 'Hostel');
-
-    const studentId = result.lastInsertRowid;
-    const credits = await creditService.getOrCreateMonthlyCredits(studentId);
-
-    const token = jwt.sign(
-      { id: studentId, email: cleanEmail, role: 'student', name: studentName, phone: formattedPhone },
-      config.jwtSecret,
-      { expiresIn: config.jwtExpiresIn }
-    );
-
-    return res.status(201).json({
-      success: true,
-      message: 'Account created successfully! Welcome to Smart Campus Mess.',
-      token,
-      user: {
-        id: studentId,
-        name: studentName,
-        email: cleanEmail,
-        phone: formattedPhone,
-        roomNumber: roomNumber || 'Hostel',
-        role: 'student',
-        credits: {
-          remaining: credits.remaining_credits,
-          used: credits.used_credits,
-          limit: credits.monthly_limit,
-          isLowBalance: credits.is_low_balance
-        }
-      }
-    });
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * =============================================================================
- * 4. STANDARD LOGIN FLOW (EMAIL + PASSWORD)
- * =============================================================================
+ * POST /api/auth-helpers/login
+ * Body: { email, password }
  */
 router.post('/login', async (req, res, next) => {
   try {
@@ -420,7 +291,160 @@ router.post('/login', async (req, res, next) => {
 
 /**
  * =============================================================================
- * 5. GET ACTIVE USER DETAILS
+ * 3. STUDENT LOGIN METHOD B: MOBILE OTP (TWILIO VERIFY)
+ * =============================================================================
+ */
+
+/**
+ * POST /api/auth-helpers/login/send-otp (and /otp/send)
+ * Body: { phone }
+ */
+router.post(['/login/send-otp', '/otp/send'], async (req, res, next) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone || phone.trim().length < 8) {
+      return res.status(400).json({ error: 'Please enter a valid mobile number.' });
+    }
+
+    const formattedPhone = smsService.formatPhoneNumber(phone);
+
+    // 1. Rate Limiting: Max 3 requests per phone per 10 minutes
+    if (!checkSendRateLimit(formattedPhone)) {
+      return res.status(429).json({
+        error: 'Too many OTP requests. Maximum 3 requests allowed per 10 minutes. Please try again later.'
+      });
+    }
+
+    // 2. Look up student by registered phone number
+    const student = await db.get(`
+      SELECT student_id, name, email, phone, status 
+      FROM students 
+      WHERE phone = ? OR phone = ?
+      LIMIT 1
+    `, formattedPhone, phone.replace(/\D/g, ''));
+
+    if (!student) {
+      // Safe generic message to prevent enumeration
+      return res.json({
+        success: true,
+        message: 'If this mobile number is registered, a verification code has been sent via SMS.',
+        phone: formattedPhone
+      });
+    }
+
+    if (student.status !== 'active') {
+      return res.status(403).json({ error: 'Student account is deactivated. Please contact administration.' });
+    }
+
+    // 3. Dispatch Twilio Verify SMS
+    const result = await smsService.sendVerifyOtp(formattedPhone);
+
+    return res.json({
+      success: true,
+      message: result?.message || `Verification code sent via SMS to ${formattedPhone}.`,
+      phone: formattedPhone
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/auth-helpers/login/verify-otp (and /otp/verify)
+ * Body: { phone, code } (or { phone, otp })
+ */
+router.post(['/login/verify-otp', '/otp/verify'], async (req, res, next) => {
+  try {
+    const { phone, code, otp } = req.body;
+    const otpCode = (code || otp || '').toString().trim();
+
+    if (!phone || !otpCode) {
+      return res.status(400).json({ error: 'Mobile number and 6-digit verification code are required.' });
+    }
+
+    const formattedPhone = smsService.formatPhoneNumber(phone);
+
+    // 1. Check attempt lockout
+    const attemptCheck = checkVerifyAttempts(formattedPhone);
+    if (!attemptCheck.allowed) {
+      return res.status(429).json({ error: attemptCheck.message });
+    }
+
+    // 2. Verify with Twilio Verify
+    const isApproved = await smsService.checkVerifyOtp(formattedPhone, otpCode);
+
+    if (!isApproved) {
+      recordFailedVerifyAttempt(formattedPhone);
+      return res.status(400).json({
+        error: 'Invalid or expired verification code. Please check your SMS and try again.'
+      });
+    }
+
+    // 3. Find registered student
+    const student = await db.get(`
+      SELECT * FROM students 
+      WHERE phone = ? OR phone = ?
+      LIMIT 1
+    `, formattedPhone, phone.replace(/\D/g, ''));
+
+    if (!student) {
+      return res.status(404).json({
+        error: 'No registered student account was found associated with this mobile number. Please register first.'
+      });
+    }
+
+    if (student.status !== 'active') {
+      return res.status(403).json({ error: 'Student account is deactivated. Please contact campus admin.' });
+    }
+
+    clearVerifyAttempts(formattedPhone);
+
+    // Allocate / retrieve monthly credits
+    const credits = await creditService.getOrCreateMonthlyCredits(student.student_id);
+
+    // 4. Issue signed JWT session token
+    const token = jwt.sign(
+      {
+        id: student.student_id,
+        email: student.email,
+        name: student.name,
+        role: 'student',
+        phone: student.phone
+      },
+      config.jwtSecret,
+      { expiresIn: config.jwtExpiresIn }
+    );
+
+    return res.json({
+      message: 'Mobile OTP verified successfully!',
+      token,
+      user: {
+        id: student.student_id,
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
+        roomNumber: student.room_number || 'Hostel',
+        role: 'student',
+        isChef: false,
+        isAdmin: false,
+        isStudent: true,
+        credits: {
+          remaining: credits.remaining_credits,
+          used: credits.used_credits,
+          limit: credits.monthly_limit,
+          isLowBalance: credits.is_low_balance
+        }
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * =============================================================================
+ * 4. GET ACTIVE USER DETAILS
  * =============================================================================
  */
 router.get('/me', authenticateToken, async (req, res, next) => {

@@ -45,17 +45,11 @@ export const api = {
   // Auth
   login: (email, password) => request('/auth-helpers/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   register: (payload) => request('/auth-helpers/register', { method: 'POST', body: JSON.stringify(payload) }),
-  sendRegistrationOtp: (payload) => request('/auth-helpers/register/send-otp', {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  }),
-  verifyRegistrationOtp: (phone, code) => request('/auth-helpers/register/verify-otp', {
-    method: 'POST',
-    body: JSON.stringify({ phone, code })
-  }),
+  sendLoginOtp: (phone) => request('/auth-helpers/login/send-otp', { method: 'POST', body: JSON.stringify({ phone }) }),
+  verifyLoginOtp: (phone, code) => request('/auth-helpers/login/verify-otp', { method: 'POST', body: JSON.stringify({ phone, code }) }),
+  sendOtp: (phone) => request('/auth-helpers/login/send-otp', { method: 'POST', body: JSON.stringify({ phone }) }),
+  verifyOtp: (phone, otp) => request('/auth-helpers/login/verify-otp', { method: 'POST', body: JSON.stringify({ phone, code: otp }) }),
   getMe: () => request('/auth-helpers/me'),
-  sendOtp: (phone) => request('/auth-helpers/otp/send', { method: 'POST', body: JSON.stringify({ phone }) }),
-  verifyOtp: (phone, otp) => request('/auth-helpers/otp/verify', { method: 'POST', body: JSON.stringify({ phone, otp }) }),
 
   // Menu
   getMenu: () => request('/menu'),

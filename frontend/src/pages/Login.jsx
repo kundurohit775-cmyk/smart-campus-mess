@@ -23,10 +23,10 @@ import { useToast } from '../context/ToastContext';
 import confetti from 'canvas-confetti';
 
 export function Login() {
-  const { login, sendRegistrationOtp, verifyRegistrationOtp } = useAuth();
+  const { login, register, sendLoginOtp, loginWithOtp } = useAuth();
   const { showToast } = useToast();
 
-  // Determine current view from pathname: 'role_select' | 'student' | 'chef' | 'admin' | 'register'
+  // View state: 'role_select' | 'student' | 'chef' | 'admin' | 'register'
   const getViewFromPath = () => {
     const path = window.location.pathname.toLowerCase();
     if (path.includes('/register')) return 'register';
@@ -38,31 +38,35 @@ export function Login() {
 
   const [view, setView] = useState(getViewFromPath);
 
-  // Common login fields
+  // Student Login Method Tab: 'password' | 'otp'
+  const [studentLoginMethod, setStudentLoginMethod] = useState('password');
+
+  // Password Login Fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
-  // Register fields
+  // Mobile OTP Login Fields
+  const [otpPhone, setOtpPhone] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const [resending, setResending] = useState(false);
+
+  // Register Fields (Single Step)
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [regPhone, setRegPhone] = useState('');
   const [roomNumber, setRoomNumber] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Registration OTP step state
-  const [regStep, setRegStep] = useState('form'); // 'form' | 'otp'
-  const [otpCode, setOtpCode] = useState('');
-  const [countdown, setCountdown] = useState(60);
-  const [resending, setResending] = useState(false);
-
   const [loading, setLoading] = useState(false);
 
-  // Countdown timer for OTP resend
+  // Countdown timer for Mobile OTP Login
   useEffect(() => {
     let timer = null;
-    if (regStep === 'otp' && countdown > 0) {
+    if (otpSent && countdown > 0) {
       timer = setInterval(() => {
         setCountdown((prev) => prev - 1);
       }, 1000);
@@ -70,7 +74,7 @@ export function Login() {
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [regStep, countdown]);
+  }, [otpSent, countdown]);
 
   // Handle browser back/forward buttons
   useEffect(() => {
@@ -83,16 +87,17 @@ export function Login() {
 
   const navigateTo = (targetView, routePath) => {
     setView(targetView);
-    if (targetView === 'register') {
-      setRegStep('form');
+    if (targetView === 'student') {
+      setStudentLoginMethod('password');
+      setOtpSent(false);
       setOtpCode('');
     }
     window.history.pushState({}, '', routePath);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Login Submit Handler
-  const handleLoginSubmit = async (e) => {
+  // 1. Password Login Submit Handler (Student, Chef, Admin)
+  const handlePasswordLoginSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
       showToast('Please enter your email and password.', 'warning');
@@ -112,11 +117,72 @@ export function Login() {
     }
   };
 
-  // Student Registration — Step 1: Send Mobile OTP via Twilio Verify
-  const handleRegisterFormSubmit = async (e) => {
+  // 2. Student Mobile OTP Login — Step 1: Send OTP
+  const handleSendLoginOtp = async (e) => {
     e.preventDefault();
 
-    if (!name || !email || !phone || !password || !confirmPassword) {
+    const cleanPhone = otpPhone.replace(/[^0-9+]/g, '').trim();
+    if (!cleanPhone || cleanPhone.length < 10) {
+      showToast('Please enter a valid 10-digit mobile number.', 'warning');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await sendLoginOtp(cleanPhone);
+      setOtpSent(true);
+      setCountdown(60);
+      showToast(res.message || 'Verification code sent via SMS to your registered mobile number.', 'success', 6000);
+    } catch (err) {
+      showToast(err.message || 'Failed to send OTP SMS.', 'error', 6000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 3. Student Mobile OTP Login — Step 2: Verify OTP
+  const handleVerifyLoginOtp = async (e) => {
+    e.preventDefault();
+
+    if (!otpCode || otpCode.trim().length !== 6) {
+      showToast('Please enter the complete 6-digit verification code.', 'warning');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await loginWithOtp(otpPhone, otpCode.trim());
+      showToast('Mobile OTP verified! Welcome back to Smart Campus Mess.', 'success');
+    } catch (err) {
+      showToast(err.message || 'Invalid or expired verification code.', 'error', 6000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Resend Login OTP
+  const handleResendLoginOtp = async () => {
+    if (countdown > 0) return;
+
+    setResending(true);
+    try {
+      const res = await sendLoginOtp(otpPhone);
+      setCountdown(60);
+      showToast(res.message || 'New verification code sent via SMS.', 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to resend code.', 'error');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  // 4. Student Direct 1-Step Registration Submit Handler
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!name || !email || !regPhone || !password || !confirmPassword) {
       showToast('Please fill in all required fields.', 'warning');
       return;
     }
@@ -139,7 +205,7 @@ export function Login() {
       return;
     }
 
-    const cleanPhone = phone.replace(/[^0-9+]/g, '').trim();
+    const cleanPhone = regPhone.replace(/[^0-9+]/g, '').trim();
     if (cleanPhone.length < 10) {
       showToast('Please enter a valid 10-digit mobile number.', 'warning');
       return;
@@ -148,7 +214,7 @@ export function Login() {
     setLoading(true);
 
     try {
-      const res = await sendRegistrationOtp({
+      await register({
         name: name.trim(),
         email: cleanEmail,
         password,
@@ -156,57 +222,12 @@ export function Login() {
         roomNumber: roomNumber.trim()
       });
 
-      setRegStep('otp');
-      setCountdown(60);
-      showToast(res.message || 'Verification code sent via SMS to your mobile number.', 'success', 6000);
-    } catch (err) {
-      showToast(err.message || 'Failed to send verification SMS.', 'error', 6000);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Student Registration — Step 2: Verify Mobile OTP & Create Account
-  const handleVerifyOtpSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!otpCode || otpCode.trim().length !== 6) {
-      showToast('Please enter the complete 6-digit verification code.', 'warning');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      await verifyRegistrationOtp(phone, otpCode.trim());
       confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
-      showToast('🎉 Mobile verified & account created! 9,000 monthly dining credits granted.', 'success', 7000);
+      showToast('🎉 Account created successfully! 9,000 monthly dining credits granted.', 'success', 7000);
     } catch (err) {
-      showToast(err.message || 'Invalid or expired verification code. Please try again.', 'error', 6000);
+      showToast(err.message || 'Registration failed', 'error', 6000);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Resend Mobile OTP Handler
-  const handleResendOtp = async () => {
-    if (countdown > 0) return;
-
-    setResending(true);
-    try {
-      const res = await sendRegistrationOtp({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password,
-        phone: phone.trim(),
-        roomNumber: roomNumber.trim()
-      });
-      setCountdown(60);
-      showToast(res.message || 'New verification code sent to your mobile.', 'success');
-    } catch (err) {
-      showToast(err.message || 'Failed to resend verification code.', 'error');
-    } finally {
-      setResending(false);
     }
   };
 
@@ -449,7 +470,7 @@ export function Login() {
           {/* White Login Card */}
           <div className="bg-white rounded-2xl p-7 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-slate-200/80 space-y-6">
             
-            {/* Heading & Role-Aware Subtext */}
+            {/* Header */}
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#6366F1]">
@@ -461,14 +482,14 @@ export function Login() {
               </h2>
               <p className="text-xs text-[#64748B] mt-1">
                 {view === 'student'
-                  ? 'Enter your student credentials to access your meal tray & credits'
+                  ? 'Access your daily meal tray, live queue tokens, and dining credits'
                   : view === 'chef'
                   ? 'Enter your kitchen credentials to manage orders'
                   : 'Enter your admin credentials to access the dashboard'}
               </p>
             </div>
 
-            {/* Notice for Chef / Admin */}
+            {/* Chef / Admin Security Badges */}
             {view === 'chef' && (
               <div className="p-3 bg-amber-50/80 border border-amber-100 rounded-xl text-xs text-amber-900 flex items-start gap-2">
                 <ChefHat className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
@@ -483,90 +504,247 @@ export function Login() {
               </div>
             )}
 
-            {/* Login Form */}
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              
-              {/* Email Field with Left Icon */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#1E293B]">
-                  {view === 'student' ? 'Student Email' : `${view.charAt(0).toUpperCase() + view.slice(1)} Email`}
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    required
-                    placeholder={view === 'student' ? 'student@vitstudent.ac.in' : `${view}@campus.internal`}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
-                  />
-                </div>
-              </div>
-
-              {/* Password Field with Eye Toggle */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#1E293B]">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
-                    title={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between text-xs pt-0.5">
-                <label className="flex items-center gap-2 cursor-pointer text-[#64748B] select-none">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 text-[#6366F1] rounded border-slate-300 focus:ring-[#6366F1]"
-                  />
-                  <span>Remember me</span>
-                </label>
+            {/* ============================================================= */}
+            {/* STUDENT ONLY: 2-METHOD TOGGLE TABS (Password | Mobile OTP)    */}
+            {/* ============================================================= */}
+            {view === 'student' && (
+              <div className="relative bg-[#F1F5F9] p-1 rounded-xl flex items-center">
+                <div
+                  className="absolute top-1 bottom-1 w-[calc((100%-8px)/2)] bg-white rounded-lg shadow-sm transition-all duration-200 ease-out"
+                  style={{ left: studentLoginMethod === 'password' ? '4px' : 'calc(50% + 0px)' }}
+                />
 
                 <button
                   type="button"
-                  onClick={() => showToast('Please contact your mess administrator for password resets.', 'info')}
-                  className="text-[#6366F1] font-semibold hover:underline"
+                  onClick={() => setStudentLoginMethod('password')}
+                  className={`relative z-10 flex-1 py-1.5 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg transition-colors duration-150 ${
+                    studentLoginMethod === 'password' ? 'text-[#1E293B]' : 'text-[#64748B] hover:text-[#1E293B]'
+                  }`}
                 >
-                  Forgot password?
+                  <Mail className={`w-3.5 h-3.5 ${studentLoginMethod === 'password' ? 'text-[#6366F1]' : 'text-[#64748B]'}`} />
+                  <span>Password</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStudentLoginMethod('otp')}
+                  className={`relative z-10 flex-1 py-1.5 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg transition-colors duration-150 ${
+                    studentLoginMethod === 'otp' ? 'text-[#1E293B]' : 'text-[#64748B] hover:text-[#1E293B]'
+                  }`}
+                >
+                  <Smartphone className={`w-3.5 h-3.5 ${studentLoginMethod === 'otp' ? 'text-[#6366F1]' : 'text-[#64748B]'}`} />
+                  <span>Mobile OTP</span>
                 </button>
               </div>
+            )}
 
-              {/* Full-Width Primary Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            {/* ============================================================= */}
+            {/* FORM 1: PASSWORD LOGIN (Student, Chef, Admin)                 */}
+            {/* ============================================================= */}
+            {(view !== 'student' || studentLoginMethod === 'password') && (
+              <form onSubmit={handlePasswordLoginSubmit} className="space-y-4 animate-fade-in">
+                
+                {/* Email Field */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-[#1E293B]">
+                    {view === 'student' ? 'VIT Student Email' : `${view.charAt(0).toUpperCase() + view.slice(1)} Email`}
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      required
+                      placeholder={view === 'student' ? 'student@vitstudent.ac.in' : `${view}@campus.internal`}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    />
+                  </div>
+                </div>
+
+                {/* Password Field */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-[#1E293B]">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Remember Me & Forgot Password */}
+                <div className="flex items-center justify-between text-xs pt-0.5">
+                  <label className="flex items-center gap-2 cursor-pointer text-[#64748B] select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 text-[#6366F1] rounded border-slate-300 focus:ring-[#6366F1]"
+                    />
+                    <span>Remember me</span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => showToast('Please contact your mess administrator for password resets.', 'info')}
+                    className="text-[#6366F1] font-semibold hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Sign In</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* ============================================================= */}
+            {/* FORM 2: MOBILE OTP LOGIN (Student Only)                       */}
+            {/* ============================================================= */}
+            {view === 'student' && studentLoginMethod === 'otp' && (
+              <div className="space-y-4 animate-fade-in">
+                
+                {!otpSent ? (
+                  /* Step 1: Enter Phone Number */
+                  <form onSubmit={handleSendLoginOtp} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-[#1E293B]">
+                        Registered Mobile Number
+                      </label>
+                      <div className="relative">
+                        <Phone className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="tel"
+                          required
+                          placeholder="+91 98765 43210"
+                          value={otpPhone}
+                          onChange={(e) => setOtpPhone(e.target.value)}
+                          className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                        />
+                      </div>
+                      <p className="text-[11px] text-[#64748B]">
+                        We'll send a 6-digit verification code via Twilio Verify SMS to this number.
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading || !otpPhone}
+                      className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <span>Send OTP via SMS</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                  </form>
                 ) : (
-                  <>
-                    <span>Sign In</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
+                  /* Step 2: Enter 6-digit OTP */
+                  <form onSubmit={handleVerifyLoginOtp} className="space-y-4 animate-slide-up">
+                    
+                    <div className="p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <Smartphone className="w-4 h-4 text-[#6366F1]" />
+                        <span className="text-xs text-[#1E293B]">
+                          Sent to <strong>{maskPhoneNumber(otpPhone)}</strong>
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setOtpSent(false); setOtpCode(''); }}
+                        className="text-xs font-semibold text-[#6366F1] hover:underline"
+                      >
+                        Edit
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-semibold text-[#1E293B]">
+                          6-Digit Verification Code
+                        </label>
+                        <span className="text-xs font-mono font-bold text-[#6366F1]">
+                          ⏱️ {countdown > 0 ? `0:${countdown < 10 ? '0' : ''}${countdown}` : 'Expired'}
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        maxLength="6"
+                        required
+                        autoFocus
+                        placeholder="••••••"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                        className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] text-center font-mono text-xl tracking-[0.35em] py-2.5 rounded-[10px] focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading || otpCode.length !== 6}
+                      className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <span>Verify OTP & Sign In</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+
+                    <div className="flex items-center justify-between text-xs text-[#64748B] pt-0.5">
+                      <span>Didn't receive SMS?</span>
+                      <button
+                        type="button"
+                        onClick={handleResendLoginOtp}
+                        disabled={countdown > 0 || resending}
+                        className="font-semibold text-[#6366F1] hover:underline disabled:opacity-40 flex items-center gap-1"
+                      >
+                        <RotateCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+                        <span>{resending ? 'Sending...' : 'Resend OTP'}</span>
+                      </button>
+                    </div>
+
+                  </form>
                 )}
-              </button>
-            </form>
+
+              </div>
+            )}
 
             {/* Bottom Registration Link (Student only) */}
             {view === 'student' && (
@@ -590,287 +768,191 @@ export function Login() {
       )}
 
       {/* =================================================================== */}
-      {/* STUDENT REGISTRATION CARD (2-STEP MOBILE OTP FLOW)                  */}
+      {/* DIRECT 1-STEP STUDENT REGISTRATION CARD (route: "/register")        */}
       {/* =================================================================== */}
       {view === 'register' && (
         <div className="max-w-[480px] w-full my-auto space-y-4 animate-fade-in">
           
-          {/* Back Link */}
+          {/* Back to Login Link */}
           <button
             type="button"
-            onClick={() => {
-              if (regStep === 'otp') {
-                setRegStep('form');
-              } else {
-                navigateTo('student', '/login/student');
-              }
-            }}
+            onClick={() => navigateTo('student', '/login/student')}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#1E293B] transition"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>{regStep === 'otp' ? '← Edit registration details' : '← Back to login'}</span>
+            <span>← Back to login</span>
           </button>
 
           {/* White Register Card */}
           <div className="bg-white rounded-2xl p-7 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-slate-200/80 space-y-6">
             
-            {/* Header */}
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#6366F1]">
                   Student Registration
                 </span>
-                <span className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100">
-                  {regStep === 'form' ? 'Step 1 of 2' : 'Step 2 of 2: Mobile OTP'}
-                </span>
               </div>
               <h2 className="text-xl font-bold text-[#1E293B]">
-                {regStep === 'form' ? 'Create student account' : 'Verify your mobile number'}
+                Create student account
               </h2>
               <p className="text-xs text-[#64748B] mt-1">
-                {regStep === 'form' 
-                  ? 'Official @vitstudent.ac.in registration with SMS verification' 
-                  : `Enter the 6-digit verification code sent via SMS to ${maskPhoneNumber(phone)}`}
+                Enter your details to receive your 9,000 monthly dining credits
               </p>
             </div>
 
-            {/* ============================================================= */}
-            {/* STEP 1: REGISTRATION DETAILS FORM                             */}
-            {/* ============================================================= */}
-            {regStep === 'form' ? (
-              <form onSubmit={handleRegisterFormSubmit} className="space-y-4">
-                
-                {/* Full Name */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#1E293B]">
-                    Full Name <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Alex Chen"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
-                    />
-                  </div>
-                </div>
-
-                {/* VIT Student Email */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-[#1E293B]">
-                      VIT Student Email <span className="text-rose-500">*</span>
-                    </label>
-                    {email && (
-                      <span className={`text-[11px] font-bold ${isVitEmail ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {isVitEmail ? '✓ Valid VIT Email' : '✗ Must be @vitstudent.ac.in'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="email"
-                      required
-                      placeholder="name2024@vitstudent.ac.in"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
-                    />
-                  </div>
-                </div>
-
-                {/* Mobile Phone (Required for Twilio Verify) */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#1E293B]">
-                    Mobile Phone Number <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="tel"
-                      required
-                      placeholder="+91 98765 43210"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
-                    />
-                  </div>
-                  <p className="text-[11px] text-[#64748B]">
-                    We will send a 6-digit SMS verification code via Twilio Verify to this number.
-                  </p>
-                </div>
-
-                {/* Hostel Room */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#1E293B]">
-                    Hostel Room (Optional)
-                  </label>
-                  <div className="relative">
-                    <Home className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. B-302"
-                      value={roomNumber}
-                      onChange={(e) => setRoomNumber(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
-                    />
-                  </div>
-                </div>
-
-                {/* Password & Confirm Password */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#1E293B]">
-                      Password <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#1E293B]">
-                      Confirm <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        required
-                        placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
-                      >
-                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Allowance info banner */}
-                <div className="p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl text-xs text-indigo-900 flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-[#6366F1] shrink-0 mt-0.5" />
-                  <span>Upon SMS mobile verification, <strong>9,000 monthly dining credits</strong> will be allocated immediately.</span>
-                </div>
-
-                {/* Primary Button */}
-                <button
-                  type="submit"
-                  disabled={loading || !isVitEmail}
-                  className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {loading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <span>Send Verification Code</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </form>
-            ) : (
-              /* ============================================================= */
-              /* STEP 2: ENTER OTP FORM (TWILIO VERIFY 6-DIGIT CODE)           */
-              /* ============================================================= */
-              <form onSubmit={handleVerifyOtpSubmit} className="space-y-5 animate-slide-up">
-                
-                <div className="p-3.5 bg-indigo-50/80 border border-indigo-100 rounded-xl flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-white border border-indigo-200 text-[#6366F1] flex items-center justify-center shrink-0 shadow-sm">
-                    <Smartphone className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-[#1E293B] block">
-                      SMS Dispatched
-                    </span>
-                    <span className="text-[11px] text-[#64748B]">
-                      Code sent to <strong className="text-[#1E293B]">{maskPhoneNumber(phone)}</strong>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-[#1E293B] uppercase tracking-wider">
-                      6-Digit Verification Code
-                    </label>
-                    <span className="text-xs font-mono font-bold text-[#6366F1]">
-                      ⏱️ {countdown > 0 ? `0:${countdown < 10 ? '0' : ''}${countdown}` : 'Code expired'}
-                    </span>
-                  </div>
-
+            <form onSubmit={handleRegisterSubmit} className="space-y-4">
+              
+              {/* Full Name */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#1E293B]">
+                  Full Name <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    maxLength="6"
                     required
-                    autoFocus
-                    placeholder="••••••"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] text-center font-mono text-2xl tracking-[0.4em] py-3 rounded-[10px] focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    placeholder="e.g. Alex Chen"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
                   />
-                  <p className="text-[11px] text-[#94A3B8] text-center">
-                    Enter the digits sent to your phone via SMS.
-                  </p>
                 </div>
+              </div>
 
-                {/* Action Buttons */}
-                <button
-                  type="submit"
-                  disabled={loading || otpCode.length !== 6}
-                  className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {loading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <span>Verify Code & Create Account</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
+              {/* VIT Student Email */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-[#1E293B]">
+                    VIT Student Email <span className="text-rose-500">*</span>
+                  </label>
+                  {email && (
+                    <span className={`text-[11px] font-bold ${isVitEmail ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {isVitEmail ? '✓ Valid VIT Email' : '✗ Must be @vitstudent.ac.in'}
+                    </span>
                   )}
-                </button>
+                </div>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="name2024@vitstudent.ac.in"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                  />
+                </div>
+              </div>
 
-                {/* Resend OTP */}
-                <div className="flex items-center justify-between text-xs text-[#64748B] pt-1">
-                  <span>Didn't receive SMS?</span>
-                  <button
-                    type="button"
-                    onClick={handleResendOtp}
-                    disabled={countdown > 0 || resending}
-                    className="font-semibold text-[#6366F1] hover:underline disabled:opacity-40 flex items-center gap-1"
-                  >
-                    <RotateCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
-                    <span>{resending ? 'Sending...' : 'Resend OTP'}</span>
-                  </button>
+              {/* Mobile Phone Number (Required & Collected) */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#1E293B]">
+                  Mobile Phone Number <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    required
+                    placeholder="+91 98765 43210"
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                  />
+                </div>
+              </div>
+
+              {/* Hostel Room (Optional) */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#1E293B]">
+                  Hostel Room (Optional)
+                </label>
+                <div className="relative">
+                  <Home className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="e.g. B-302"
+                    value={roomNumber}
+                    onChange={(e) => setRoomNumber(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-3.5 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                  />
+                </div>
+              </div>
+
+              {/* Password & Confirm Password */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-[#1E293B]">
+                    Password <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
-              </form>
-            )}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-[#1E293B]">
+                    Confirm <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full bg-[#F8FAFC] border border-slate-200 text-[#1E293B] placeholder-[#94A3B8] pl-10 pr-10 py-2.5 rounded-[10px] text-sm focus:bg-white focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 outline-none transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] p-1"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Monthly Allowance Information Banner */}
+              <div className="p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl text-xs text-indigo-900 flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-[#6366F1] shrink-0 mt-0.5" />
+                <span>Upon registration, <strong>9,000 monthly dining credits</strong> will be allocated immediately to your student wallet.</span>
+              </div>
+
+              {/* Primary Button */}
+              <button
+                type="submit"
+                disabled={loading || !isVitEmail}
+                className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold py-3 rounded-[10px] text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>Create Account & Grant 9k Credits</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
 
             {/* Bottom Link to Sign In */}
             <div className="pt-3 border-t border-slate-100 text-center">
