@@ -11,8 +11,7 @@ import {
   CheckCircle, 
   Smartphone, 
   ArrowLeft, 
-  Coins, 
-  Sparkles 
+  Coins 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -109,7 +108,7 @@ export function StudentLogin({ onBack }) {
       });
 
       confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
-      showToast('🎉 Account created successfully! 9,000 monthly dining credits granted. Welcome to Smart Mess!', 'success', 7000);
+      showToast('🎉 Account created successfully! 9,000 monthly dining credits granted.', 'success', 7000);
     } catch (err) {
       showToast(err.message || 'Registration failed', 'error', 6000);
     } finally {
@@ -163,140 +162,51 @@ export function StudentLogin({ onBack }) {
   const isVitEmail = email.trim().toLowerCase().endsWith('@vitstudent.ac.in');
 
   return (
-    <div className="min-h-screen bg-space-mesh bg-starfield flex flex-col md:flex-row relative overflow-hidden">
+    <div className="min-h-screen bg-space-mesh bg-starfield flex flex-col justify-center items-center py-10 px-4 sm:px-6 relative overflow-hidden">
       
-      {/* LEFT 45% PANEL: Violet Gradient & Cosmic Atmosphere */}
-      <div className="w-full md:w-[45%] bg-gradient-to-br from-[#1A1F3A] via-[#131728] to-[#0B0E1A] border-b md:border-b-0 md:border-r border-border text-white p-6 sm:p-10 lg:p-14 flex flex-col justify-between relative overflow-hidden shrink-0">
+      {/* Ambient background glow subtly tinted with Violet */}
+      <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-[#8B5CF6]/15 rounded-full blur-[100px] pointer-events-none animate-pulse-glow" />
+      <div className="absolute bottom-1/4 right-1/3 w-80 h-80 bg-[#6366F1]/10 rounded-full blur-[90px] pointer-events-none" />
+
+      {/* Main Centered Container (max-w ~400px) */}
+      <div className="max-w-[400px] w-full relative z-10 space-y-4 animate-slide-up">
         
-        {/* Ambient atmospheric glow inside panel */}
-        <div className="absolute -top-12 -left-12 w-64 h-64 bg-[#8B5CF6]/25 rounded-full blur-[80px] pointer-events-none" />
-        <div className="absolute bottom-10 right-0 w-64 h-64 bg-[#06B6D4]/15 rounded-full blur-[80px] pointer-events-none" />
-        <div className="absolute inset-0 opacity-15 bg-cyber-grid pointer-events-none" />
-        
-        {/* Top Back / Logo */}
-        <div className="relative z-10 space-y-6">
+        {/* Back Link positioned above the card */}
+        <div className="text-left">
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#131728]/80 hover:bg-[#1A1F3A] text-[#F1F5F9] text-xs font-semibold backdrop-blur-md transition active:scale-95 border border-border"
-          >
-            <ArrowLeft className="w-4 h-4 text-[#8B5CF6]" />
-            <span>← Back to role selection</span>
-          </button>
-
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#06B6D4] flex items-center justify-center text-white border border-white/20 shadow-level-4">
-              <UtensilsCrossed className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-xl font-bold tracking-tight block text-ink font-heading">SmartMess</span>
-              <span className="text-xs text-[#8B5CF6] font-medium font-heading">Student Dining Hub</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Middle Messaging */}
-        <div className="relative z-10 py-6 sm:py-8 space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-[#8B5CF6]/15 text-[#8B5CF6] flex items-center justify-center shadow-glow-primary border border-[#8B5CF6]/30 mb-2">
-            <GraduationCap className="w-8 h-8" />
-          </div>
-
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-ink font-heading">
-            Welcome back, <br />
-            <span className="text-gradient">Student</span>
-          </h2>
-          
-          <p className="text-body text-xs sm:text-sm leading-relaxed max-w-md">
-            Order fresh meals, monitor live queue tokens, and manage your 9,000 monthly dining credits.
-          </p>
-
-          <div className="pt-3 space-y-2.5 text-xs text-body font-medium hidden sm:block">
-            <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-[#8B5CF6]" />
-              </div>
-              <span>Instant pickup token queue generation</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-[#8B5CF6]" />
-              </div>
-              <span>9,000 monthly credit balance ledger & Razorpay top-up</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-[#8B5CF6]" />
-              </div>
-              <span>Direct registration for @vitstudent.ac.in accounts</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Footer note */}
-        <div className="relative z-10 pt-4 border-t border-border text-xs text-muted hidden md:block">
-          VIT University Campus Mess Network
-        </div>
-      </div>
-
-      {/* RIGHT 55% PANEL: Centered Form with Violet Glow */}
-      <div className="w-full md:w-[55%] flex flex-col justify-center items-center p-6 sm:p-10 lg:p-14">
-        
-        {/* Mobile Back Button (Visible only on mobile) */}
-        <div className="w-full max-w-md md:hidden mb-4">
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-2 text-xs text-muted hover:text-ink transition font-heading"
+            className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink transition font-heading"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-[#8B5CF6]" />
             <span>← Back to role selection</span>
           </button>
         </div>
 
-        <div className="max-w-md w-full card space-y-6 shadow-level-2 border-[#8B5CF6]/20">
-          
-          {/* Header */}
+        {/* Role Icon + Heading above the card */}
+        <div className="text-center space-y-2 pt-1 pb-1">
+          <div className="w-13 h-13 w-12 h-12 rounded-2xl bg-[#8B5CF6]/15 text-[#8B5CF6] flex items-center justify-center shadow-glow-primary border border-[#8B5CF6]/30 mx-auto">
+            <GraduationCap className="w-6 h-6" />
+          </div>
+
           <div>
-            <span className="text-micro text-[#8B5CF6] block mb-1">Student Portal</span>
-            <h2 className="text-h2 text-ink font-heading">
-              {isRegister ? 'Register Student Account' : 'Sign In'}
-            </h2>
-            <p className="text-body text-xs sm:text-sm mt-1">
-              {isRegister ? 'Direct registration with your official VIT student email' : 'Access your daily menu and credit balance'}
+            <h1 className="text-xl sm:text-2xl font-bold text-ink font-heading">
+              {isRegister ? 'Register Student' : 'Welcome back, Student'}
+            </h1>
+            <p className="text-xs text-muted mt-0.5">
+              {isRegister ? 'Official @vitstudent.ac.in account creation' : 'Access your campus meal tray & credits'}
             </p>
           </div>
+        </div>
 
-          {/* Tab Switcher: Sign In vs Register */}
-          <div className="flex bg-[#0B0E1A] p-1 rounded-xl border border-border">
-            <button
-              type="button"
-              onClick={() => setIsRegister(false)}
-              className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 font-heading ${
-                !isRegister 
-                  ? 'bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] text-white shadow-glow-primary' 
-                  : 'text-muted hover:text-ink'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsRegister(true)}
-              className={`flex-1 py-2 rounded-[10px] text-xs sm:text-sm font-semibold transition-all duration-200 font-heading ${
-                isRegister 
-                  ? 'bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] text-white shadow-glow-primary' 
-                  : 'text-muted hover:text-ink'
-              }`}
-            >
-              Register Student
-            </button>
-          </div>
-
-          {/* =============================================================== */}
-          {/* TAB 1: SIGN IN                                                  */}
-          {/* =============================================================== */}
+        {/* Single Centered Glass Card */}
+        <div className="card p-6 sm:p-7 shadow-level-3 border-[#8B5CF6]/20 bg-[#131728]/85 backdrop-blur-xl space-y-5">
+          
           {!isRegister ? (
-            <div className="space-y-5">
+            /* =============================================================== */
+            /* TAB 1: SIGN IN                                                  */
+            /* =============================================================== */
+            <div className="space-y-4">
               {/* Method Switcher */}
               <div className="flex items-center justify-center gap-1.5 p-1 bg-[#0B0E1A] border border-border rounded-xl">
                 <button
@@ -371,7 +281,7 @@ export function StudentLogin({ onBack }) {
                   </button>
                 </form>
               ) : (
-                <div className="space-y-5">
+                <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-ink uppercase tracking-wider font-heading">
                       Registered Mobile Number
@@ -390,7 +300,7 @@ export function StudentLogin({ onBack }) {
                           type="button"
                           onClick={handleSendMobileSms}
                           disabled={sendingSms || !otpPhone}
-                          className="px-4 bg-[#8B5CF6]/20 hover:bg-[#8B5CF6]/30 text-[#8B5CF6] border border-[#8B5CF6]/40 font-semibold text-xs rounded-btn shadow-level-1 transition shrink-0 font-heading"
+                          className="px-3 bg-[#8B5CF6]/20 hover:bg-[#8B5CF6]/30 text-[#8B5CF6] border border-[#8B5CF6]/40 font-semibold text-xs rounded-btn shadow-level-1 transition shrink-0 font-heading"
                         >
                           {sendingSms ? 'Sending...' : 'Send SMS'}
                         </button>
@@ -398,7 +308,7 @@ export function StudentLogin({ onBack }) {
                         <button
                           type="button"
                           onClick={() => { setSmsOtpSent(false); setSmsOtpCode(''); }}
-                          className="px-3 bg-[#1A1F3A] hover:bg-[#23294C] text-ink rounded-btn text-xs font-semibold border border-border"
+                          className="px-2.5 bg-[#1A1F3A] hover:bg-[#23294C] text-ink rounded-btn text-xs font-semibold border border-border"
                         >
                           Edit
                         </button>
@@ -407,7 +317,7 @@ export function StudentLogin({ onBack }) {
                   </div>
 
                   {smsOtpSent && (
-                    <form onSubmit={handleVerifyMobileSms} className="space-y-5 pt-2 animate-fade-in">
+                    <form onSubmit={handleVerifyMobileSms} className="space-y-4 pt-1 animate-fade-in">
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
                           <label className="block text-xs font-semibold text-ink uppercase tracking-wider font-heading">
@@ -459,6 +369,20 @@ export function StudentLogin({ onBack }) {
                   )}
                 </div>
               )}
+
+              {/* Toggle to Register */}
+              <div className="pt-3 border-t border-border text-center">
+                <p className="text-xs text-muted">
+                  New student?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setIsRegister(true)}
+                    className="font-bold text-[#8B5CF6] hover:underline font-heading"
+                  >
+                    Register here
+                  </button>
+                </p>
+              </div>
             </div>
           ) : (
             /* =============================================================== */
@@ -477,7 +401,7 @@ export function StudentLogin({ onBack }) {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold text-ink uppercase tracking-wider font-heading">Hostel Room</label>
                   <input
@@ -557,6 +481,20 @@ export function StudentLogin({ onBack }) {
                   </>
                 )}
               </button>
+
+              {/* Toggle to Sign In */}
+              <div className="pt-2 border-t border-border text-center">
+                <p className="text-xs text-muted">
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setIsRegister(false)}
+                    className="font-bold text-[#8B5CF6] hover:underline font-heading"
+                  >
+                    Sign In
+                  </button>
+                </p>
+              </div>
             </form>
           )}
 

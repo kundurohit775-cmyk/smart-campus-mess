@@ -5,10 +5,7 @@ import {
   Lock, 
   ArrowRight, 
   ArrowLeft, 
-  LockKeyhole, 
-  CheckCircle, 
-  BarChart3, 
-  Sparkles 
+  LockKeyhole 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -42,108 +39,47 @@ export function AdminLogin({ onBack }) {
   };
 
   return (
-    <div className="min-h-screen bg-space-mesh bg-starfield flex flex-col md:flex-row relative overflow-hidden">
+    <div className="min-h-screen bg-space-mesh bg-starfield flex flex-col justify-center items-center py-10 px-4 sm:px-6 relative overflow-hidden">
       
-      {/* LEFT 45% PANEL: Branded Cyan / Space Navy Panel */}
-      <div className="w-full md:w-[45%] bg-gradient-to-br from-[#102A43] via-[#131728] to-[#0B0E1A] border-b md:border-b-0 md:border-r border-border text-white p-6 sm:p-10 lg:p-14 flex flex-col justify-between relative overflow-hidden shrink-0">
+      {/* Ambient background glow subtly tinted with Cyan */}
+      <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-[#06B6D4]/15 rounded-full blur-[100px] pointer-events-none animate-pulse-glow" />
+      <div className="absolute bottom-1/4 right-1/3 w-80 h-80 bg-[#2563EB]/10 rounded-full blur-[90px] pointer-events-none" />
+
+      {/* Main Centered Container (max-w ~400px) */}
+      <div className="max-w-[400px] w-full relative z-10 space-y-4 animate-slide-up">
         
-        {/* Ambient atmospheric glow inside panel */}
-        <div className="absolute -top-12 -left-12 w-64 h-64 bg-[#06B6D4]/25 rounded-full blur-[80px] pointer-events-none" />
-        <div className="absolute bottom-10 right-0 w-64 h-64 bg-[#2563EB]/15 rounded-full blur-[80px] pointer-events-none" />
-        <div className="absolute inset-0 opacity-15 bg-cyber-grid pointer-events-none" />
-        
-        {/* Top Back / Logo */}
-        <div className="relative z-10 space-y-6">
+        {/* Back Link positioned above the card */}
+        <div className="text-left">
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#131728]/80 hover:bg-[#1A1F3A] text-[#F1F5F9] text-xs font-semibold backdrop-blur-md transition active:scale-95 border border-border"
-          >
-            <ArrowLeft className="w-4 h-4 text-[#06B6D4]" />
-            <span>← Back to role selection</span>
-          </button>
-
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#06B6D4] to-[#2563EB] flex items-center justify-center text-white border border-white/20 shadow-[0_0_24px_rgba(6,182,212,0.4)]">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-xl font-bold tracking-tight block text-ink font-heading">SmartMess Admin</span>
-              <span className="text-xs text-[#06B6D4] font-medium font-heading">Campus Governance & Ledger</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Middle Messaging */}
-        <div className="relative z-10 py-6 sm:py-8 space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-[#06B6D4]/15 text-[#06B6D4] flex items-center justify-center shadow-glow-secondary border border-[#06B6D4]/30 mb-2">
-            <BarChart3 className="w-8 h-8" />
-          </div>
-
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-ink font-heading">
-            Welcome back, <br />
-            <span className="text-[#06B6D4]">Admin</span>
-          </h2>
-          
-          <p className="text-body text-xs sm:text-sm leading-relaxed max-w-md">
-            Manage student credit allotments, trigger monthly resets, curate food menu pricing, and inspect immutable audit ledgers.
-          </p>
-
-          <div className="pt-3 space-y-2.5 text-xs text-body font-medium hidden sm:block">
-            <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-[#06B6D4]/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-[#06B6D4]" />
-              </div>
-              <span>Student 9k monthly credit management & manual adjustments</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-[#06B6D4]/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-[#06B6D4]" />
-              </div>
-              <span>Menu items catalog, active pricing, and inventory allotments</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-[#34D399]/20 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-[#34D399]" />
-              </div>
-              <span>Comprehensive order and Razorpay credit transaction logs</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Footer note */}
-        <div className="relative z-10 pt-4 border-t border-border text-xs text-muted hidden md:block">
-          Authorized Campus Administrative Staff Only
-        </div>
-      </div>
-
-      {/* RIGHT 55% PANEL: Form Panel Centered Vertically with Cyan Glow */}
-      <div className="w-full md:w-[55%] flex flex-col justify-center items-center p-6 sm:p-10 lg:p-14">
-        
-        {/* Mobile Back Button */}
-        <div className="w-full max-w-md md:hidden mb-4">
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-2 text-xs text-muted hover:text-ink transition font-heading"
+            className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink transition font-heading"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-[#06B6D4]" />
             <span>← Back to role selection</span>
           </button>
         </div>
 
-        <div className="max-w-md w-full card space-y-6 shadow-level-2 border-[#06B6D4]/20">
-          
-          {/* Header */}
-          <div>
-            <span className="text-micro text-[#06B6D4] block mb-1">Administration</span>
-            <h2 className="text-h2 text-ink font-heading">Sign In</h2>
-            <p className="text-body text-xs sm:text-sm mt-1">
-              Sign in with your authorized admin credentials
-            </p>
+        {/* Role Icon + Heading above the card */}
+        <div className="text-center space-y-2 pt-1 pb-1">
+          <div className="w-12 h-12 rounded-2xl bg-[#06B6D4]/15 text-[#06B6D4] flex items-center justify-center shadow-glow-secondary border border-[#06B6D4]/30 mx-auto">
+            <ShieldCheck className="w-6 h-6" />
           </div>
 
-          <div className="p-3.5 bg-[#06B6D4]/10 rounded-xl border border-[#06B6D4]/30 text-xs text-[#06B6D4] flex items-start gap-2.5">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-ink font-heading">
+              Welcome back, Admin
+            </h1>
+            <p className="text-xs text-muted mt-0.5">
+              Campus dining governance & audit ledger
+            </p>
+          </div>
+        </div>
+
+        {/* Single Centered Glass Card */}
+        <div className="card p-6 sm:p-7 shadow-level-3 border-[#06B6D4]/20 bg-[#131728]/85 backdrop-blur-xl space-y-5">
+          
+          <div className="p-3 bg-[#06B6D4]/10 rounded-xl border border-[#06B6D4]/30 text-xs text-[#06B6D4] flex items-start gap-2.5">
             <LockKeyhole className="w-4 h-4 text-[#06B6D4] shrink-0 mt-0.5" />
             <span>Restricted administrative portal. Protected with 256-bit encryption.</span>
           </div>
@@ -186,14 +122,14 @@ export function AdminLogin({ onBack }) {
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>Sign In</span>
+                  <span>Sign In as Admin</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="pt-4 border-t border-border text-center">
+          <div className="pt-2 border-t border-border text-center">
             <span className="text-xs text-muted">
               System access logs are recorded for security auditing.
             </span>
