@@ -56,9 +56,9 @@ export function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center text-slate-900 space-y-4 subtle-mesh-bg">
-        <div className="w-10 h-10 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs font-black tracking-wider text-slate-500 uppercase">Loading Smart Campus Mess...</p>
+      <div className="min-h-screen bg-[#0B0E1A] flex flex-col items-center justify-center text-[#F1F5F9] space-y-4 bg-space">
+        <div className="w-10 h-10 border-3 border-[#8B5CF6] border-t-transparent rounded-full animate-spin shadow-glow-primary" />
+        <p className="text-xs font-bold tracking-wider text-muted uppercase font-heading">Loading Smart Campus Mess...</p>
       </div>
     );
   }
@@ -72,7 +72,7 @@ export function App() {
   const isAdmin = user.role === 'admin' || user.isAdmin;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col selection:bg-orange-500 selection:text-white subtle-mesh-bg">
+    <div className="min-h-screen bg-[#0B0E1A] text-[#F1F5F9] flex flex-col selection:bg-[#8B5CF6] selection:text-white bg-space">
       {/* Role Navigation Bar */}
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
@@ -90,7 +90,10 @@ export function App() {
         {isStudent && (
           <>
             {activeTab === 'menu' && (
-              <StudentDashboard onNavigateToOrders={() => setActiveTab('orders')} />
+              <StudentDashboard 
+                onNavigateToOrders={() => setActiveTab('orders')} 
+                onNavigateToTransactions={() => setActiveTab('transactions')}
+              />
             )}
             {activeTab === 'orders' && (
               <OrderTracking onBrowseMenu={() => setActiveTab('menu')} />
@@ -104,7 +107,11 @@ export function App() {
         {/* Chef View */}
         {isChef && (
           <>
-            {activeTab === 'dashboard' && <ChefDashboard />}
+            {activeTab === 'dashboard' && (
+              <ChefDashboard 
+                onNavigateToInventory={() => setActiveTab('inventory')}
+              />
+            )}
             {activeTab === 'inventory' && <ChefInventory />}
           </>
         )}

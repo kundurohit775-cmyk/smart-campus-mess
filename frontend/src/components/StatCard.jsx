@@ -8,6 +8,7 @@ export function StatCard({
   subtitle,
   trend,
   trendPositive = true,
+  isFeatured = false,
   onClick
 }) {
   const colorMap = {
@@ -50,37 +51,44 @@ export function StatCard({
   return (
     <div 
       onClick={onClick}
-      className={`card ${onClick ? 'cursor-pointer hover:scale-[1.01]' : ''}`}
+      className={`card flex flex-col justify-between ${
+        isFeatured 
+          ? 'border-[#8B5CF6]/50 shadow-[0_8px_32px_rgba(139,92,246,0.25)] bg-[#131728]/90 scale-[1.01]' 
+          : 'bg-[#131728]/70 hover:border-[#8B5CF6]/40'
+      } ${onClick ? 'cursor-pointer hover:scale-[1.02]' : ''} transition-all duration-200`}
     >
-      <div className="flex items-start justify-between">
-        <div className="space-y-1.5">
-          <span className="text-micro text-muted block">
-            {title}
-          </span>
-          <div className="text-2xl sm:text-3.5xl font-bold font-heading text-ink tracking-tight tabular-nums">
-            {value}
-          </div>
-        </div>
-
-        {Icon && (
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center border shrink-0 ${scheme.iconBg}`}>
-            <Icon className="w-5 h-5" />
-          </div>
-        )}
-      </div>
-
-      {(subtitle || trend) && (
-        <div className="mt-3 pt-2.5 border-t border-divider flex items-center justify-between text-xs">
-          {subtitle && (
-            <span className="text-muted font-medium">
-              {subtitle}
-            </span>
+      <div>
+        {/* Top: Icon in glowing circle top-left + Trend Pill top-right */}
+        <div className="flex items-center justify-between gap-2 mb-3">
+          {Icon && (
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${scheme.iconBg}`}>
+              <Icon className="w-5 h-5" />
+            </div>
           )}
+
           {trend && (
-            <span className={`status-pill ${trendPositive ? 'status-pill-success' : 'status-pill-danger'} text-[11px] py-0.5 px-2`}>
+            <span className={`status-pill ${trendPositive ? 'status-pill-success' : 'status-pill-danger'} text-[11px] py-0.5 px-2.5 font-heading`}>
               {trend}
             </span>
           )}
+        </div>
+
+        {/* Small uppercase label */}
+        <span className="text-micro text-muted block mb-1">
+          {title}
+        </span>
+
+        {/* Large gradient-text number */}
+        <div className={`text-2xl sm:text-3xl font-bold font-heading tracking-tight tabular-nums ${
+          isFeatured ? 'text-gradient' : 'text-ink'
+        }`}>
+          {value}
+        </div>
+      </div>
+
+      {subtitle && (
+        <div className="mt-3 pt-2.5 border-t border-divider text-xs text-muted font-medium">
+          {subtitle}
         </div>
       )}
     </div>
