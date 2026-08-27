@@ -24,7 +24,7 @@ export const orderService = {
 
     const placeholders = itemIds.map((_, idx) => `$${idx + 1}`).join(',');
     const dbItemsRes = await db.pool.query(`
-      SELECT item_id, item_name, price, COALESCE(calories, 250) as calories, available_quantity, is_active 
+      SELECT item_id, item_name, price, calories, available_quantity, is_active 
       FROM menu_items 
       WHERE item_id IN (${placeholders})
     `, itemIds);
@@ -65,11 +65,16 @@ export const orderService = {
       }
 
       const subtotal = Number(dbItem.price) * qty;
-      const itemCal = Number(dbItem.calories || 250);
-      const subtotalCalories = itemCal * qty;
+      let itemCal = null;
+      if (dbItem.calories !== null && dbItem.calories !== undefined && dbItem.calories !== '') {
+        const parsedCal = parseInt(dbItem.calories, 10);
+        if (!isNaN(parsedCal)) {
+          itemCal = parsedCal;
+          totalCalories += itemCal * qty;
+        }
+      }
 
       totalAmount += subtotal;
-      totalCalories += subtotalCalories;
 
       orderItemsToInsert.push({
         itemId: parseInt(dbItem.item_id, 10),
@@ -271,7 +276,7 @@ export const orderService = {
     if (!order) return null;
 
     const items = await db.all(`
-      SELECT oi.*, COALESCE(oi.calories, m.calories, 250) as calories, m.item_name, m.category, m.image_url
+      SELECT oi.*, COALESCE(oi.calories, m.calories) as calories, m.item_name, m.category, m.image_url
       FROM order_items oi
       JOIN menu_items m ON oi.item_id = m.item_id
       WHERE oi.order_id = ?
@@ -297,7 +302,7 @@ export const orderService = {
     const fullOrders = [];
     for (const order of orders) {
       const items = await db.all(`
-        SELECT oi.*, COALESCE(oi.calories, m.calories, 250) as calories, m.item_name, m.category, m.image_url
+        SELECT oi.*, COALESCE(oi.calories, m.calories) as calories, m.item_name, m.category, m.image_url
         FROM order_items oi
         JOIN menu_items m ON oi.item_id = m.item_id
         WHERE oi.order_id = ?
@@ -331,7 +336,7 @@ export const orderService = {
     const fullOrders = [];
     for (const order of orders) {
       const items = await db.all(`
-        SELECT oi.*, COALESCE(oi.calories, m.calories, 250) as calories, m.item_name, m.category, m.image_url
+        SELECT oi.*, COALESCE(oi.calories, m.calories) as calories, m.item_name, m.category, m.image_url
         FROM order_items oi
         JOIN menu_items m ON oi.item_id = m.item_id
         WHERE oi.order_id = ?

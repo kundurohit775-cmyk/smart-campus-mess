@@ -9,8 +9,8 @@ export function MenuCard({ item, healthMode = false, consumedToday = 0, dailyCal
   const isOutOfStock = (item?.available_quantity ?? 0) <= 0;
   const isLowStock = (item?.available_quantity ?? 0) > 0 && item.available_quantity <= 5;
 
-  const itemCalories = item?.calories || 250;
-  const wouldExceedGoal = healthMode && dailyCalorieGoal && (consumedToday + totalCalories + itemCalories > dailyCalorieGoal);
+  const itemCalories = item?.calories;
+  const wouldExceedGoal = healthMode && dailyCalorieGoal && itemCalories && (consumedToday + totalCalories + Number(itemCalories) > dailyCalorieGoal);
 
   if (!item) return null;
 
@@ -34,7 +34,7 @@ export function MenuCard({ item, healthMode = false, consumedToday = 0, dailyCal
             {item.category}
           </span>
 
-          {healthMode && (
+          {healthMode && itemCalories != null && (
             <span className="bg-orange-500 text-white font-bold px-2 py-0.5 rounded-full shadow-soft-sm text-[10px] flex items-center gap-1 font-heading animate-fade-in">
               <Flame className="w-3 h-3 fill-current text-white" />
               <span>{itemCalories} kcal</span>

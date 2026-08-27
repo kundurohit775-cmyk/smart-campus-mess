@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, UtensilsCrossed, CheckCircle, XCircle, Flame } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, UtensilsCrossed, CheckCircle, XCircle, Flame, Heart } from 'lucide-react';
 import { api } from '../../services/api';
 import { Modal } from '../../components/Modal';
 import { useToast } from '../../context/ToastContext';
@@ -22,7 +22,8 @@ export function MenuManager() {
     item_name: '',
     category: 'Lunch',
     price: '',
-    calories: 250,
+    calories: '',
+    healthy_override: 'auto', // 'auto', 'yes', 'no'
     description: '',
     image_url: '',
     available_quantity: 40
@@ -48,7 +49,8 @@ export function MenuManager() {
       item_name: '',
       category: 'Lunch',
       price: '',
-      calories: 250,
+      calories: '',
+      healthy_override: 'auto',
       description: '',
       image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
       available_quantity: 40
@@ -58,11 +60,16 @@ export function MenuManager() {
 
   const openEditModal = (item) => {
     setEditingItem(item);
+    let overrideStr = 'auto';
+    if (item.healthy_override === true || item.healthy_override === 1) overrideStr = 'yes';
+    else if (item.healthy_override === false || item.healthy_override === 0) overrideStr = 'no';
+
     setFormData({
       item_name: item.item_name,
       category: item.category,
       price: item.price,
-      calories: item.calories || 250,
+      calories: item.calories ?? '',
+      healthy_override: overrideStr,
       description: item.description || '',
       image_url: item.image_url || '',
       available_quantity: item.available_quantity
@@ -78,12 +85,22 @@ export function MenuManager() {
 
     setSubmitting(true);
     try {
+      let overrideVal = null;
+      if (formData.healthy_override === 'yes') overrideVal = true;
+      else if (formData.healthy_override === 'no') overrideVal = false;
+
+      const payload = {
+        ...formData,
+        calories: formData.calories === '' ? null : parseInt(formData.calories, 10),
+        healthy_override: overrideVal
+      };
+
       if (editingItem) {
-        await api.updateMenuItem(editingItem.item_id, formData);
+        await api.updateMenuItem(editingItem.item_id, payload);
         showToast(`Updated "${formData.item_name}"`, 'success');
         setEditingItem(null);
       } else {
-        await api.createMenuItem(formData);
+        await api.createMenuItem(payload);
         showToast(`Created "${formData.item_name}"`, 'success');
         setIsAddOpen(false);
       }
@@ -121,10 +138,10 @@ export function MenuManager() {
         <div>
           <h1 className="text-xl font-bold text-[#1E1B16] flex items-center gap-2.5 font-heading">
             <UtensilsCrossed className="w-6 h-6 text-[#C2410C]" />
-            <span>Menu Items & Calorie Catalog</span>
+            <span>Menu Items & Diet Catalog</span>
           </h1>
           <p className="text-xs text-[#6B6560] mt-0.5">
-            Add, update, or price menu dishes, configure calorie counts (kcal), and manage inventory
+            Manage dishes, pricing, calorie values (kcal), and diet-friendly Health Mode tags
           </p>
         </div>
 
@@ -160,7 +177,8 @@ export function MenuManager() {
                 <th className="py-3.5 px-4">Category</th>
                 <th className="py-3.5 px-4 text-right">Price (Credits)</th>
                 <th className="py-3.5 px-4 text-center">Calories</th>
-                <th className="py-3.5 px-4 text-center">Available Stock</th>
+                <th className="py-3.5 px-4 text-center">Diet-Friendly</th>
+                <th className="py-3.5 px-4 text-center">Stock</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
                 <th className="py-3.5 px-6 text-right">Actions</th>
               </tr>
@@ -168,13 +186,13 @@ export function MenuManager() {
             <tbody className="divide-y divide-stone-100">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="py-12 text-center text-[#6B6560] animate-pulse">
+                  <td colSpan="8" className="py-12 text-center text-[#6B6560] animate-pulse">
                     Loading menu items...
                   </td>
                 </tr>
               ) : filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="py-12 text-center text-[#9B9590]">
+                  <td colSpan="8" className="py-12 text-center text-[#9B9590]">
                     No menu items found.
                   </td>
                 </tr>
@@ -203,9 +221,20 @@ export function MenuManager() {
                       {item.price} Credits
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <span className="inline-flex items-center gap-1 font-bold text-xs text-[#FF6B35] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200/80 font-heading">
-                        <Flame className="w-3 h-3 text-[#FF6B35]" />
-                        {item.calories || 250} kcal
+                      {item.calories != null ? (
+                        <span className="inline-flex items-center gap-1 font-bold text-xs text-[#FF6B35] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200/80 font-heading">
+                          <Flame className="w-3 h-3 text-[#FF6B35]" />
+                          {item.calories} kcal
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[#9B9590] italic">Unset</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className={`status-pill text-xs font-heading ${
+                        item.is_healthy ? 'status-pill-success' : 'status-pill-danger'
+                      }`}>
+                        {item.is_healthy ? 'Diet-Friendly' : 'Standard'}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
@@ -291,10 +320,10 @@ export function MenuManager() {
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[#1E1B16]">Calories (kcal)</label>
+              <label className="block text-xs font-semibold text-[#1E1B16]">Calories (kcal, optional)</label>
               <input
                 type="number"
-                min="10"
+                min="0"
                 max="5000"
                 placeholder="e.g. 320"
                 value={formData.calories}
@@ -304,7 +333,19 @@ export function MenuManager() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-[#1E1B16]">Diet-Friendly Override</label>
+              <select
+                value={formData.healthy_override}
+                onChange={(e) => setFormData({ ...formData, healthy_override: e.target.value })}
+                className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
+              >
+                <option value="auto">Auto (≤400 kcal)</option>
+                <option value="yes">Force Diet-Friendly (Yes)</option>
+                <option value="no">Force Not Diet-Friendly (No)</option>
+              </select>
+            </div>
             <div className="space-y-1">
               <label className="block text-xs font-semibold text-[#1E1B16]">Initial Stock</label>
               <input

@@ -141,7 +141,20 @@ router.patch('/students/:studentId/credits', async (req, res, next) => {
  */
 router.get('/menu', async (req, res, next) => {
   try {
-    const items = await db.all('SELECT * FROM menu_items ORDER BY item_id DESC');
+    const rawItems = await db.all('SELECT * FROM menu_items ORDER BY item_id DESC');
+    const items = rawItems.map(row => {
+      let is_healthy = false;
+      if (row.healthy_override !== null && row.healthy_override !== undefined) {
+        is_healthy = Boolean(row.healthy_override);
+      } else if (row.calories !== null && row.calories !== undefined && row.calories !== '') {
+        is_healthy = Number(row.calories) <= 400;
+      }
+      return {
+        ...row,
+        is_healthy,
+        isHealthy: is_healthy
+      };
+    });
     res.json({ items });
   } catch (err) {
     next(err);
@@ -154,25 +167,34 @@ router.get('/menu', async (req, res, next) => {
  */
 router.post('/menu', async (req, res, next) => {
   try {
-    const { item_name, category, price, calories, description, image_url, available_quantity } = req.body;
+    const { item_name, category, price, calories, healthy_override, description, image_url, available_quantity } = req.body;
 
     if (!item_name || !category || price === undefined) {
       return res.status(400).json({ error: 'Item name, category, and price are required.' });
     }
 
     const defaultImg = image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
-    const cal = calories !== undefined && calories !== null && calories !== '' ? parseInt(calories, 10) : 250;
+    const cal = (calories !== undefined && calories !== null && calories !== '') ? parseInt(calories, 10) : null;
+    let overrideVal = null;
+    if (healthy_override === true || healthy_override === 'true') overrideVal = true;
+    else if (healthy_override === false || healthy_override === 'false') overrideVal = false;
 
     const result = await db.run(`
-      INSERT INTO menu_items (item_name, category, price, calories, description, image_url, available_quantity, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-    `, item_name.trim(), category.trim(), parseInt(price, 10), cal, description || '', defaultImg, parseInt(available_quantity || 0, 10));
+      INSERT INTO menu_items (item_name, category, price, calories, healthy_override, description, image_url, available_quantity, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+    `, item_name.trim(), category.trim(), parseInt(price, 10), cal, overrideVal, description || '', defaultImg, parseInt(available_quantity || 0, 10));
 
     const newItem = await db.get('SELECT * FROM menu_items WHERE item_id = ?', result.lastInsertRowid);
+    let is_healthy = false;
+    if (newItem.healthy_override !== null && newItem.healthy_override !== undefined) {
+      is_healthy = Boolean(newItem.healthy_override);
+    } else if (newItem.calories !== null && newItem.calories !== undefined) {
+      is_healthy = Number(newItem.calories) <= 400;
+    }
 
     res.status(201).json({
       message: `Menu item "${newItem.item_name}" created successfully.`,
-      item: newItem
+      item: { ...newItem, is_healthy, isHealthy: is_healthy }
     });
   } catch (err) {
     next(err);
@@ -186,11 +208,21 @@ router.post('/menu', async (req, res, next) => {
 router.patch('/menu/:itemId', async (req, res, next) => {
   try {
     const itemId = parseInt(req.params.itemId, 10);
-    const { item_name, category, price, calories, description, image_url, available_quantity, is_active } = req.body;
+    const { item_name, category, price, calories, healthy_override, description, image_url, available_quantity, is_active } = req.body;
 
     const existing = await db.get('SELECT * FROM menu_items WHERE item_id = ?', itemId);
     if (!existing) {
       return res.status(404).json({ error: 'Menu item not found.' });
+    }
+
+    let overrideVal = existing.healthy_override;
+    if (healthy_override === true || healthy_override === 'true') overrideVal = true;
+    else if (healthy_override === false || healthy_override === 'false') overrideVal = false;
+    else if (healthy_override === null || healthy_override === 'null' || healthy_override === '') overrideVal = null;
+
+    let calVal = existing.calories;
+    if (calories !== undefined) {
+      calVal = (calories === null || calories === '') ? null : parseInt(calories, 10);
     }
 
     await db.run(`
@@ -198,7 +230,8 @@ router.patch('/menu/:itemId', async (req, res, next) => {
       SET item_name = COALESCE(?, item_name),
           category = COALESCE(?, category),
           price = COALESCE(?, price),
-          calories = COALESCE(?, calories),
+          calories = ?,
+          healthy_override = ?,
           description = COALESCE(?, description),
           image_url = COALESCE(?, image_url),
           available_quantity = COALESCE(?, available_quantity),
@@ -208,7 +241,8 @@ router.patch('/menu/:itemId', async (req, res, next) => {
       item_name ? item_name.trim() : null,
       category ? category.trim() : null,
       price !== undefined ? parseInt(price, 10) : null,
-      calories !== undefined && calories !== null && calories !== '' ? parseInt(calories, 10) : null,
+      calVal,
+      overrideVal,
       description !== undefined ? description : null,
       image_url !== undefined ? image_url : null,
       available_quantity !== undefined ? parseInt(available_quantity, 10) : null,
@@ -217,10 +251,16 @@ router.patch('/menu/:itemId', async (req, res, next) => {
     );
 
     const updated = await db.get('SELECT * FROM menu_items WHERE item_id = ?', itemId);
+    let is_healthy = false;
+    if (updated.healthy_override !== null && updated.healthy_override !== undefined) {
+      is_healthy = Boolean(updated.healthy_override);
+    } else if (updated.calories !== null && updated.calories !== undefined) {
+      is_healthy = Number(updated.calories) <= 400;
+    }
 
     res.json({
       message: `Menu item "${updated.item_name}" updated.`,
-      item: updated
+      item: { ...updated, is_healthy, isHealthy: is_healthy }
     });
   } catch (err) {
     next(err);

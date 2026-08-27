@@ -7,20 +7,21 @@ const router = express.Router();
 
 async function resolveStudent(reqUser, targetParam) {
   if (!reqUser) return null;
-  let student = await db.get('SELECT student_id, name, email, room_number, daily_calorie_goal FROM students WHERE student_id = ? OR email = ?', targetParam || reqUser.id, reqUser.email);
+  let student = await db.get('SELECT student_id, name, email, room_number, daily_calorie_goal, health_mode_enabled FROM students WHERE student_id = ? OR email = ?', targetParam || reqUser.id, reqUser.email);
   if (!student && reqUser.role === 'student') {
     const result = await db.run(`
       INSERT INTO students (name, email, phone, password_hash, room_number, status)
       VALUES (?, ?, ?, 'better-auth-managed', ?, 'active')
     `, reqUser.name || 'Student', reqUser.email, reqUser.phone || '', reqUser.roomNumber || 'Hostel');
-    student = await db.get('SELECT student_id, name, email, room_number, daily_calorie_goal FROM students WHERE student_id = ?', result.lastInsertRowid);
+    student = await db.get('SELECT student_id, name, email, room_number, daily_calorie_goal, health_mode_enabled FROM students WHERE student_id = ?', result.lastInsertRowid);
   }
   return student;
 }
 
 /**
  * GET /api/credits/health-stats
- * Returns today's consumed calories and student's daily calorie goal.
+ * Returns today's consumed calories, student's daily calorie goal, and healthModeEnabled preference.
+ * Shape: { goal: number|null, consumed: number, date: string, healthModeEnabled: boolean }
  */
 router.get('/health-stats', authenticateToken, async (req, res, next) => {
   try {
@@ -43,8 +44,11 @@ router.get('/health-stats', authenticateToken, async (req, res, next) => {
       success: true,
       studentId: student.student_id,
       date: intakeRow?.date || todayDate,
+      goal: student.daily_calorie_goal,
       dailyCalorieGoal: student.daily_calorie_goal,
-      consumedToday
+      consumed: consumedToday,
+      consumedToday,
+      healthModeEnabled: Boolean(student.health_mode_enabled)
     });
   } catch (err) {
     next(err);
@@ -63,10 +67,11 @@ router.patch('/calorie-goal', authenticateToken, async (req, res, next) => {
       return res.status(404).json({ error: 'Student account not found.' });
     }
 
-    const { dailyCalorieGoal } = req.body;
-    const goalVal = (dailyCalorieGoal === null || dailyCalorieGoal === undefined || dailyCalorieGoal === '')
+    const { dailyCalorieGoal, goal } = req.body;
+    const inputVal = dailyCalorieGoal !== undefined ? dailyCalorieGoal : goal;
+    const goalVal = (inputVal === null || inputVal === undefined || inputVal === '')
       ? null
-      : Math.max(500, Math.min(10000, parseInt(dailyCalorieGoal, 10)));
+      : Math.max(500, Math.min(10000, parseInt(inputVal, 10)));
 
     await db.run(`
       UPDATE students 
@@ -84,8 +89,40 @@ router.patch('/calorie-goal', authenticateToken, async (req, res, next) => {
     res.json({
       success: true,
       message: goalVal ? `Daily calorie goal set to ${goalVal} kcal.` : 'Daily calorie goal removed.',
+      goal: goalVal,
       dailyCalorieGoal: goalVal,
+      consumed: intakeRow ? parseInt(intakeRow.calories, 10) : 0,
       consumedToday: intakeRow ? parseInt(intakeRow.calories, 10) : 0
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * PATCH /api/credits/health-mode
+ * Persists student's Health Mode toggle preference.
+ * Body: { enabled: true }
+ */
+router.patch('/health-mode', authenticateToken, async (req, res, next) => {
+  try {
+    const student = await resolveStudent(req.user);
+    if (!student) {
+      return res.status(404).json({ error: 'Student account not found.' });
+    }
+
+    const { enabled } = req.body;
+    const isEnabled = Boolean(enabled);
+
+    await db.run(`
+      UPDATE students 
+      SET health_mode_enabled = ? 
+      WHERE student_id = ?
+    `, isEnabled, student.student_id);
+
+    res.json({
+      success: true,
+      healthModeEnabled: isEnabled
     });
   } catch (err) {
     next(err);
@@ -137,7 +174,8 @@ router.get('/:studentId', authenticateToken, async (req, res, next) => {
         is_low_balance: credits.is_low_balance,
         low_balance_threshold: 500,
         daily_calorie_goal: student.daily_calorie_goal,
-        consumed_calories_today: intakeRow ? parseInt(intakeRow.calories, 10) : 0
+        consumed_calories_today: intakeRow ? parseInt(intakeRow.calories, 10) : 0,
+        health_mode_enabled: Boolean(student.health_mode_enabled)
       },
       transactions
     });

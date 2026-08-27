@@ -4,23 +4,48 @@ import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
+export const HEALTHY_CALORIE_THRESHOLD = 400;
+
+/**
+ * Determines whether a dish is diet-friendly:
+ * - If healthy_override is set (boolean), use that override.
+ * - Otherwise, true if calories != null and calories <= 400 kcal.
+ * - If calories == null and no override, returns false (hidden in Health Mode).
+ */
+export function computeIsHealthy(item) {
+  if (item.healthy_override !== null && item.healthy_override !== undefined) {
+    return Boolean(item.healthy_override);
+  }
+  if (item.calories !== null && item.calories !== undefined && item.calories !== '') {
+    return Number(item.calories) <= HEALTHY_CALORIE_THRESHOLD;
+  }
+  return false;
+}
+
 /**
  * GET /api/menu
- * Public or Authenticated: Returns all active menu items with live available stock and calorie counts from Neon PostgreSQL.
+ * Public or Authenticated: Returns all active menu items with live available stock, calorie counts, and computed is_healthy status.
  */
 router.get('/', async (req, res, next) => {
   try {
     const result = await db.query(`
-      SELECT item_id, item_name, category, price, COALESCE(calories, 250) as calories, description, image_url, available_quantity, is_active,
+      SELECT item_id, item_name, category, price, calories, healthy_override, description, image_url, available_quantity, is_active,
              (CASE WHEN available_quantity <= 0 THEN 1 ELSE 0 END) as is_sold_out
       FROM menu_items
       WHERE is_active = 1
       ORDER BY category ASC, item_name ASC
     `);
 
+    const items = result.rows.map(row => ({
+      ...row,
+      is_healthy: computeIsHealthy(row),
+      isHealthy: computeIsHealthy(row)
+    }));
+
     res.json({
-      items: result.rows,
-      count: result.rows.length
+      items,
+      count: items.length,
+      healthyCalorieThreshold: HEALTHY_CALORIE_THRESHOLD
     });
   } catch (err) {
     next(err);
@@ -56,7 +81,9 @@ router.patch('/:itemId/toggle-stock', authenticateToken, requireRole('chef', 'ad
       item: {
         ...currentItem,
         available_quantity: newQty,
-        is_sold_out: newQty <= 0 ? 1 : 0
+        is_sold_out: newQty <= 0 ? 1 : 0,
+        is_healthy: computeIsHealthy(currentItem),
+        isHealthy: computeIsHealthy(currentItem)
       }
     });
   } catch (err) {

@@ -69,6 +69,10 @@ export const api = {
     method: 'PATCH',
     body: JSON.stringify({ dailyCalorieGoal })
   }),
+  setHealthMode: (enabled) => request('/credits/health-mode', {
+    method: 'PATCH',
+    body: JSON.stringify({ enabled })
+  }),
   getTransactions: async (studentId) => {
     try {
       const me = JSON.parse(localStorage.getItem('mess_user_session') || '{}');

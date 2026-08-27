@@ -64,8 +64,14 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
       setRecentTransactions(transRes?.transactions?.slice(0, 4) || []);
       if (healthRes) {
         setHealthStats(healthRes);
-        if (healthRes.dailyCalorieGoal) {
-          setGoalInput(healthRes.dailyCalorieGoal);
+        const goal = healthRes.goal ?? healthRes.dailyCalorieGoal;
+        if (goal) {
+          setGoalInput(goal);
+        }
+        if (healthRes.healthModeEnabled !== undefined) {
+          const syncedHM = Boolean(healthRes.healthModeEnabled);
+          setHealthMode(syncedHM);
+          localStorage.setItem('smartmess_health_mode', String(syncedHM));
         }
       }
     } catch (err) {
@@ -79,19 +85,23 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
     fetchDashboardData();
   }, []);
 
-  const handleToggleHealthMode = () => {
+  const handleToggleHealthMode = async () => {
     const nextVal = !healthMode;
     setHealthMode(nextVal);
     localStorage.setItem('smartmess_health_mode', String(nextVal));
 
+    // Persist to backend per-student preference
+    api.setHealthMode(nextVal).catch(() => {});
+
     if (nextVal) {
-      showToast('Health Mode ON: Calorie tracking activated', 'success', 2500);
+      showToast('Health Mode ON: Filtered to diet-friendly items (≤400 kcal)', 'success', 3000);
       // If student hasn't set a goal yet, show modal to prompt setting goal
-      if (!healthStats?.dailyCalorieGoal) {
+      const currentGoal = healthStats?.goal ?? healthStats?.dailyCalorieGoal;
+      if (!currentGoal) {
         setIsGoalModalOpen(true);
       }
     } else {
-      showToast('Health Mode OFF', 'info', 2000);
+      showToast('Health Mode OFF: Showing full dining menu', 'info', 2000);
     }
   };
 
@@ -105,14 +115,17 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
     setSavingGoal(true);
     try {
       const res = await api.setCalorieGoal(val);
+      const updatedGoal = res.goal ?? res.dailyCalorieGoal;
       setHealthStats(prev => ({
         ...prev,
-        dailyCalorieGoal: res.dailyCalorieGoal,
-        consumedToday: res.consumedToday ?? (prev?.consumedToday || 0)
+        goal: updatedGoal,
+        dailyCalorieGoal: updatedGoal,
+        consumed: res.consumed ?? (prev?.consumed || prev?.consumedToday || 0),
+        consumedToday: res.consumedToday ?? (prev?.consumedToday || prev?.consumed || 0)
       }));
-      setGoalInput(res.dailyCalorieGoal);
+      setGoalInput(updatedGoal);
       setIsGoalModalOpen(false);
-      showToast(`Daily calorie goal set to ${res.dailyCalorieGoal} kcal!`, 'success');
+      showToast(`Daily calorie goal set to ${updatedGoal} kcal!`, 'success');
     } catch (err) {
       showToast(err.message || 'Failed to save goal', 'error');
     } finally {
@@ -124,17 +137,20 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
   const usedCredits = user?.credits?.used ?? 0;
   const isLow = remainingCredits < 500;
 
-  const consumedToday = healthStats?.consumedToday || 0;
-  const dailyCalorieGoal = healthStats?.dailyCalorieGoal;
-  const effectiveGoal = dailyCalorieGoal || 2000;
-  const progressPercent = Math.min(100, Math.round((consumedToday / effectiveGoal) * 100));
-  const isOverGoal = Boolean(dailyCalorieGoal && consumedToday > dailyCalorieGoal);
+  const consumedToday = healthStats?.consumed ?? healthStats?.consumedToday ?? 0;
+  const dailyCalorieGoal = healthStats?.goal ?? healthStats?.dailyCalorieGoal ?? null;
+  const hasGoalSet = Boolean(dailyCalorieGoal && dailyCalorieGoal > 0);
+  const progressPercent = hasGoalSet ? Math.min(100, Math.round((consumedToday / dailyCalorieGoal) * 100)) : 0;
+  const isOverGoal = Boolean(hasGoalSet && consumedToday > dailyCalorieGoal);
 
   const filteredItems = (items || []).filter((item) => {
     const matchesCategory = selectedCategory === 'All' || item.category.toLowerCase() === selectedCategory.toLowerCase();
     const matchesSearch = item.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch;
+    
+    // When Health Mode is ON, strictly filter to is_healthy items only
+    const matchesHealth = !healthMode || Boolean(item.is_healthy || item.isHealthy);
+    return matchesCategory && matchesSearch && matchesHealth;
   });
 
   return (
@@ -203,11 +219,21 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
             {/* Header & Filter Controls + Health Mode Toggle */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
               <div>
-                <h2 className="text-xl font-bold text-[#1E1B16] font-heading">
-                  Today's Dining Menu
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-[#1E1B16] font-heading">
+                    Today's Dining Menu
+                  </h2>
+                  {healthMode && (
+                    <span className="status-pill status-pill-success text-[10px] font-heading font-bold">
+                      Diet-Friendly Active
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-[#6B6560] mt-0.5">
-                  Select dishes to add to your tray and generate instant pickup tokens
+                  {healthMode 
+                    ? 'Showing only diet-friendly dishes (≤400 kcal or chef recommended)'
+                    : 'Select dishes to add to your tray and generate instant pickup tokens'
+                  }
                 </p>
               </div>
 
@@ -221,7 +247,7 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                       ? 'bg-[#FFF7F0] text-[#FF6B35] border-orange-300 shadow-soft-sm'
                       : 'bg-stone-100 text-[#6B6560] border-stone-200 hover:text-[#1E1B16]'
                   }`}
-                  title="Toggle calorie awareness and daily intake tracking"
+                  title="Toggle diet-friendly filtering and daily calorie tracking"
                 >
                   <Heart className={`w-3.5 h-3.5 ${healthMode ? 'fill-[#FF6B35] text-[#FF6B35]' : 'text-[#9B9590]'}`} />
                   <span className="font-heading">Health Mode</span>
@@ -233,7 +259,7 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                   <Search className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Search..."
+                    placeholder="Search dishes..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-9 pr-3 py-1.5 rounded-xl text-xs focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
@@ -258,7 +284,15 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                         </span>
                       </div>
                       <p className="text-xs text-[#6B6560] mt-0.5">
-                        Consumed today: <strong className="text-[#1E1B16] font-heading font-bold">{consumedToday}</strong> / <span className="font-heading font-bold text-[#FF6B35]">{effectiveGoal} kcal</span>
+                        {hasGoalSet ? (
+                          <>
+                            Consumed today: <strong className="text-[#1E1B16] font-heading font-bold">{consumedToday}</strong> / <span className="font-heading font-bold text-[#FF6B35]">{dailyCalorieGoal} kcal</span>
+                          </>
+                        ) : (
+                          <>
+                            Consumed today: <strong className="text-[#1E1B16] font-heading font-bold">{consumedToday} kcal</strong> • <span className="text-[#9B9590]">No target goal set</span>
+                          </>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -266,7 +300,7 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                   <div className="flex items-center gap-2 self-start sm:self-auto">
                     {isOverGoal && (
                       <span className="status-pill status-pill-warning text-[10px] font-heading">
-                        Goal Exceeded (+{consumedToday - effectiveGoal} kcal)
+                        Goal Exceeded (+{consumedToday - dailyCalorieGoal} kcal)
                       </span>
                     )}
                     <button
@@ -274,19 +308,23 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                       className="text-xs font-semibold text-[#FF6B35] hover:text-[#E85A2A] bg-white px-2.5 py-1 rounded-lg border border-orange-200 shadow-soft-sm flex items-center gap-1 transition"
                     >
                       <Edit3 className="w-3 h-3" />
-                      <span>{dailyCalorieGoal ? 'Edit Goal' : 'Set Goal'}</span>
+                      <span>{hasGoalSet ? 'Edit Goal' : 'Set Daily Goal'}</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Progress Bar */}
+                {/* Progress Bar Track */}
                 <div className="w-full bg-stone-200/80 rounded-full h-2.5 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      isOverGoal ? 'bg-gradient-to-r from-[#FF6B35] to-[#DC2626]' : 'bg-gradient-to-r from-[#FF6B35] to-[#F7931E]'
-                    }`}
-                    style={{ width: `${progressPercent}%` }}
-                  />
+                  {hasGoalSet ? (
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        isOverGoal ? 'bg-gradient-to-r from-[#FF6B35] to-[#DC2626]' : 'bg-gradient-to-r from-[#FF6B35] to-[#F7931E]'
+                      }`}
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-stone-200 rounded-full" />
+                  )}
                 </div>
               </div>
             )}
@@ -317,8 +355,15 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
             ) : filteredItems.length === 0 ? (
               <div className="py-16 text-center text-[#6B6560] space-y-2">
                 <UtensilsCrossed className="w-10 h-10 mx-auto text-[#9B9590]" />
-                <h3 className="text-base font-bold text-[#1E1B16] font-heading">No dishes found</h3>
-                <p className="text-xs text-[#6B6560]">Try selecting a different meal category or clearing your search.</p>
+                <h3 className="text-base font-bold text-[#1E1B16] font-heading">
+                  {healthMode ? 'No diet-friendly dishes found' : 'No dishes found'}
+                </h3>
+                <p className="text-xs text-[#6B6560]">
+                  {healthMode 
+                    ? 'No items match the diet-friendly filter in this category. Try choosing "All" or turning off Health Mode.'
+                    : 'Try selecting a different meal category or clearing your search.'
+                  }
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -448,6 +493,20 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-[#9B9590]" />
               </button>
+
+              {/* Goal Edit Quick Button */}
+              <button
+                onClick={() => setIsGoalModalOpen(true)}
+                className="w-full p-3 rounded-xl border border-orange-200 bg-[#FFF7F0] hover:bg-orange-100/60 flex items-center justify-between transition group shadow-soft-sm"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Heart className="w-4 h-4 text-[#FF6B35]" />
+                  <span className="font-semibold text-[#1E1B16] font-heading">
+                    {hasGoalSet ? `Daily Goal: ${dailyCalorieGoal} kcal` : 'Set Calorie Goal'}
+                  </span>
+                </div>
+                <Edit3 className="w-3.5 h-3.5 text-[#FF6B35]" />
+              </button>
             </div>
           </div>
 
@@ -512,7 +571,7 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
       >
         <div className="space-y-4">
           <p className="text-xs text-[#6B6560] leading-relaxed">
-            Set your target daily calorie intake. Health Mode tracks every meal order and keeps you aware of your daily nutrition.
+            Set your target daily calorie intake. Health Mode tracks your daily meal orders and keeps you informed of your nutritional progress.
           </p>
 
           {/* Quick Presets */}

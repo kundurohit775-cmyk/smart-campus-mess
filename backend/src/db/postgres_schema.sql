@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS students (
     password_hash VARCHAR(255) NOT NULL,
     room_number VARCHAR(50),
     daily_calorie_goal INT DEFAULT NULL,
+    health_mode_enabled BOOLEAN DEFAULT FALSE,
     status VARCHAR(50) DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -29,7 +30,8 @@ CREATE TABLE IF NOT EXISTS menu_items (
     item_name VARCHAR(255) NOT NULL,
     category VARCHAR(100) NOT NULL,
     price INT NOT NULL,
-    calories INT DEFAULT 250,
+    calories INT DEFAULT NULL,
+    healthy_override BOOLEAN DEFAULT NULL,
     description TEXT,
     image_url TEXT,
     available_quantity INT DEFAULT 0,
