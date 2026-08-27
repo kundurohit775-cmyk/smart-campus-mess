@@ -73,6 +73,27 @@ export const api = {
     method: 'PATCH',
     body: JSON.stringify({ enabled })
   }),
+
+  // Next-Day Pre-Orders for Limited/Special Items
+  getTomorrowSpecials: () => request('/preorders/specials'),
+  placePreOrder: (itemId, quantity) => request('/preorders', {
+    method: 'POST',
+    body: JSON.stringify({ itemId, quantity })
+  }),
+  getMyPreOrders: () => request('/preorders/my'),
+  cancelPreOrder: (preOrderId) => request(`/preorders/${preOrderId}/cancel`, {
+    method: 'POST'
+  }),
+  getAdminPreOrders: (date, itemId) => {
+    const params = new URLSearchParams();
+    if (date) params.append('date', date);
+    if (itemId) params.append('itemId', itemId);
+    const qs = params.toString();
+    return request(`/preorders/admin${qs ? '?' + qs : ''}`);
+  },
+  fulfillPreOrder: (preOrderId) => request(`/preorders/admin/${preOrderId}/fulfill`, {
+    method: 'PATCH'
+  }),
   getTransactions: async (studentId) => {
     try {
       const me = JSON.parse(localStorage.getItem('mess_user_session') || '{}');

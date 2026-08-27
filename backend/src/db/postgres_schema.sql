@@ -32,11 +32,28 @@ CREATE TABLE IF NOT EXISTS menu_items (
     price INT NOT NULL,
     calories INT DEFAULT NULL,
     healthy_override BOOLEAN DEFAULT NULL,
+    is_special BOOLEAN DEFAULT FALSE,
+    special_stock_limit INT DEFAULT NULL,
+    special_available_date DATE DEFAULT NULL,
     description TEXT,
     image_url TEXT,
     available_quantity INT DEFAULT 0,
     is_active INT DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS pre_orders (
+    pre_order_id SERIAL PRIMARY KEY,
+    student_id INT NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+    item_id INT NOT NULL REFERENCES menu_items(item_id) ON DELETE CASCADE,
+    quantity INT NOT NULL CHECK (quantity > 0),
+    price_per_item INT NOT NULL,
+    total_amount INT NOT NULL,
+    pickup_token VARCHAR(50) NOT NULL,
+    scheduled_date DATE NOT NULL,
+    status VARCHAR(50) DEFAULT 'confirmed', -- 'confirmed', 'cancelled', 'fulfilled'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS orders (

@@ -9,20 +9,29 @@ import {
   UtensilsCrossed, 
   RotateCcw, 
   ArrowRight, 
-  BellRing 
+  BellRing,
+  Calendar
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { OrderStepper } from '../../components/OrderStepper';
+import { useToast } from '../../context/ToastContext';
 
 export function OrderTracking({ onBrowseMenu }) {
+  const { showToast } = useToast();
   const [orders, setOrders] = useState([]);
+  const [preOrders, setPreOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
 
   const fetchOrders = async () => {
     try {
-      const res = await api.getOrders();
-      setOrders(res.orders || []);
+      const [ordersRes, preOrdersRes] = await Promise.all([
+        api.getOrders(),
+        api.getMyPreOrders().catch(() => ({ preOrders: [] }))
+      ]);
+      setOrders(ordersRes.orders || []);
+      setPreOrders(preOrdersRes.preOrders || []);
     } catch (err) {
       console.error('Failed to load orders:', err);
     } finally {
@@ -36,9 +45,25 @@ export function OrderTracking({ onBrowseMenu }) {
     return () => clearInterval(interval);
   }, []);
 
+  const handleCancelPreOrder = async (preOrderId) => {
+    setCancellingId(preOrderId);
+    try {
+      const res = await api.cancelPreOrder(preOrderId);
+      showToast(res.message || 'Pre-order cancelled & credits refunded.', 'success');
+      await fetchOrders();
+    } catch (err) {
+      showToast(err.message || 'Failed to cancel pre-order', 'error');
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   const ordersList = Array.isArray(orders) ? orders : [];
   const activeOrders = ordersList.filter(o => o.order_status !== 'Completed' && o.order_status !== 'Cancelled');
   const pastOrders = ordersList.filter(o => o.order_status === 'Completed' || o.order_status === 'Cancelled');
+
+  const preOrdersList = Array.isArray(preOrders) ? preOrders : [];
+  const activePreOrders = preOrdersList.filter(p => p.status === 'confirmed');
 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);
@@ -51,10 +76,10 @@ export function OrderTracking({ onBrowseMenu }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#1E1B16] font-heading">
-            Live Order Tracking
+            Live Order & Reservation Tracking
           </h1>
           <p className="text-xs sm:text-sm text-[#6B6560] mt-0.5">
-            Monitor real-time food preparation stages and pick up using your token
+            Monitor real-time food preparation stages and track upcoming next-day pre-order tokens
           </p>
         </div>
 
@@ -67,7 +92,72 @@ export function OrderTracking({ onBrowseMenu }) {
         </button>
       </div>
 
-      {/* 1. ACTIVE ORDERS SECTION */}
+      {/* 1. UPCOMING SPECIAL PRE-ORDERS */}
+      {activePreOrders.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#FF6B35] flex items-center gap-1.5 font-heading">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Next-Day Special Reservations</span>
+            </span>
+            <span className="status-pill status-pill-warning text-[11px] py-0.5 px-2 font-bold text-[#FF6B35]">
+              {activePreOrders.length} Booked
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activePreOrders.map((preOrder) => (
+              <div
+                key={preOrder.pre_order_id}
+                className="card border-orange-200 bg-[#FFF7F0]/60 p-5 space-y-3 shadow-soft-sm"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={preOrder.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80'}
+                      alt={preOrder.item_name}
+                      className="w-12 h-12 rounded-xl object-cover border border-stone-200 shrink-0"
+                    />
+                    <div>
+                      <h4 className="font-bold text-sm text-[#1E1B16] font-heading">
+                        {preOrder.quantity}x {preOrder.item_name}
+                      </h4>
+                      <div className="flex items-center gap-2 text-xs text-[#6B6560] mt-0.5">
+                        <span className="font-bold text-[#FF6B35] font-heading">Token: {preOrder.pickup_token}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1 font-heading">
+                          <Calendar className="w-3 h-3 text-[#9B9590]" />
+                          {new Date(preOrder.scheduled_date).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <span className="status-pill status-pill-success text-xs font-heading">
+                    Confirmed
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-orange-200/80 text-xs">
+                  <span className="text-[#6B6560] font-heading font-semibold">
+                    Cost: {preOrder.total_amount} Credits
+                  </span>
+                  <button
+                    type="button"
+                    disabled={cancellingId === preOrder.pre_order_id}
+                    onClick={() => handleCancelPreOrder(preOrder.pre_order_id)}
+                    className="text-xs font-semibold text-[#DC2626] hover:underline"
+                  >
+                    {cancellingId === preOrder.pre_order_id ? 'Cancelling...' : 'Cancel Reservation'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 2. ACTIVE SAME-DAY ORDERS SECTION */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-[#FF6B35]">Active In-Kitchen Orders</span>
@@ -111,39 +201,50 @@ export function OrderTracking({ onBrowseMenu }) {
                   }`}
                 >
                   {isReady && (
-                    <div className="absolute top-0 right-0 bg-[#16A34A] text-white px-4 py-1 text-[11px] font-semibold rounded-bl-xl shadow-soft-sm flex items-center gap-1.5 animate-pulse font-heading">
-                      <BellRing className="w-3.5 h-3.5" />
-                      <span>Ready for Counter Pickup!</span>
+                    <div className="bg-[#16A34A] text-white px-4 py-1.5 -mx-6 -mt-6 mb-4 flex items-center justify-between text-xs font-bold font-heading">
+                      <span className="flex items-center gap-1.5">
+                        <BellRing className="w-4 h-4" />
+                        MEAL IS READY FOR PICKUP!
+                      </span>
+                      <span>Show Token #{order.pickup_token} at Counter</span>
                     </div>
                   )}
 
-                  <div className="space-y-5">
-                    {/* Card Top Info */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl font-bold text-[#1E1B16] font-heading">
-                            Order #{order.order_id}
-                          </span>
-                          <span className="status-pill status-pill-info text-xs">
-                            Token: {order.pickup_token}
-                          </span>
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-base border shadow-soft-sm font-heading ${
+                          isReady 
+                            ? 'bg-[#16A34A] text-white border-emerald-600' 
+                            : 'bg-[#FFF7F0] text-[#FF6B35] border-orange-200'
+                        }`}>
+                          {order.pickup_token}
                         </div>
-                        <span className="text-xs text-[#9B9590] block mt-0.5">
-                          Placed at {new Date(order.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-[#1E1B16] font-heading">Order #{order.order_id}</span>
+                            <span className={`status-pill text-[11px] ${
+                              isReady ? 'status-pill-success' : 'status-pill-warning'
+                            }`}>
+                              {order.order_status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#6B6560] mt-0.5">
+                            Placed: {new Date(order.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="text-left sm:text-right">
-                        <span className="text-xs font-semibold text-[#9B9590] block">Total Paid</span>
-                        <span className="text-lg font-bold text-[#1E1B16] tabular-nums font-heading">
+                      <div className="text-right">
+                        <span className="text-xs text-[#9B9590] block">Total Amount</span>
+                        <span className="text-base font-bold text-[#1E1B16] tabular-nums font-heading">
                           {order.total_amount} Credits
                         </span>
                       </div>
                     </div>
 
                     {/* Stepper Progress */}
-                    <div className="pt-2">
+                    <div className="py-2">
                       <OrderStepper currentStatus={order.order_status} />
                     </div>
 
@@ -181,7 +282,7 @@ export function OrderTracking({ onBrowseMenu }) {
         )}
       </div>
 
-      {/* 2. PAST ORDER HISTORY */}
+      {/* 3. PAST ORDER HISTORY */}
       {pastOrders.length > 0 && (
         <div className="card-static space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-stone-100">
@@ -271,7 +372,6 @@ export function OrderTracking({ onBrowseMenu }) {
           </div>
         </div>
       )}
-
     </div>
   );
 }

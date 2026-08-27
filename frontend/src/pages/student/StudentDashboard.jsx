@@ -17,7 +17,9 @@ import {
   Zap,
   Heart,
   Flame,
-  Edit3
+  Edit3,
+  Calendar,
+  XCircle
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -28,21 +30,28 @@ import { StatCard } from '../../components/StatCard';
 import { MenuCard } from '../../components/MenuCard';
 import { TopupModal } from '../../components/TopupModal';
 import { Modal } from '../../components/Modal';
+import { PreOrderModal } from '../../components/PreOrderModal';
 
 const CATEGORIES = ['All', 'Breakfast', 'Lunch', 'Snacks', 'Dinner', 'Beverages'];
 const GOAL_PRESETS = [1500, 2000, 2500];
 
 export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions }) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
   const { cart = [], totalAmount = 0, totalCount = 0, setIsOpen: setCartOpen } = useCart();
   
   const [items, setItems] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
+  const [myPreOrders, setMyPreOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isTopupOpen, setIsTopupOpen] = useState(false);
+
+  // Pre-Order Modal states
+  const [selectedSpecialItem, setSelectedSpecialItem] = useState(null);
+  const [isMyPreOrdersOpen, setIsMyPreOrdersOpen] = useState(false);
+  const [cancellingPreOrderId, setCancellingPreOrderId] = useState(null);
 
   // Health Mode states
   const [healthMode, setHealthMode] = useState(() => {
@@ -55,13 +64,16 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
 
   const fetchDashboardData = async () => {
     try {
-      const [menuRes, transRes, healthRes] = await Promise.all([
+      const [menuRes, transRes, healthRes, preOrderRes] = await Promise.all([
         api.getMenu(),
         api.getTransactions().catch(() => ({ transactions: [] })),
-        api.getHealthStats().catch(() => null)
+        api.getHealthStats().catch(() => null),
+        api.getMyPreOrders().catch(() => ({ preOrders: [] }))
       ]);
       setItems(menuRes?.items || []);
       setRecentTransactions(transRes?.transactions?.slice(0, 4) || []);
+      setMyPreOrders(preOrderRes?.preOrders || []);
+
       if (healthRes) {
         setHealthStats(healthRes);
         const goal = healthRes.goal ?? healthRes.dailyCalorieGoal;
@@ -90,12 +102,10 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
     setHealthMode(nextVal);
     localStorage.setItem('smartmess_health_mode', String(nextVal));
 
-    // Persist to backend per-student preference
     api.setHealthMode(nextVal).catch(() => {});
 
     if (nextVal) {
       showToast('Health Mode ON: Filtered to diet-friendly items (≤400 kcal)', 'success', 3000);
-      // If student hasn't set a goal yet, show modal to prompt setting goal
       const currentGoal = healthStats?.goal ?? healthStats?.dailyCalorieGoal;
       if (!currentGoal) {
         setIsGoalModalOpen(true);
@@ -133,6 +143,20 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
     }
   };
 
+  const handleCancelPreOrder = async (preOrderId) => {
+    setCancellingPreOrderId(preOrderId);
+    try {
+      const res = await api.cancelPreOrder(preOrderId);
+      showToast(res.message || 'Pre-order cancelled and credits refunded', 'success');
+      if (refreshUser) refreshUser();
+      await fetchDashboardData();
+    } catch (err) {
+      showToast(err.message || 'Failed to cancel pre-order', 'error');
+    } finally {
+      setCancellingPreOrderId(null);
+    }
+  };
+
   const remainingCredits = user?.credits?.remaining ?? 9000;
   const usedCredits = user?.credits?.used ?? 0;
   const isLow = remainingCredits < 500;
@@ -142,6 +166,8 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
   const hasGoalSet = Boolean(dailyCalorieGoal && dailyCalorieGoal > 0);
   const progressPercent = hasGoalSet ? Math.min(100, Math.round((consumedToday / dailyCalorieGoal) * 100)) : 0;
   const isOverGoal = Boolean(hasGoalSet && consumedToday > dailyCalorieGoal);
+
+  const activePreOrdersCount = myPreOrders.filter(p => p.status === 'confirmed').length;
 
   const filteredItems = (items || []).filter((item) => {
     const matchesCategory = selectedCategory === 'All' || item.category.toLowerCase() === selectedCategory.toLowerCase();
@@ -195,14 +221,15 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
           onClick={() => setCartOpen(true)}
         />
 
-        {/* Stat 4: Mess Service Status */}
+        {/* Stat 4: Next-Day Pre-Orders */}
         <StatCard
-          title="Campus Mess Status"
-          value="Kitchen Open"
-          subtitle="Accepting meal orders"
+          title="Special Pre-Orders"
+          value={`${activePreOrdersCount} ${activePreOrdersCount === 1 ? 'reservation' : 'reservations'}`}
+          subtitle={activePreOrdersCount > 0 ? 'Scheduled for tomorrow' : 'Limited items available'}
           icon={Sparkles}
-          color="success"
-          trend="Live Queue"
+          color="orange"
+          onClick={() => setIsMyPreOrdersOpen(true)}
+          trend="Next-Day"
           trendPositive={true}
         />
       </div>
@@ -232,7 +259,7 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                 <p className="text-xs text-[#6B6560] mt-0.5">
                   {healthMode 
                     ? 'Showing only diet-friendly dishes (≤400 kcal or chef recommended)'
-                    : 'Select dishes to add to your tray and generate instant pickup tokens'
+                    : 'Select dishes to add to your tray or pre-order limited specials for tomorrow'
                   }
                 </p>
               </div>
@@ -374,6 +401,7 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                     healthMode={healthMode}
                     consumedToday={consumedToday}
                     dailyCalorieGoal={dailyCalorieGoal}
+                    onPreOrder={(dish) => setSelectedSpecialItem(dish)}
                   />
                 ))}
               </div>
@@ -472,6 +500,20 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                 </span>
               </button>
 
+              {/* Special Pre-Orders Button */}
+              <button
+                onClick={() => setIsMyPreOrdersOpen(true)}
+                className="w-full p-3 rounded-xl border border-orange-200 bg-[#FFF7F0] hover:bg-orange-100/60 flex items-center justify-between transition group shadow-soft-sm"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="w-4 h-4 text-[#FF6B35]" />
+                  <span className="font-semibold text-[#1E1B16] font-heading">My Special Pre-Orders</span>
+                </div>
+                <span className="status-pill status-pill-warning text-[10px] font-bold text-[#FF6B35]">
+                  {activePreOrdersCount} active
+                </span>
+              </button>
+
               <button
                 onClick={onNavigateToOrders}
                 className="w-full p-3 rounded-xl border border-stone-200 bg-white hover:bg-[#FFF7F0] hover:border-orange-200 flex items-center justify-between transition group shadow-soft-sm"
@@ -493,20 +535,6 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-[#9B9590]" />
               </button>
-
-              {/* Goal Edit Quick Button */}
-              <button
-                onClick={() => setIsGoalModalOpen(true)}
-                className="w-full p-3 rounded-xl border border-orange-200 bg-[#FFF7F0] hover:bg-orange-100/60 flex items-center justify-between transition group shadow-soft-sm"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Heart className="w-4 h-4 text-[#FF6B35]" />
-                  <span className="font-semibold text-[#1E1B16] font-heading">
-                    {hasGoalSet ? `Daily Goal: ${dailyCalorieGoal} kcal` : 'Set Calorie Goal'}
-                  </span>
-                </div>
-                <Edit3 className="w-3.5 h-3.5 text-[#FF6B35]" />
-              </button>
             </div>
           </div>
 
@@ -519,16 +547,16 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
 
             <div className="space-y-3 text-xs text-[#6B6560]">
               <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 space-y-1">
-                <span className="font-bold text-[#1E1B16] block font-heading">🕒 Dining Service Timings</span>
+                <span className="font-bold text-[#1E1B16] block font-heading">⭐ Next-Day Chef Specials</span>
                 <p className="text-[#6B6560] leading-relaxed">
-                  Breakfast: 7:30 - 10:00 AM • Lunch: 12:00 - 3:00 PM • Dinner: 7:30 - 10:00 PM.
+                  Reserve limited special dishes before midnight for guaranteed pickup tomorrow!
                 </p>
               </div>
 
               <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 space-y-1">
-                <span className="font-bold text-[#1E1B16] block font-heading">✨ Monthly Credit Reset</span>
+                <span className="font-bold text-[#1E1B16] block font-heading">🕒 Dining Service Timings</span>
                 <p className="text-[#6B6560] leading-relaxed">
-                  Monthly 9,000 allowance resets automatically on the 1st of every month.
+                  Breakfast: 7:30 - 10:00 AM • Lunch: 12:00 - 3:00 PM • Dinner: 7:30 - 10:00 PM.
                 </p>
               </div>
             </div>
@@ -562,6 +590,96 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
         </div>
 
       </div>
+
+      {/* Pre-Order Modal */}
+      {selectedSpecialItem && (
+        <PreOrderModal
+          item={selectedSpecialItem}
+          isOpen={!!selectedSpecialItem}
+          onClose={() => setSelectedSpecialItem(null)}
+          onSuccess={async () => {
+            await fetchDashboardData();
+          }}
+        />
+      )}
+
+      {/* My Pre-Orders Modal */}
+      <Modal
+        isOpen={isMyPreOrdersOpen}
+        onClose={() => setIsMyPreOrdersOpen(false)}
+        title="My Special Pre-Orders"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-[#6B6560]">
+            Upcoming reservations for limited special batches. Present your token at the counter tomorrow.
+          </p>
+
+          {myPreOrders.length === 0 ? (
+            <div className="py-8 text-center text-xs text-[#9B9590] space-y-1.5">
+              <Sparkles className="w-8 h-8 mx-auto text-stone-300" />
+              <p>No special pre-orders booked yet.</p>
+              <p className="text-[11px]">Look for the "Special — Tomorrow Only" badge on the dining menu!</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-stone-100 max-h-96 overflow-y-auto pr-1">
+              {myPreOrders.map((order) => {
+                const isConfirmed = order.status === 'confirmed';
+                const isFulfilled = order.status === 'fulfilled';
+                const isCancelled = order.status === 'cancelled';
+
+                return (
+                  <div key={order.pre_order_id} className="py-3.5 space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img
+                          src={order.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80'}
+                          alt={order.item_name}
+                          className="w-11 h-11 rounded-xl object-cover border border-stone-200 shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-xs sm:text-sm text-[#1E1B16] truncate font-heading">
+                            {order.quantity}x {order.item_name}
+                          </h4>
+                          <div className="flex items-center gap-2 text-[11px] text-[#6B6560] mt-0.5">
+                            <span className="font-semibold text-[#FF6B35] font-heading">Token: {order.pickup_token}</span>
+                            <span>•</span>
+                            <span>{new Date(order.scheduled_date).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs font-bold text-[#1E1B16] tabular-nums font-heading">
+                          {order.total_amount} Cr
+                        </span>
+                        <span className={`status-pill text-[10px] font-heading ${
+                          isConfirmed ? 'status-pill-success' : isFulfilled ? 'status-pill-info' : 'status-pill-danger'
+                        }`}>
+                          {order.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isConfirmed && (
+                      <div className="flex items-center justify-between pt-1 text-xs">
+                        <span className="text-[11px] text-[#9B9590]">Pickup tomorrow during meal time</span>
+                        <button
+                          type="button"
+                          disabled={cancellingPreOrderId === order.pre_order_id}
+                          onClick={() => handleCancelPreOrder(order.pre_order_id)}
+                          className="text-[11px] font-semibold text-[#DC2626] hover:underline"
+                        >
+                          {cancellingPreOrderId === order.pre_order_id ? 'Cancelling...' : 'Cancel Reservation & Refund'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </Modal>
 
       {/* Set Daily Calorie Goal Modal */}
       <Modal

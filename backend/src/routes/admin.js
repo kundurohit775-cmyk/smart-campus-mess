@@ -137,11 +137,17 @@ router.patch('/students/:studentId/credits', async (req, res, next) => {
 
 /**
  * GET /api/admin/menu
- * List all menu items including stock & active status
+ * List all menu items including stock, specials & active status
  */
 router.get('/menu', async (req, res, next) => {
   try {
-    const rawItems = await db.all('SELECT * FROM menu_items ORDER BY item_id DESC');
+    const rawItems = await db.all(`
+      SELECT m.*, COALESCE(SUM(CASE WHEN p.status = 'confirmed' THEN p.quantity ELSE 0 END), 0) as booked_stock
+      FROM menu_items m
+      LEFT JOIN pre_orders p ON m.item_id = p.item_id AND p.scheduled_date = m.special_available_date
+      GROUP BY m.item_id
+      ORDER BY m.item_id DESC
+    `);
     const items = rawItems.map(row => {
       let is_healthy = false;
       if (row.healthy_override !== null && row.healthy_override !== undefined) {
@@ -149,8 +155,21 @@ router.get('/menu', async (req, res, next) => {
       } else if (row.calories !== null && row.calories !== undefined && row.calories !== '') {
         is_healthy = Number(row.calories) <= 400;
       }
+
+      const isSpecial = Boolean(row.is_special);
+      let remainingStock = row.available_quantity;
+      if (isSpecial && row.special_stock_limit != null) {
+        const limit = parseInt(row.special_stock_limit, 10);
+        const booked = parseInt(row.booked_stock, 10);
+        remainingStock = Math.max(0, limit - booked);
+      }
+
       return {
         ...row,
+        is_special: isSpecial,
+        isSpecial,
+        remaining_stock: remainingStock,
+        remaining_count: remainingStock,
         is_healthy,
         isHealthy: is_healthy
       };
@@ -167,7 +186,11 @@ router.get('/menu', async (req, res, next) => {
  */
 router.post('/menu', async (req, res, next) => {
   try {
-    const { item_name, category, price, calories, healthy_override, description, image_url, available_quantity } = req.body;
+    const { 
+      item_name, category, price, calories, healthy_override, 
+      is_special, special_stock_limit, special_available_date,
+      description, image_url, available_quantity 
+    } = req.body;
 
     if (!item_name || !category || price === undefined) {
       return res.status(400).json({ error: 'Item name, category, and price are required.' });
@@ -179,10 +202,23 @@ router.post('/menu', async (req, res, next) => {
     if (healthy_override === true || healthy_override === 'true') overrideVal = true;
     else if (healthy_override === false || healthy_override === 'false') overrideVal = false;
 
+    const isSpecialVal = Boolean(is_special === true || is_special === 'true');
+    const stockLimitVal = (special_stock_limit !== undefined && special_stock_limit !== null && special_stock_limit !== '')
+      ? parseInt(special_stock_limit, 10)
+      : null;
+    const availDateVal = special_available_date || null;
+
     const result = await db.run(`
-      INSERT INTO menu_items (item_name, category, price, calories, healthy_override, description, image_url, available_quantity, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
-    `, item_name.trim(), category.trim(), parseInt(price, 10), cal, overrideVal, description || '', defaultImg, parseInt(available_quantity || 0, 10));
+      INSERT INTO menu_items (
+        item_name, category, price, calories, healthy_override, 
+        is_special, special_stock_limit, special_available_date,
+        description, image_url, available_quantity, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    `, 
+      item_name.trim(), category.trim(), parseInt(price, 10), cal, overrideVal, 
+      isSpecialVal, stockLimitVal, availDateVal,
+      description || '', defaultImg, parseInt(available_quantity || 0, 10)
+    );
 
     const newItem = await db.get('SELECT * FROM menu_items WHERE item_id = ?', result.lastInsertRowid);
     let is_healthy = false;
@@ -208,7 +244,11 @@ router.post('/menu', async (req, res, next) => {
 router.patch('/menu/:itemId', async (req, res, next) => {
   try {
     const itemId = parseInt(req.params.itemId, 10);
-    const { item_name, category, price, calories, healthy_override, description, image_url, available_quantity, is_active } = req.body;
+    const { 
+      item_name, category, price, calories, healthy_override, 
+      is_special, special_stock_limit, special_available_date,
+      description, image_url, available_quantity, is_active 
+    } = req.body;
 
     const existing = await db.get('SELECT * FROM menu_items WHERE item_id = ?', itemId);
     if (!existing) {
@@ -225,6 +265,21 @@ router.patch('/menu/:itemId', async (req, res, next) => {
       calVal = (calories === null || calories === '') ? null : parseInt(calories, 10);
     }
 
+    let isSpecialVal = existing.is_special;
+    if (is_special !== undefined) {
+      isSpecialVal = Boolean(is_special === true || is_special === 'true');
+    }
+
+    let stockLimitVal = existing.special_stock_limit;
+    if (special_stock_limit !== undefined) {
+      stockLimitVal = (special_stock_limit === null || special_stock_limit === '') ? null : parseInt(special_stock_limit, 10);
+    }
+
+    let availDateVal = existing.special_available_date;
+    if (special_available_date !== undefined) {
+      availDateVal = (special_available_date === null || special_available_date === '') ? null : special_available_date;
+    }
+
     await db.run(`
       UPDATE menu_items 
       SET item_name = COALESCE(?, item_name),
@@ -232,6 +287,9 @@ router.patch('/menu/:itemId', async (req, res, next) => {
           price = COALESCE(?, price),
           calories = ?,
           healthy_override = ?,
+          is_special = ?,
+          special_stock_limit = ?,
+          special_available_date = ?,
           description = COALESCE(?, description),
           image_url = COALESCE(?, image_url),
           available_quantity = COALESCE(?, available_quantity),
@@ -243,6 +301,9 @@ router.patch('/menu/:itemId', async (req, res, next) => {
       price !== undefined ? parseInt(price, 10) : null,
       calVal,
       overrideVal,
+      isSpecialVal,
+      stockLimitVal,
+      availDateVal,
       description !== undefined ? description : null,
       image_url !== undefined ? image_url : null,
       available_quantity !== undefined ? parseInt(available_quantity, 10) : null,

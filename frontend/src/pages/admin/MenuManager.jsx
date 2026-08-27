@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, UtensilsCrossed, CheckCircle, XCircle, Flame, Heart } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, UtensilsCrossed, CheckCircle, XCircle, Flame, Heart, Sparkles, Calendar } from 'lucide-react';
 import { api } from '../../services/api';
 import { Modal } from '../../components/Modal';
 import { useToast } from '../../context/ToastContext';
 
 const CATEGORIES = ['Breakfast', 'Lunch', 'Snacks', 'Dinner', 'Beverages'];
+
+function getTomorrowDateStr() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().split('T')[0];
+}
 
 export function MenuManager() {
   const { showToast } = useToast();
@@ -24,6 +30,9 @@ export function MenuManager() {
     price: '',
     calories: '',
     healthy_override: 'auto', // 'auto', 'yes', 'no'
+    is_special: false,
+    special_stock_limit: 20,
+    special_available_date: getTomorrowDateStr(),
     description: '',
     image_url: '',
     available_quantity: 40
@@ -51,6 +60,9 @@ export function MenuManager() {
       price: '',
       calories: '',
       healthy_override: 'auto',
+      is_special: false,
+      special_stock_limit: 20,
+      special_available_date: getTomorrowDateStr(),
       description: '',
       image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
       available_quantity: 40
@@ -70,6 +82,9 @@ export function MenuManager() {
       price: item.price,
       calories: item.calories ?? '',
       healthy_override: overrideStr,
+      is_special: Boolean(item.is_special || item.isSpecial),
+      special_stock_limit: item.special_stock_limit ?? 20,
+      special_available_date: item.special_available_date ? String(item.special_available_date).split('T')[0] : getTomorrowDateStr(),
       description: item.description || '',
       image_url: item.image_url || '',
       available_quantity: item.available_quantity
@@ -92,7 +107,10 @@ export function MenuManager() {
       const payload = {
         ...formData,
         calories: formData.calories === '' ? null : parseInt(formData.calories, 10),
-        healthy_override: overrideVal
+        healthy_override: overrideVal,
+        is_special: Boolean(formData.is_special),
+        special_stock_limit: formData.is_special ? parseInt(formData.special_stock_limit || 20, 10) : null,
+        special_available_date: formData.is_special ? formData.special_available_date : null
       };
 
       if (editingItem) {
@@ -138,10 +156,10 @@ export function MenuManager() {
         <div>
           <h1 className="text-xl font-bold text-[#1E1B16] flex items-center gap-2.5 font-heading">
             <UtensilsCrossed className="w-6 h-6 text-[#C2410C]" />
-            <span>Menu Items & Diet Catalog</span>
+            <span>Menu & Special Pre-Orders Catalog</span>
           </h1>
           <p className="text-xs text-[#6B6560] mt-0.5">
-            Manage dishes, pricing, calorie values (kcal), and diet-friendly Health Mode tags
+            Manage dishes, pricing, limited next-day pre-order specials, and calorie data
           </p>
         </div>
 
@@ -175,10 +193,10 @@ export function MenuManager() {
               <tr>
                 <th className="py-3.5 px-6">Dish</th>
                 <th className="py-3.5 px-4">Category</th>
-                <th className="py-3.5 px-4 text-right">Price (Credits)</th>
-                <th className="py-3.5 px-4 text-center">Calories</th>
-                <th className="py-3.5 px-4 text-center">Diet-Friendly</th>
-                <th className="py-3.5 px-4 text-center">Stock</th>
+                <th className="py-3.5 px-4 text-right">Price</th>
+                <th className="py-3.5 px-4 text-center">Type</th>
+                <th className="py-3.5 px-4 text-center">Stock / Capacity</th>
+                <th className="py-3.5 px-4 text-center">Diet</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
                 <th className="py-3.5 px-6 text-right">Actions</th>
               </tr>
@@ -197,78 +215,96 @@ export function MenuManager() {
                   </td>
                 </tr>
               ) : (
-                filteredItems.map(item => (
-                  <tr key={item.item_id} className="h-14 hover:bg-stone-50/80 transition-colors">
-                    <td className="py-3 px-6">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={item.image_url}
-                          alt={item.item_name}
-                          className="w-10 h-10 rounded-xl object-cover shrink-0 border border-stone-200 shadow-soft-sm"
-                        />
-                        <div>
-                          <span className="font-bold text-[#1E1B16] block font-heading">{item.item_name}</span>
-                          <span className="text-xs text-[#6B6560] line-clamp-1 max-w-xs">{item.description}</span>
+                filteredItems.map(item => {
+                  const isSpecial = Boolean(item.is_special || item.isSpecial);
+                  const remaining = item.remaining_stock ?? item.available_quantity;
+
+                  return (
+                    <tr key={item.item_id} className="h-14 hover:bg-stone-50/80 transition-colors">
+                      <td className="py-3 px-6">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={item.image_url}
+                            alt={item.item_name}
+                            className="w-10 h-10 rounded-xl object-cover shrink-0 border border-stone-200 shadow-soft-sm"
+                          />
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-[#1E1B16] block font-heading">{item.item_name}</span>
+                              {isSpecial && (
+                                <span className="bg-[#FF6B35] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full font-heading flex items-center gap-0.5">
+                                  <Sparkles className="w-2.5 h-2.5" />
+                                  Special
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-[#6B6560] line-clamp-1 max-w-xs">{item.description}</span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="status-pill status-pill-info text-[11px]">
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right font-bold text-[#1E1B16] tabular-nums font-heading">
-                      {item.price} Credits
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      {item.calories != null ? (
-                        <span className="inline-flex items-center gap-1 font-bold text-xs text-[#FF6B35] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200/80 font-heading">
-                          <Flame className="w-3 h-3 text-[#FF6B35]" />
-                          {item.calories} kcal
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="status-pill status-pill-info text-[11px]">
+                          {item.category}
                         </span>
-                      ) : (
-                        <span className="text-xs text-[#9B9590] italic">Unset</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`status-pill text-xs font-heading ${
-                        item.is_healthy ? 'status-pill-success' : 'status-pill-danger'
-                      }`}>
-                        {item.is_healthy ? 'Diet-Friendly' : 'Standard'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`status-pill text-xs font-heading ${
-                        item.available_quantity <= 0
-                          ? 'status-pill-danger'
-                          : 'status-pill-success'
-                      }`}>
-                        {item.available_quantity} units
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => handleToggleActive(item)}
-                        className={`status-pill text-xs cursor-pointer transition font-heading ${
-                          item.is_active === 1
-                            ? 'status-pill-success hover:opacity-80'
-                            : 'status-pill-danger hover:opacity-80'
-                        }`}
-                      >
-                        {item.is_active === 1 ? 'Active' : 'Inactive'}
-                      </button>
-                    </td>
-                    <td className="py-3 px-6 text-right">
-                      <button
-                        onClick={() => openEditModal(item)}
-                        className="btn-secondary py-1.5 px-2.5 text-xs"
-                        title="Edit Dish"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="py-3 px-4 text-right font-bold text-[#1E1B16] tabular-nums font-heading">
+                        {item.price} Cr
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {isSpecial ? (
+                          <span className="status-pill status-pill-warning text-[10px] font-bold text-[#FF6B35]">
+                            Tomorrow Pre-Order
+                          </span>
+                        ) : (
+                          <span className="text-xs text-[#6B6560]">Same-Day</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {isSpecial ? (
+                          <span className={`status-pill text-xs font-heading ${
+                            remaining <= 0 ? 'status-pill-danger' : 'status-pill-success'
+                          }`}>
+                            {remaining} / {item.special_stock_limit} left
+                          </span>
+                        ) : (
+                          <span className={`status-pill text-xs font-heading ${
+                            item.available_quantity <= 0 ? 'status-pill-danger' : 'status-pill-success'
+                          }`}>
+                            {item.available_quantity} units
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`status-pill text-xs font-heading ${
+                          item.is_healthy ? 'status-pill-success' : 'status-pill-danger'
+                        }`}>
+                          {item.is_healthy ? 'Diet-Friendly' : 'Standard'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => handleToggleActive(item)}
+                          className={`status-pill text-xs cursor-pointer transition font-heading ${
+                            item.is_active === 1
+                              ? 'status-pill-success hover:opacity-80'
+                              : 'status-pill-danger hover:opacity-80'
+                          }`}
+                        >
+                          {item.is_active === 1 ? 'Active' : 'Inactive'}
+                        </button>
+                      </td>
+                      <td className="py-3 px-6 text-right">
+                        <button
+                          onClick={() => openEditModal(item)}
+                          className="btn-secondary py-1.5 px-2.5 text-xs"
+                          title="Edit Dish"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -320,7 +356,7 @@ export function MenuManager() {
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[#1E1B16]">Calories (kcal, optional)</label>
+              <label className="block text-xs font-semibold text-[#1E1B16]">Calories (kcal, opt)</label>
               <input
                 type="number"
                 min="0"
@@ -333,21 +369,63 @@ export function MenuManager() {
             </div>
           </div>
 
+          {/* Special Next-Day Pre-Order Box */}
+          <div className="p-3.5 rounded-2xl bg-[#FFF7F0] border border-orange-200 space-y-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="is_special_check"
+                checked={formData.is_special}
+                onChange={(e) => setFormData({ ...formData, is_special: e.target.checked })}
+                className="w-4 h-4 text-[#C2410C] rounded border-stone-300 focus:ring-[#C2410C]"
+              />
+              <label htmlFor="is_special_check" className="text-xs font-bold text-[#1E1B16] cursor-pointer flex items-center gap-1.5 font-heading">
+                <Sparkles className="w-3.5 h-3.5 text-[#FF6B35]" />
+                Mark as Limited Special (Next-Day Pre-Order Only)
+              </label>
+            </div>
+
+            {formData.is_special && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-[#1E1B16]">Batch Stock Limit</label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 20"
+                    value={formData.special_stock_limit}
+                    onChange={(e) => setFormData({ ...formData, special_stock_limit: e.target.value })}
+                    className="w-full bg-white border border-stone-200 text-[#1E1B16] px-3 py-1.5 rounded-xl text-xs outline-none focus:border-[#C2410C]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-semibold text-[#1E1B16]">Available Date</label>
+                  <input
+                    type="date"
+                    value={formData.special_available_date}
+                    onChange={(e) => setFormData({ ...formData, special_available_date: e.target.value })}
+                    className="w-full bg-white border border-stone-200 text-[#1E1B16] px-3 py-1.5 rounded-xl text-xs outline-none focus:border-[#C2410C]"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[#1E1B16]">Diet-Friendly Override</label>
+              <label className="block text-xs font-semibold text-[#1E1B16]">Diet Override</label>
               <select
                 value={formData.healthy_override}
                 onChange={(e) => setFormData({ ...formData, healthy_override: e.target.value })}
                 className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
               >
                 <option value="auto">Auto (≤400 kcal)</option>
-                <option value="yes">Force Diet-Friendly (Yes)</option>
-                <option value="no">Force Not Diet-Friendly (No)</option>
+                <option value="yes">Force Diet-Friendly</option>
+                <option value="no">Force Not Diet-Friendly</option>
               </select>
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[#1E1B16]">Initial Stock</label>
+              <label className="block text-xs font-semibold text-[#1E1B16]">Standard Stock</label>
               <input
                 type="number"
                 min="0"
