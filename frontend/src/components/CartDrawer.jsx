@@ -60,26 +60,26 @@ export function CartDrawer({ onOrderSuccess }) {
       {/* Backdrop */}
       <div
         onClick={() => setIsOpen(false)}
-        className="absolute inset-0 bg-[#0B0E1A]/80 backdrop-blur-xl transition-opacity animate-fade-in"
+        className="absolute inset-0 bg-stone-900/40 transition-opacity animate-fade-in"
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-[#131728] shadow-level-3 border-l border-border flex flex-col justify-between animate-slide-up">
+        <div className="w-screen max-w-md bg-[#FFFFFF] shadow-2xl border-l border-stone-200 flex flex-col justify-between animate-slide-up">
           
           {/* Drawer Header */}
-          <div className="p-5 border-b border-divider flex items-center justify-between bg-[#1A1F3A]/40">
+          <div className="p-5 border-b border-stone-100 flex items-center justify-between bg-[#FFF7F0]">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30 flex items-center justify-center font-bold">
+              <div className="w-9 h-9 rounded-xl bg-white text-[#FF6B35] border border-orange-200/80 flex items-center justify-center font-bold shadow-soft-sm">
                 <ShoppingBag className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-h3 text-ink font-heading">Your Meal Tray</h2>
-                <p className="text-xs text-muted font-medium">{cartList.length} dish{cartList.length === 1 ? '' : 'es'} ready for checkout</p>
+                <h2 className="text-base font-bold text-[#1E1B16] font-heading">Your Meal Tray</h2>
+                <p className="text-xs text-[#6B6560] font-medium">{cartList.length} dish{cartList.length === 1 ? '' : 'es'} ready for checkout</p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="w-8 h-8 rounded-full bg-[#0B0E1A] border border-border text-muted hover:text-ink hover:bg-white/10 flex items-center justify-center transition"
+              className="w-8 h-8 rounded-full bg-white border border-stone-200 text-[#6B6560] hover:text-[#1E1B16] flex items-center justify-center transition shadow-soft-sm"
             >
               <X className="w-4 h-4" />
             </button>
@@ -89,118 +89,101 @@ export function CartDrawer({ onOrderSuccess }) {
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {cartList.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4">
-                <div className="w-16 h-16 rounded-2xl bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30 flex items-center justify-center mx-auto shadow-glow-primary">
+                <div className="w-16 h-16 rounded-2xl bg-[#FFF7F0] text-[#FF6B35] border border-orange-200 flex items-center justify-center mx-auto shadow-soft-sm">
                   <ShoppingBag className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="text-h3 text-ink font-heading">Your Tray is Empty</h3>
-                  <p className="text-body text-xs mt-1 max-w-[220px]">
-                    Browse today's space-tech dining menu and add delicious meals to your tray.
+                  <h3 className="text-base font-bold text-[#1E1B16] font-heading">Your Tray is Empty</h3>
+                  <p className="text-xs text-[#6B6560] mt-1 max-w-[220px]">
+                    Browse today's dining menu and add delicious meals to your tray.
                   </p>
                 </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="btn-primary py-2.5 px-5 text-xs mx-auto"
-                >
-                  Browse Food Menu
-                </button>
               </div>
             ) : (
-              <div className="space-y-3">
-                {cartList.map(item => (
-                  <div
-                    key={item.item_id}
-                    className="flex items-center gap-3 p-3 bg-[#0B0E1A]/70 rounded-xl border border-border shadow-level-1 hover:border-[#8B5CF6]/40 transition-all duration-150"
-                  >
-                    <img
-                      src={item.image_url}
-                      alt={item.item_name}
-                      className="w-12 h-12 rounded-xl object-cover shrink-0 border border-border"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-sm text-ink truncate font-heading">{item.item_name}</h4>
-                      <p className="text-xs font-bold text-gradient mt-0.5 tabular-nums font-heading">
-                        {item.price} Credits <span className="text-[10px] text-muted font-normal">each</span>
-                      </p>
-
-                      {/* Quantity Stepper */}
-                      <div className="flex items-center gap-2 mt-2">
-                        <button
-                          onClick={() => updateQuantity && updateQuantity(item.item_id, item.quantity - 1)}
-                          className="w-6 h-6 rounded-[6px] bg-[#131728] border border-border flex items-center justify-center text-ink hover:bg-[#1A1F3A] active:scale-95 transition"
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                        </button>
-                        <span className="text-xs font-bold text-ink px-1 tabular-nums font-heading">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity && updateQuantity(item.item_id, item.quantity + 1)}
-                          disabled={item.quantity >= item.available_quantity}
-                          className="w-6 h-6 rounded-[6px] bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] disabled:opacity-30 text-white flex items-center justify-center font-bold active:scale-95 transition shadow-glow-primary"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="text-right flex flex-col justify-between items-end h-12">
-                      <span className="font-bold text-sm text-ink tabular-nums font-heading">
-                        {item.price * item.quantity} Cr
+              cartList.map(item => (
+                <div key={item.item_id} className="p-3.5 rounded-2xl bg-[#FFF7F0]/50 border border-stone-200/80 flex items-center justify-between gap-3 shadow-soft-sm">
+                  <div className="flex items-center gap-3">
+                    {item.image_url && (
+                      <img
+                        src={item.image_url}
+                        alt={item.item_name}
+                        className="w-12 h-12 rounded-xl object-cover border border-stone-200/80 shrink-0"
+                      />
+                    )}
+                    <div>
+                      <h4 className="text-xs font-bold text-[#1E1B16] font-heading">{item.item_name}</h4>
+                      <span className="text-xs font-bold text-[#FF6B35] font-heading tabular-nums">
+                        {item.price} Cr
                       </span>
-                      <button
-                        onClick={() => removeFromCart && removeFromCart(item.item_id)}
-                        className="text-muted hover:text-status-danger transition p-1"
-                        title="Remove item"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
                   </div>
-                ))}
 
-                <button
-                  onClick={clearCart}
-                  className="w-full text-center text-xs font-semibold text-muted hover:text-status-danger py-1 transition"
-                >
-                  Clear all items
-                </button>
-              </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 bg-white border border-stone-200 p-1 rounded-xl shadow-soft-sm">
+                      <button
+                        onClick={() => updateQuantity(item.item_id, item.quantity - 1)}
+                        className="w-6 h-6 rounded-lg bg-stone-50 hover:bg-stone-100 flex items-center justify-center text-[#1E1B16] transition"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="text-xs font-bold text-[#1E1B16] px-1.5 tabular-nums font-heading">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(item.item_id, item.quantity + 1)}
+                        className="w-6 h-6 rounded-lg bg-[#FF6B35] text-white flex items-center justify-center transition shadow-soft-sm"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => removeFromCart(item.item_id)}
+                      className="p-1.5 text-stone-400 hover:text-red-600 transition"
+                      title="Remove item"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
             )}
           </div>
 
           {/* Drawer Footer & Checkout */}
           {cartList.length > 0 && (
-            <div className="p-5 border-t border-divider bg-[#1A1F3A]/40 space-y-4">
-              {/* Credit Calculation Box */}
-              <div className="bg-[#0B0E1A] rounded-xl p-4 border border-border shadow-level-1 space-y-2 text-xs">
-                <div className="flex justify-between text-muted font-medium">
-                  <span>Available Balance:</span>
-                  <span className="font-bold text-ink tabular-nums font-heading">{remainingCredits.toLocaleString()} Credits</span>
+            <div className="p-5 border-t border-stone-100 bg-[#FFF7F0] space-y-4">
+              
+              {/* Financial Balance Breakdown */}
+              <div className="p-3.5 bg-white rounded-xl border border-stone-200/80 space-y-2 text-xs">
+                <div className="flex justify-between text-[#6B6560]">
+                  <span>Current Available Balance:</span>
+                  <span className="font-bold text-[#1E1B16] tabular-nums font-heading">{remainingCredits.toLocaleString()} Credits</span>
                 </div>
-                <div className="flex justify-between text-muted font-medium">
-                  <span>Tray Total:</span>
-                  <span className="font-bold text-[#F87171] tabular-nums font-heading">- {totalAmount.toLocaleString()} Credits</span>
+                <div className="flex justify-between text-[#6B6560]">
+                  <span>Meal Tray Subtotal:</span>
+                  <span className="font-bold text-[#FF6B35] tabular-nums font-heading">-{totalAmount} Credits</span>
                 </div>
-                <div className="pt-2 border-t border-divider flex justify-between font-bold text-sm">
-                  <span className="text-ink font-heading">Balance After Order:</span>
-                  <span className={`tabular-nums font-heading ${isInsufficientCredit ? 'text-status-danger' : 'text-status-success'}`}>
+                <div className="pt-2 border-t border-stone-100 flex justify-between font-bold">
+                  <span className="text-[#1E1B16]">Balance After Order:</span>
+                  <span className={`tabular-nums font-heading ${isInsufficientCredit ? 'text-red-600' : 'text-[#16A34A]'}`}>
                     {balanceAfterOrder.toLocaleString()} Credits
                   </span>
                 </div>
               </div>
 
-              {/* Insufficient Credit Warning */}
               {isInsufficientCredit && (
-                <div className="p-3 bg-[#F87171]/15 border border-[#F87171]/30 rounded-xl flex items-center gap-2 text-xs text-status-danger font-semibold">
+                <div className="p-3 bg-red-50 rounded-xl border border-red-200 flex items-center gap-2 text-xs text-red-700">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>You need {totalAmount - remainingCredits} more credits for this order.</span>
+                  <span>You do not have enough credits to complete this order.</span>
                 </div>
               )}
 
-              {/* Place Order Button */}
+              {/* Checkout Button */}
               <button
                 onClick={handlePlaceOrder}
-                disabled={loading || isInsufficientCredit}
-                className="w-full btn-primary"
+                disabled={loading || isInsufficientCredit || cartList.length === 0}
+                className="w-full btn-primary py-3 flex items-center justify-center gap-2 text-sm shadow-btn-orange"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -213,6 +196,7 @@ export function CartDrawer({ onOrderSuccess }) {
               </button>
             </div>
           )}
+
         </div>
       </div>
     </div>

@@ -55,38 +55,38 @@ export function Transactions() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       
-      {/* 1. HERO CREDIT BALANCE CARD with Display-Size Number */}
-      <div className="card bg-gradient-to-br from-[#1A1F3A] via-[#131728] to-[#0B0E1A] p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden border-[#8B5CF6]/30 shadow-glow-primary">
+      {/* 1. HERO CREDIT BALANCE CARD */}
+      <div className="card bg-[#FFF7F0] p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-orange-200/80 shadow-soft-sm">
         
         {/* Left: Display-Size Hero Balance */}
         <div className="space-y-3 max-w-lg">
           <div className="flex items-center gap-2">
-            <span className="text-micro text-[#8B5CF6] font-semibold">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#FF6B35]">
               Available Dining Credits
             </span>
-            <span className="status-pill status-pill-success text-[11px] py-0.5 px-2">
+            <span className="status-pill status-pill-success text-[11px] py-0.5 px-2 bg-white shadow-soft-sm">
               Live Ledger
             </span>
           </div>
 
           <div className="flex items-baseline gap-3">
-            <h1 className="text-display font-bold tabular-nums tracking-tight">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1E1B16] font-heading tabular-nums tracking-tight">
               {remaining.toLocaleString()}
             </h1>
-            <span className="text-body text-base font-semibold">
+            <span className="text-sm font-semibold text-[#6B6560]">
               / 9,000 allowance
             </span>
           </div>
 
           {/* Monthly Allowance Progress Bar */}
           <div className="space-y-1.5 pt-1">
-            <div className="flex justify-between text-xs text-muted font-medium">
+            <div className="flex justify-between text-xs text-[#6B6560] font-medium">
               <span>{used.toLocaleString()} Credits Spent This Cycle</span>
-              <span className="text-[#06B6D4] font-heading">{usedPercentage}% Utilized</span>
+              <span className="text-[#FF6B35] font-heading font-semibold">{usedPercentage}% Utilized</span>
             </div>
-            <div className="w-full h-2.5 rounded-full bg-[#0B0E1A] border border-border overflow-hidden">
+            <div className="w-full h-2.5 rounded-full bg-stone-200 overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] transition-all duration-500 shadow-glow-primary"
+                className="h-full rounded-full bg-[#FF6B35] transition-all duration-300"
                 style={{ width: `${usedPercentage}%` }}
               />
             </div>
@@ -97,7 +97,7 @@ export function Transactions() {
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
           <button
             onClick={() => setIsTopupOpen(true)}
-            className="w-full sm:w-auto btn-primary py-3.5 px-6 shadow-glow-primary"
+            className="w-full sm:w-auto btn-primary py-3.5 px-6 shadow-btn-orange"
           >
             <Plus className="w-4 h-4" />
             <span>Buy Credits via Razorpay</span>
@@ -105,30 +105,30 @@ export function Transactions() {
         </div>
       </div>
 
-      {/* 2. TRANSACTIONS LEDGER TABLE (56px row height, hover highlight, status pills) */}
+      {/* 2. TRANSACTIONS LEDGER TABLE */}
       <div className="card-static space-y-4 p-5 sm:p-6">
         
         {/* Header & Filter Pills */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-divider">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
           <div>
-            <h2 className="text-h2 text-ink font-heading">
+            <h2 className="text-lg font-bold text-[#1E1B16] font-heading">
               Credit Ledger Records
             </h2>
-            <p className="text-body text-xs mt-0.5">
+            <p className="text-xs text-[#6B6560] mt-0.5">
               Transparent, immutable history of all meals purchased, top-ups, and refunds
             </p>
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center gap-1.5 bg-[#0B0E1A] p-1 rounded-xl border border-border">
+          <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl">
             {['ALL', 'DEBIT', 'TOPUP', 'CREDIT'].map((type) => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
-                className={`px-3 py-1.5 rounded-[8px] text-xs font-semibold transition-all duration-200 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-180 ${
                   filterType === type
-                    ? 'bg-[#131728] text-ink border border-[#8B5CF6]/40 shadow-glow-primary'
-                    : 'text-muted hover:text-ink'
+                    ? 'bg-white text-[#FF6B35] shadow-soft-sm font-bold border border-orange-100'
+                    : 'text-[#6B6560] hover:text-[#1E1B16]'
                 }`}
               >
                 {type === 'ALL' ? 'All Records' : type === 'DEBIT' ? 'Food Orders' : type === 'TOPUP' ? 'Razorpay Topups' : 'Allowances'}
@@ -140,7 +140,7 @@ export function Transactions() {
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="text-micro text-muted border-b border-divider bg-[#0B0E1A]/60">
+            <thead className="text-xs font-semibold uppercase tracking-wider text-[#6B6560] border-b border-stone-200 bg-stone-50">
               <tr>
                 <th className="py-3 px-4">Transaction / Type</th>
                 <th className="py-3 px-4">Description</th>
@@ -149,16 +149,16 @@ export function Transactions() {
                 <th className="py-3 px-4 text-right">Date & Time</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-divider">
+            <tbody className="divide-y divide-stone-100">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="py-12 text-center text-muted animate-pulse">
+                  <td colSpan="5" className="py-12 text-center text-[#6B6560] animate-pulse">
                     Loading credit transactions...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-12 text-center text-muted">
+                  <td colSpan="5" className="py-12 text-center text-[#9B9590]">
                     No transactions found for this filter.
                   </td>
                 </tr>
@@ -170,47 +170,47 @@ export function Transactions() {
                   return (
                     <tr 
                       key={tx.transaction_id} 
-                      className="h-14 hover:bg-[#1A1F3A]/70 transition-colors"
+                      className="h-14 hover:bg-stone-50/80 transition-colors"
                     >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
                             isDebit 
-                              ? 'bg-[#F87171]/15 text-status-danger border-[#F87171]/30' 
+                              ? 'bg-red-50 text-[#DC2626] border-red-200' 
                               : isTopup 
-                              ? 'bg-[#34D399]/15 text-status-success border-[#34D399]/30 shadow-glow-emerald' 
-                              : 'bg-[#8B5CF6]/15 text-[#8B5CF6] border-[#8B5CF6]/30 shadow-glow-primary'
+                              ? 'bg-emerald-50 text-[#16A34A] border-emerald-200' 
+                              : 'bg-orange-50 text-[#FF6B35] border-orange-200'
                           }`}>
                             {isDebit ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
                           </div>
                           <div>
-                            <span className="font-semibold text-ink block font-heading">
+                            <span className="font-semibold text-[#1E1B16] block font-heading">
                               #{tx.transaction_id}
                             </span>
-                            <span className="text-[10px] text-muted uppercase font-medium">
+                            <span className="text-[10px] text-[#9B9590] uppercase font-medium">
                               {tx.transaction_type}
                             </span>
                           </div>
                         </div>
                       </td>
 
-                      <td className="py-3 px-4 text-body font-medium">
+                      <td className="py-3 px-4 text-[#1E1B16] font-medium">
                         {tx.notes || (isDebit ? 'Mess meal order payment' : isTopup ? 'Razorpay credit top-up' : 'Credit adjustment')}
                       </td>
 
                       <td className="py-3 px-4 text-right">
                         <span className={`font-bold tabular-nums text-sm font-heading ${
-                          isDebit ? 'text-status-danger' : 'text-status-success'
+                          isDebit ? 'text-[#DC2626]' : 'text-[#16A34A]'
                         }`}>
                           {isDebit ? `-${tx.amount}` : `+${tx.amount}`} Credits
                         </span>
                       </td>
 
-                      <td className="py-3 px-4 text-right font-semibold text-ink tabular-nums font-heading">
+                      <td className="py-3 px-4 text-right font-semibold text-[#1E1B16] tabular-nums font-heading">
                         {tx.balance_after?.toLocaleString() ?? tx.balance_after}
                       </td>
 
-                      <td className="py-3 px-4 text-right text-muted text-xs whitespace-nowrap">
+                      <td className="py-3 px-4 text-right text-[#6B6560] text-xs whitespace-nowrap">
                         {new Date(tx.transaction_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                       </td>
                     </tr>

@@ -56,9 +56,9 @@ export function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0B0E1A] flex flex-col items-center justify-center text-[#F1F5F9] space-y-4 bg-space">
-        <div className="w-10 h-10 border-3 border-[#8B5CF6] border-t-transparent rounded-full animate-spin shadow-glow-primary" />
-        <p className="text-xs font-bold tracking-wider text-muted uppercase font-heading">Loading Smart Campus Mess...</p>
+      <div className="min-h-screen bg-[#FFFFFF] flex flex-col items-center justify-center text-[#1E1B16] space-y-4">
+        <div className="w-10 h-10 border-3 border-[#FF6B35] border-t-transparent rounded-full animate-spin shadow-btn-orange" />
+        <p className="text-xs font-bold tracking-wider text-[#6B6560] uppercase font-heading">Loading Smart Campus Mess...</p>
       </div>
     );
   }
@@ -72,7 +72,7 @@ export function App() {
   const isAdmin = user.role === 'admin' || user.isAdmin;
 
   return (
-    <div className="min-h-screen bg-[#0B0E1A] text-[#F1F5F9] flex flex-col selection:bg-[#8B5CF6] selection:text-white bg-space">
+    <div className="min-h-screen bg-[#FFFFFF] text-[#1E1B16] flex flex-col selection:bg-[#FF6B35] selection:text-white">
       {/* Role Navigation Bar */}
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 

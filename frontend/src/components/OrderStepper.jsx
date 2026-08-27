@@ -13,13 +13,13 @@ export function OrderStepper({ status, currentStatus }) {
 
   if (activeStatus === 'Cancelled') {
     return (
-      <div className="flex items-center gap-3 p-3.5 bg-[#F87171]/15 border border-[#F87171]/30 rounded-xl text-[#F87171] shadow-level-1">
-        <div className="w-8 h-8 rounded-lg bg-[#F87171]/20 flex items-center justify-center text-status-danger shrink-0">
+      <div className="flex items-center gap-3 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 shadow-soft-sm">
+        <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center text-red-600 shrink-0">
           <Ban className="w-4 h-4" />
         </div>
         <div>
-          <h4 className="font-bold text-xs sm:text-sm text-status-danger font-heading">Order Cancelled</h4>
-          <p className="text-xs text-[#F87171]">Credits were refunded back to student balance immediately.</p>
+          <h4 className="font-bold text-xs sm:text-sm text-red-800 font-heading">Order Cancelled</h4>
+          <p className="text-xs text-red-600">Credits were refunded back to student balance immediately.</p>
         </div>
       </div>
     );
@@ -35,9 +35,9 @@ export function OrderStepper({ status, currentStatus }) {
     <div className="w-full py-3">
       <div className="relative flex items-center justify-between">
         {/* Connecting Progress Line */}
-        <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-1 bg-[#1A1F3A] rounded-full z-0 mx-6">
+        <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-1 bg-stone-200 rounded-full z-0 mx-6">
           <div
-            className="h-full bg-gradient-to-r from-[#8B5CF6] via-[#06B6D4] to-[#34D399] rounded-full transition-all duration-500 shadow-glow-primary"
+            className="h-full bg-[#FF6B35] rounded-full transition-all duration-300"
             style={{ width: `${(activeIdx / (DISPLAY_STEPS.length - 1)) * 100}%` }}
           />
         </div>
@@ -48,25 +48,25 @@ export function OrderStepper({ status, currentStatus }) {
           const isCurrent = idx === activeIdx;
           const Icon = step.icon;
 
-          let nodeStyle = 'bg-[#0B0E1A] border-2 border-border text-muted shadow-level-1';
-          let textColor = 'text-muted';
+          let nodeStyle = 'bg-white border-2 border-stone-200 text-stone-400 shadow-soft-sm';
+          let textColor = 'text-[#9B9590]';
 
           if (isDone) {
-            nodeStyle = 'bg-status-success border-status-success text-white shadow-glow-emerald';
-            textColor = 'text-status-success font-semibold';
+            nodeStyle = 'bg-[#16A34A] border-[#16A34A] text-white shadow-soft-sm';
+            textColor = 'text-[#16A34A] font-semibold';
           } else if (isCurrent) {
-            nodeStyle = 'bg-gradient-to-tr from-[#8B5CF6] to-[#06B6D4] border-transparent text-white shadow-glow-primary';
-            textColor = 'text-[#06B6D4] font-bold';
+            nodeStyle = 'bg-[#FF6B35] border-[#FF6B35] text-white shadow-btn-orange';
+            textColor = 'text-[#FF6B35] font-bold';
           }
 
           return (
             <div key={step.key} className="relative z-10 flex flex-col items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${nodeStyle}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${nodeStyle}`}>
                 <Icon className="w-3.5 h-3.5" />
               </div>
               <div className="mt-2 text-center hidden sm:block">
                 <p className={`text-xs font-heading ${textColor}`}>{step.label}</p>
-                <p className="text-[10px] text-muted max-w-[80px] leading-tight">{step.desc}</p>
+                <p className="text-[10px] text-[#6B6560] max-w-[80px] leading-tight">{step.desc}</p>
               </div>
             </div>
           );
@@ -74,8 +74,8 @@ export function OrderStepper({ status, currentStatus }) {
       </div>
       
       {/* Mobile Label */}
-      <div className="sm:hidden text-center mt-2.5 pt-2 border-t border-divider">
-        <span className="text-xs font-bold text-[#06B6D4] uppercase font-heading">
+      <div className="sm:hidden text-center mt-2.5 pt-2 border-t border-stone-100">
+        <span className="text-xs font-bold text-[#FF6B35] uppercase font-heading">
           Status: {DISPLAY_STEPS[activeIdx]?.label}
         </span>
       </div>

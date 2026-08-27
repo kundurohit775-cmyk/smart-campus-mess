@@ -116,30 +116,30 @@ export function MenuManager() {
       {/* Header */}
       <div className="card-static flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6">
         <div>
-          <h1 className="text-h1 text-ink flex items-center gap-2.5 font-heading">
-            <UtensilsCrossed className="w-6 h-6 text-[#06B6D4]" />
+          <h1 className="text-xl font-bold text-[#1E1B16] flex items-center gap-2.5 font-heading">
+            <UtensilsCrossed className="w-6 h-6 text-[#C2410C]" />
             <span>Menu Items Catalog</span>
           </h1>
-          <p className="text-body text-xs mt-0.5">
+          <p className="text-xs text-[#6B6560] mt-0.5">
             Add, update, or price menu dishes and configure campus food inventory
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="relative w-full sm:w-56">
-            <Search className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search dishes..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input-field pl-9 h-9 text-xs"
+              className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-9 pr-3 py-1.5 rounded-xl text-xs focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
             />
           </div>
 
           <button
             onClick={openAddModal}
-            className="btn-primary py-2 px-3.5 text-xs whitespace-nowrap"
+            className="btn-primary py-2 px-3.5 text-xs whitespace-nowrap shadow-btn-orange"
           >
             <Plus className="w-4 h-4" />
             <span>Add Dish</span>
@@ -147,11 +147,11 @@ export function MenuManager() {
         </div>
       </div>
 
-      {/* Menu Table (56px row height, hover highlight, status pills) */}
+      {/* Menu Table */}
       <div className="card-static p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="text-micro text-muted border-b border-divider bg-[#0B0E1A]/60">
+            <thead className="text-xs font-semibold uppercase tracking-wider text-[#6B6560] border-b border-stone-200 bg-stone-50">
               <tr>
                 <th className="py-3.5 px-6">Dish</th>
                 <th className="py-3.5 px-4">Category</th>
@@ -161,32 +161,32 @@ export function MenuManager() {
                 <th className="py-3.5 px-6 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-divider">
+            <tbody className="divide-y divide-stone-100">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="py-12 text-center text-muted animate-pulse">
+                  <td colSpan="6" className="py-12 text-center text-[#6B6560] animate-pulse">
                     Loading menu items...
                   </td>
                 </tr>
               ) : filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="py-12 text-center text-muted">
+                  <td colSpan="6" className="py-12 text-center text-[#9B9590]">
                     No menu items found.
                   </td>
                 </tr>
               ) : (
                 filteredItems.map(item => (
-                  <tr key={item.item_id} className="h-14 hover:bg-[#1A1F3A]/70 transition-colors">
+                  <tr key={item.item_id} className="h-14 hover:bg-stone-50/80 transition-colors">
                     <td className="py-3 px-6">
                       <div className="flex items-center gap-3">
                         <img
                           src={item.image_url}
                           alt={item.item_name}
-                          className="w-10 h-10 rounded-xl object-cover shrink-0 border border-border shadow-level-1"
+                          className="w-10 h-10 rounded-xl object-cover shrink-0 border border-stone-200 shadow-soft-sm"
                         />
                         <div>
-                          <span className="font-bold text-ink block font-heading">{item.item_name}</span>
-                          <span className="text-xs text-muted line-clamp-1 max-w-xs">{item.description}</span>
+                          <span className="font-bold text-[#1E1B16] block font-heading">{item.item_name}</span>
+                          <span className="text-xs text-[#6B6560] line-clamp-1 max-w-xs">{item.description}</span>
                         </div>
                       </div>
                     </td>
@@ -195,7 +195,7 @@ export function MenuManager() {
                         {item.category}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right font-bold text-gradient tabular-nums font-heading">
+                    <td className="py-3 px-4 text-right font-bold text-[#1E1B16] tabular-nums font-heading">
                       {item.price} Credits
                     </td>
                     <td className="py-3 px-4 text-center">
@@ -244,32 +244,32 @@ export function MenuManager() {
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div className="space-y-1">
-            <label className="block text-micro text-muted font-semibold">Dish Name</label>
+            <label className="block text-xs font-semibold text-[#1E1B16]">Dish Name</label>
             <input
               type="text"
               required
               placeholder="e.g. Masala Dosa"
               value={formData.item_name}
               onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
-              className="input-field"
+              className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="block text-micro text-muted font-semibold">Category</label>
+              <label className="block text-xs font-semibold text-[#1E1B16]">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="input-field bg-[#0B0E1A] text-ink"
+                className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
               >
                 {(CATEGORIES || []).map(c => (
-                  <option key={c} value={c} className="bg-[#131728] text-ink">{c}</option>
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             </div>
             <div className="space-y-1">
-              <label className="block text-micro text-muted font-semibold">Price (Credits)</label>
+              <label className="block text-xs font-semibold text-[#1E1B16]">Price (Credits)</label>
               <input
                 type="number"
                 required
@@ -277,46 +277,46 @@ export function MenuManager() {
                 placeholder="e.g. 90"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="input-field"
+                className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="block text-micro text-muted font-semibold">Initial Stock</label>
+              <label className="block text-xs font-semibold text-[#1E1B16]">Initial Stock</label>
               <input
                 type="number"
                 min="0"
                 value={formData.available_quantity}
                 onChange={(e) => setFormData({ ...formData, available_quantity: e.target.value })}
-                className="input-field"
+                className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-micro text-muted font-semibold">Image URL</label>
+              <label className="block text-xs font-semibold text-[#1E1B16]">Image URL</label>
               <input
                 type="url"
                 placeholder="https://..."
                 value={formData.image_url}
                 onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                className="input-field"
+                className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="block text-micro text-muted font-semibold">Description</label>
+            <label className="block text-xs font-semibold text-[#1E1B16]">Description</label>
             <textarea
               rows={2}
               placeholder="Freshly prepared delicious meal..."
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="input-field h-auto py-2"
+              className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-divider">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100">
             <button
               type="button"
               onClick={() => { setIsAddOpen(false); setEditingItem(null); }}
@@ -327,7 +327,7 @@ export function MenuManager() {
             <button
               type="submit"
               disabled={submitting}
-              className="btn-primary py-2 px-5 text-xs"
+              className="btn-primary py-2 px-5 text-xs shadow-btn-orange"
             >
               {submitting ? 'Saving...' : 'Save Dish'}
             </button>

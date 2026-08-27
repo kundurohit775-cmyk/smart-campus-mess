@@ -242,67 +242,51 @@ export function Login() {
     return rawPhone;
   };
 
-  // Role Accent Configurations for Theme Harmony
+  // Role Accent Configurations for White & Orange Theme
   const isStudentView = view === 'student' || view === 'register';
   const isChefView = view === 'chef';
   const isAdminView = view === 'admin';
 
-  const roleGlowColor = isStudentView
-    ? 'from-[#8B5CF6]/15 via-[#6366F1]/10 to-transparent'
-    : isChefView
-    ? 'from-[#F59E0B]/15 via-[#EA580C]/10 to-transparent'
-    : 'from-[#F43F5E]/15 via-[#06B6D4]/10 to-transparent';
+  const roleAccentColor = isStudentView ? '#FF6B35' : isChefView ? '#EA580C' : '#C2410C';
+  const roleHoverBorder = isStudentView ? 'hover:border-[#FF6B35]/40' : isChefView ? 'hover:border-[#EA580C]/40' : 'hover:border-[#C2410C]/40';
 
-  const roleSecondaryGlow = isStudentView
-    ? 'bg-[#06B6D4]/10'
+  const roleBadgeStyle = isStudentView
+    ? 'bg-[#FFF7F0] text-[#FF6B35] border border-orange-200'
     : isChefView
-    ? 'bg-[#38BDF8]/10'
-    : 'bg-[#06B6D4]/10';
-
-  const roleCardBorder = isStudentView
-    ? 'border-[#8B5CF6]/25 hover:border-[#8B5CF6]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(139,92,246,0.12)]'
-    : isChefView
-    ? 'border-[#F59E0B]/25 hover:border-[#F59E0B]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(245,158,11,0.12)]'
-    : 'border-[#F43F5E]/25 hover:border-[#F43F5E]/50 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(244,63,94,0.12)]';
-
-  const roleAccentText = isStudentView
-    ? 'text-[#A78BFA]'
-    : isChefView
-    ? 'text-amber-400'
-    : 'text-rose-400';
+    ? 'bg-orange-50 text-[#EA580C] border border-orange-200'
+    : 'bg-orange-50 text-[#C2410C] border border-orange-200';
 
   const rolePrimaryButton = isStudentView
-    ? 'bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] hover:from-[#7C3AED] hover:to-[#0891B2] text-white shadow-[0_0_24px_rgba(139,92,246,0.4)]'
+    ? 'bg-gradient-to-r from-[#FF6B35] to-[#F7931E] hover:from-[#E85A2A] hover:to-[#EA580C] text-white shadow-[0_2px_10px_rgba(255,107,53,0.25)] hover:shadow-[0_4px_16px_rgba(255,107,53,0.35)]'
     : isChefView
-    ? 'bg-gradient-to-r from-[#F59E0B] to-[#EA580C] hover:from-[#D97706] hover:to-[#C2410C] text-white shadow-[0_0_24px_rgba(245,158,11,0.4)]'
-    : 'bg-gradient-to-r from-[#F43F5E] to-[#06B6D4] hover:from-[#E11D48] hover:to-[#0891B2] text-white shadow-[0_0_24px_rgba(244,63,94,0.4)]';
+    ? 'bg-gradient-to-r from-[#EA580C] to-[#C2410C] hover:from-[#C2410C] hover:to-[#9A3412] text-white shadow-[0_2px_10px_rgba(234,88,12,0.25)] hover:shadow-[0_4px_16px_rgba(234,88,12,0.35)]'
+    : 'bg-gradient-to-r from-[#C2410C] to-[#9A3412] hover:from-[#9A3412] hover:to-[#7C2D12] text-white shadow-[0_2px_10px_rgba(194,65,12,0.25)] hover:shadow-[0_4px_16px_rgba(194,65,12,0.35)]';
 
   const roleInputFocus = isStudentView
-    ? 'focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20'
+    ? 'focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15'
     : isChefView
-    ? 'focus:border-[#F59E0B] focus:ring-2 focus:ring-[#F59E0B]/20'
-    : 'focus:border-[#F43F5E] focus:ring-2 focus:ring-[#F43F5E]/20';
+    ? 'focus:border-[#EA580C] focus:ring-2 focus:ring-[#EA580C]/15'
+    : 'focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15';
 
   // =========================================================================
-  // VIEW 1: DARK HERO ROLE-SELECTION LANDING PAGE (route: "/")
+  // VIEW 1: CLEAN WHITE & ORANGE ROLE-SELECTION LANDING PAGE (route: "/")
   // =========================================================================
   if (view === 'role_select') {
     return (
-      <div className="min-h-screen bg-[#0B0E1A] text-[#F1F5F9] font-sans relative overflow-x-hidden selection:bg-[#8B5CF6] selection:text-white">
+      <div className="min-h-screen bg-[#FFFFFF] text-[#1E1B16] font-sans relative overflow-x-hidden selection:bg-[#FF6B35] selection:text-white">
         
-        {/* Subtle radial gradient glow behind headline */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-b from-[#8B5CF6]/15 via-[#6366F1]/10 to-transparent blur-[120px] pointer-events-none" />
-        <div className="absolute top-[40%] right-[-100px] w-[500px] h-[500px] bg-[#06B6D4]/10 blur-[140px] pointer-events-none" />
+        {/* Very subtle warm gradient blob in far background */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-gradient-to-b from-orange-100/35 via-amber-50/20 to-transparent blur-[100px] pointer-events-none" />
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 lg:py-16 relative z-10 flex flex-col items-center">
           
           {/* Top Brand Logo + App Name */}
           <div className="flex items-center gap-3 mb-8 animate-fade-in">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#06B6D4] flex items-center justify-center text-white shadow-[0_0_20px_rgba(139,92,246,0.4)] border border-white/20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#FF6B35] to-[#F7931E] flex items-center justify-center text-white shadow-[0_2px_8px_rgba(255,107,53,0.3)]">
               <UtensilsCrossed className="w-5 h-5" />
             </div>
-            <span className="text-xl sm:text-2xl font-bold tracking-tight text-[#F1F5F9]">
-              Smart<span className="text-[#8B5CF6]">Mess</span>
+            <span className="text-xl sm:text-2xl font-bold tracking-tight text-[#1E1B16] font-heading">
+              Smart<span className="text-[#FF6B35]">Mess</span>
             </span>
           </div>
 
@@ -310,21 +294,21 @@ export function Login() {
           <div className="text-center max-w-3xl space-y-6 animate-slide-up">
             
             {/* Badge Pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[rgba(139,92,246,0.12)] border border-[rgba(139,92,246,0.3)] text-[#A78BFA] text-xs font-semibold backdrop-blur-md shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-[#A78BFA] animate-pulse shadow-[0_0_8px_#A78BFA]" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FFF7F0] border border-orange-200 text-[#FF6B35] text-xs font-semibold shadow-soft-sm">
+              <span className="w-2 h-2 rounded-full bg-[#FF6B35] animate-pulse" />
               <span>Campus Food & Credit Platform</span>
             </div>
 
             {/* Large Bold Headline (2 Lines) */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1]">
-              <span className="text-[#F1F5F9] block">Smart dining,</span>
-              <span className="bg-gradient-to-r from-[#8B5CF6] via-[#A78BFA] to-[#06B6D4] bg-clip-text text-transparent block mt-1">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15] font-heading">
+              <span className="text-[#1E1B16] block">Smart dining,</span>
+              <span className="bg-gradient-to-r from-[#FF6B35] to-[#F7931E] bg-clip-text text-transparent block mt-1">
                 seamlessly managed.
               </span>
             </h1>
 
             {/* Subtext Paragraph */}
-            <p className="text-sm sm:text-base text-[#94A3B8] max-w-xl mx-auto leading-relaxed font-normal">
+            <p className="text-sm sm:text-base text-[#6B6560] max-w-xl mx-auto leading-relaxed font-normal">
               SmartMess connects students, chefs, and admins on one platform — from ordering to credit top-ups to kitchen management.
             </p>
 
@@ -335,7 +319,7 @@ export function Login() {
                 onClick={() => {
                   document.getElementById('role-selection-section')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] hover:from-[#7C3AED] hover:to-[#0891B2] text-white font-semibold px-6 py-3 rounded-xl text-sm shadow-[0_0_24px_rgba(139,92,246,0.4)] transition-all duration-200 active:scale-[0.98] flex items-center gap-2"
+                className="bg-gradient-to-r from-[#FF6B35] to-[#F7931E] hover:from-[#E85A2A] hover:to-[#EA580C] text-white font-semibold px-6 py-3 rounded-xl text-sm shadow-[0_2px_10px_rgba(255,107,53,0.25)] hover:shadow-[0_4px_16px_rgba(255,107,53,0.35)] transition-all duration-200 active:scale-[0.98] flex items-center gap-2"
               >
                 <span>Get Started</span>
                 <ArrowRight className="w-4 h-4" />
@@ -346,7 +330,7 @@ export function Login() {
                 onClick={() => {
                   document.getElementById('role-selection-section')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="border-[1.5px] border-[#8B5CF6] hover:bg-[#8B5CF6]/10 text-[#A78BFA] font-semibold px-6 py-3 rounded-xl text-sm transition-all duration-200 backdrop-blur-md"
+                className="bg-white hover:bg-[#FFF7F0] border border-stone-200 hover:border-orange-300 text-[#1E1B16] hover:text-[#FF6B35] font-semibold px-6 py-3 rounded-xl text-sm transition-all duration-200 shadow-soft-sm"
               >
                 Learn More
               </button>
@@ -355,105 +339,105 @@ export function Login() {
           </div>
 
           {/* Subtle Horizontal Divider */}
-          <div className="w-full max-w-4xl h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent my-14" />
+          <div className="w-full max-w-4xl h-px bg-stone-200/80 my-14" />
 
           {/* Role Cards Section */}
           <div id="role-selection-section" className="w-full space-y-8 scroll-mt-8">
             
             <div className="text-center space-y-1.5">
-              <h2 className="text-xl sm:text-2xl font-bold text-[#F1F5F9]">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#1E1B16] font-heading">
                 Choose how you'd like to sign in
               </h2>
-              <p className="text-xs sm:text-sm text-[#94A3B8]">
+              <p className="text-xs sm:text-sm text-[#6B6560]">
                 Select your role to initialize your authenticated dining session
               </p>
             </div>
 
-            {/* Three Role Cards Row (Desktop) / Stack (Mobile) */}
+            {/* Three Clean White Role Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto w-full">
               
-              {/* Card 1: Student (Violet #8B5CF6) */}
+              {/* Card 1: Student (#FF6B35) */}
               <div
                 onClick={() => navigateTo('student', '/login/student')}
-                className="group cursor-pointer bg-[rgba(19,23,40,0.65)] backdrop-blur-xl border border-[#8B5CF6]/20 hover:border-[#8B5CF6]/70 rounded-2xl p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_32px_rgba(139,92,246,0.3)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between space-y-6"
+                className="group cursor-pointer bg-[#FFFFFF] border border-stone-200 hover:border-[#FF6B35]/40 rounded-2xl p-6 sm:p-7 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between space-y-6"
               >
                 <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30 flex items-center justify-center shadow-[0_0_16px_rgba(139,92,246,0.3)] group-hover:scale-105 transition-transform">
+                  <div className="w-12 h-12 rounded-xl bg-[#FFF7F0] text-[#FF6B35] border border-orange-100 flex items-center justify-center group-hover:scale-105 transition-transform">
                     <GraduationCap className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-[#F1F5F9] group-hover:text-white transition-colors">
+                    <h3 className="text-lg font-bold text-[#1E1B16] font-heading group-hover:text-[#FF6B35] transition-colors">
                       Student
                     </h3>
-                    <p className="text-xs text-[#94A3B8] mt-1.5 leading-relaxed">
+                    <p className="text-xs text-[#6B6560] mt-1.5 leading-relaxed">
                       Order meals, track live queue tokens, and manage your 9,000 monthly credits.
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
-                  <span className="text-xs font-semibold text-[#8B5CF6] group-hover:text-[#A78BFA] transition-colors">
+                <div className="pt-3 flex items-center justify-between border-t border-stone-100">
+                  <span className="text-xs font-semibold text-[#FF6B35] group-hover:text-[#E85A2A] transition-colors">
                     Enter Student Portal
                   </span>
-                  <div className="w-7 h-7 rounded-full bg-[#1A1F3A] border border-[#8B5CF6]/30 group-hover:bg-[#8B5CF6] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#8B5CF6]">
+                  <div className="w-7 h-7 rounded-full bg-[#FFF7F0] border border-orange-100 group-hover:bg-[#FF6B35] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#FF6B35]">
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </div>
               </div>
 
-              {/* Card 2: Chef (Amber #F59E0B) */}
+              {/* Card 2: Chef (#EA580C) */}
               <div
                 onClick={() => navigateTo('chef', '/login/chef')}
-                className="group cursor-pointer bg-[rgba(19,23,40,0.65)] backdrop-blur-xl border border-[#F59E0B]/20 hover:border-[#F59E0B]/70 rounded-2xl p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_32px_rgba(245,158,11,0.3)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between space-y-6"
+                className="group cursor-pointer bg-[#FFFFFF] border border-stone-200 hover:border-[#EA580C]/40 rounded-2xl p-6 sm:p-7 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between space-y-6"
               >
                 <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30 flex items-center justify-center shadow-[0_0_16px_rgba(245,158,11,0.3)] group-hover:scale-105 transition-transform">
+                  <div className="w-12 h-12 rounded-xl bg-orange-50 text-[#EA580C] border border-orange-100 flex items-center justify-center group-hover:scale-105 transition-transform">
                     <ChefHat className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-[#F1F5F9] group-hover:text-white transition-colors">
+                    <h3 className="text-lg font-bold text-[#1E1B16] font-heading group-hover:text-[#EA580C] transition-colors">
                       Chef
                     </h3>
-                    <p className="text-xs text-[#94A3B8] mt-1.5 leading-relaxed">
+                    <p className="text-xs text-[#6B6560] mt-1.5 leading-relaxed">
                       Manage active meal prep, advance cooking stages, and control portion stock.
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
-                  <span className="text-xs font-semibold text-[#F59E0B] group-hover:text-amber-400 transition-colors">
+                <div className="pt-3 flex items-center justify-between border-t border-stone-100">
+                  <span className="text-xs font-semibold text-[#EA580C] group-hover:text-[#C2410C] transition-colors">
                     Enter Kitchen
                   </span>
-                  <div className="w-7 h-7 rounded-full bg-[#1A1F3A] border border-[#F59E0B]/30 group-hover:bg-[#F59E0B] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#F59E0B]">
+                  <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-100 group-hover:bg-[#EA580C] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#EA580C]">
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </div>
               </div>
 
-              {/* Card 3: Admin (Rose #F43F5E) */}
+              {/* Card 3: Admin (#C2410C) */}
               <div
                 onClick={() => navigateTo('admin', '/login/admin')}
-                className="group cursor-pointer bg-[rgba(19,23,40,0.65)] backdrop-blur-xl border border-[#F43F5E]/20 hover:border-[#F43F5E]/70 rounded-2xl p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_32px_rgba(244,63,94,0.3)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between space-y-6"
+                className="group cursor-pointer bg-[#FFFFFF] border border-stone-200 hover:border-[#C2410C]/40 rounded-2xl p-6 sm:p-7 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between space-y-6"
               >
                 <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#F43F5E]/15 text-[#F43F5E] border border-[#F43F5E]/30 flex items-center justify-center shadow-[0_0_16px_rgba(244,63,94,0.3)] group-hover:scale-105 transition-transform">
+                  <div className="w-12 h-12 rounded-xl bg-orange-50 text-[#C2410C] border border-orange-100 flex items-center justify-center group-hover:scale-105 transition-transform">
                     <ShieldCheck className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-[#F1F5F9] group-hover:text-white transition-colors">
+                    <h3 className="text-lg font-bold text-[#1E1B16] font-heading group-hover:text-[#C2410C] transition-colors">
                       Admin
                     </h3>
-                    <p className="text-xs text-[#94A3B8] mt-1.5 leading-relaxed">
+                    <p className="text-xs text-[#6B6560] mt-1.5 leading-relaxed">
                       Campus dining governance, student credit allotments, and audit logs.
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
-                  <span className="text-xs font-semibold text-[#F43F5E] group-hover:text-rose-400 transition-colors">
+                <div className="pt-3 flex items-center justify-between border-t border-stone-100">
+                  <span className="text-xs font-semibold text-[#C2410C] group-hover:text-[#9A3412] transition-colors">
                     Enter Console
                   </span>
-                  <div className="w-7 h-7 rounded-full bg-[#1A1F3A] border border-[#F43F5E]/30 group-hover:bg-[#F43F5E] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#F43F5E]">
+                  <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-100 group-hover:bg-[#C2410C] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#C2410C]">
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </div>
@@ -464,8 +448,8 @@ export function Login() {
           </div>
 
           {/* Footer Note */}
-          <div className="mt-16 text-center text-xs text-[#64748B]">
-            VIT University Campus Mess Network • 256-bit SSL Encrypted
+          <div className="mt-16 text-center text-xs text-[#9B9590]">
+            VIT University Campus Mess Network • Secure 256-bit SSL
           </div>
 
         </div>
@@ -474,30 +458,26 @@ export function Login() {
   }
 
   // =========================================================================
-  // VIEW 2: LOGIN PAGES (Student, Chef, Admin) & REGISTER (Student) — DARK SPACE-TECH
+  // VIEW 2: LOGIN PAGES (Student, Chef, Admin) & REGISTER (Student) — WHITE & ORANGE
   // =========================================================================
   return (
-    <div className="min-h-screen bg-[#0B0E1A] text-[#F1F5F9] font-sans flex flex-col justify-between items-center py-12 px-4 sm:px-6 relative overflow-x-hidden selection:bg-[#8B5CF6] selection:text-white">
+    <div className="min-h-screen bg-[#FFF7F0] text-[#1E1B16] font-sans flex flex-col justify-between items-center py-12 px-4 sm:px-6 relative selection:bg-[#FF6B35] selection:text-white">
       
-      {/* Dynamic Role-Tinted Radial Glows */}
-      <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-b ${roleGlowColor} blur-[130px] pointer-events-none`} />
-      <div className={`absolute bottom-[10%] right-[-100px] w-[500px] h-[500px] ${roleSecondaryGlow} blur-[150px] pointer-events-none`} />
-
       {/* Top Centered Brand Header */}
       <div className="text-center mb-6 space-y-2 relative z-10 animate-fade-in">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#8B5CF6] to-[#06B6D4] flex items-center justify-center text-white shadow-[0_0_20px_rgba(139,92,246,0.4)] border border-white/20 mx-auto">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#FF6B35] to-[#F7931E] flex items-center justify-center text-white shadow-[0_2px_8px_rgba(255,107,53,0.25)] mx-auto">
           <UtensilsCrossed className="w-6 h-6" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-[#F1F5F9] font-heading">
-          Smart<span className="text-[#8B5CF6]">Mess</span>
+        <h1 className="text-2xl font-bold tracking-tight text-[#1E1B16] font-heading">
+          Smart<span className="text-[#FF6B35]">Mess</span>
         </h1>
-        <p className="text-xs text-[#94A3B8] font-medium">
+        <p className="text-xs text-[#6B6560] font-medium">
           Campus Food & Credit Platform
         </p>
       </div>
 
       {/* =================================================================== */}
-      {/* LOGIN CARD (Student, Chef, Admin) — DARK GLASSMORPHIC               */}
+      {/* LOGIN CARD (Student, Chef, Admin) — CLEAN WHITE CARD                */}
       {/* =================================================================== */}
       {(view === 'student' || view === 'chef' || view === 'admin') && (
         <div className="max-w-[460px] w-full my-auto space-y-4 relative z-10 animate-fade-in">
@@ -506,26 +486,29 @@ export function Login() {
           <button
             type="button"
             onClick={() => navigateTo('role_select', '/')}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#94A3B8] hover:text-[#F1F5F9] transition"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6B6560] hover:text-[#1E1B16] transition"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>← Back to role selection</span>
           </button>
 
-          {/* Dark Glass Card */}
-          <div className={`bg-[rgba(19,23,40,0.7)] backdrop-blur-xl rounded-2xl p-7 sm:p-8 border ${roleCardBorder} space-y-6 transition-all duration-300`}>
+          {/* Clean White Card */}
+          <div className="bg-[#FFFFFF] rounded-2xl p-7 sm:p-8 border border-stone-200/80 shadow-card space-y-6">
             
             {/* Header */}
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className={`text-xs font-bold uppercase tracking-wider ${roleAccentText}`}>
+                <span 
+                  className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: '#FFF7F0', color: roleAccentColor }}
+                >
                   {view === 'student' ? 'Student Portal' : view === 'chef' ? 'Chef Station' : 'Admin Console'}
                 </span>
               </div>
-              <h2 className="text-xl font-bold text-[#F1F5F9] font-heading">
+              <h2 className="text-xl font-bold text-[#1E1B16] font-heading">
                 Sign in to your account
               </h2>
-              <p className="text-xs text-[#94A3B8] mt-1">
+              <p className="text-xs text-[#6B6560] mt-1">
                 {view === 'student'
                   ? 'Access your daily meal tray, live queue tokens, and dining credits'
                   : view === 'chef'
@@ -536,15 +519,15 @@ export function Login() {
 
             {/* Chef / Admin Security Notice Banners */}
             {view === 'chef' && (
-              <div className="p-3 bg-[#F59E0B]/10 border border-[#F59E0B]/25 rounded-xl text-xs text-amber-300 flex items-start gap-2.5">
-                <ChefHat className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="p-3 bg-orange-50 border border-orange-100 rounded-xl text-xs text-[#EA580C] flex items-start gap-2.5">
+                <ChefHat className="w-4 h-4 text-[#EA580C] shrink-0 mt-0.5" />
                 <span>Single-account authorized portal for campus kitchen culinary staff.</span>
               </div>
             )}
 
             {view === 'admin' && (
-              <div className="p-3 bg-[#F43F5E]/10 border border-[#F43F5E]/25 rounded-xl text-xs text-rose-300 flex items-start gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <div className="p-3 bg-orange-50 border border-orange-100 rounded-xl text-xs text-[#C2410C] flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-[#C2410C] shrink-0 mt-0.5" />
                 <span>Restricted campus dining governance & financial ledger console.</span>
               </div>
             )}
@@ -553,30 +536,30 @@ export function Login() {
             {/* STUDENT ONLY: 2-METHOD TOGGLE TABS (Password | Mobile OTP)    */}
             {/* ============================================================= */}
             {view === 'student' && (
-              <div className="bg-[#0B0E1A] p-1 rounded-xl border border-slate-800 flex items-center gap-1 shadow-inner">
+              <div className="bg-[#FFF7F0] p-1 rounded-xl border border-stone-200 flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setStudentLoginMethod('password')}
-                  className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
+                  className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg transition-all duration-180 ${
                     studentLoginMethod === 'password'
-                      ? 'bg-[#8B5CF6]/20 text-[#F1F5F9] border border-[#8B5CF6]/40 shadow-[0_0_12px_rgba(139,92,246,0.3)]'
-                      : 'text-[#94A3B8] hover:text-[#F1F5F9]'
+                      ? 'bg-[#FFFFFF] text-[#FF6B35] shadow-soft-sm font-bold border border-orange-100'
+                      : 'text-[#6B6560] hover:text-[#1E1B16]'
                   }`}
                 >
-                  <Mail className={`w-3.5 h-3.5 ${studentLoginMethod === 'password' ? 'text-[#8B5CF6]' : 'text-[#64748B]'}`} />
+                  <Mail className={`w-3.5 h-3.5 ${studentLoginMethod === 'password' ? 'text-[#FF6B35]' : 'text-[#9B9590]'}`} />
                   <span>Password</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setStudentLoginMethod('otp')}
-                  className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
+                  className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg transition-all duration-180 ${
                     studentLoginMethod === 'otp'
-                      ? 'bg-[#8B5CF6]/20 text-[#F1F5F9] border border-[#8B5CF6]/40 shadow-[0_0_12px_rgba(139,92,246,0.3)]'
-                      : 'text-[#94A3B8] hover:text-[#F1F5F9]'
+                      ? 'bg-[#FFFFFF] text-[#FF6B35] shadow-soft-sm font-bold border border-orange-100'
+                      : 'text-[#6B6560] hover:text-[#1E1B16]'
                   }`}
                 >
-                  <Smartphone className={`w-3.5 h-3.5 ${studentLoginMethod === 'otp' ? 'text-[#8B5CF6]' : 'text-[#64748B]'}`} />
+                  <Smartphone className={`w-3.5 h-3.5 ${studentLoginMethod === 'otp' ? 'text-[#FF6B35]' : 'text-[#9B9590]'}`} />
                   <span>Mobile OTP</span>
                 </button>
               </div>
@@ -590,41 +573,41 @@ export function Login() {
                 
                 {/* Email Field */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#F1F5F9]">
+                  <label className="block text-xs font-semibold text-[#1E1B16]">
                     {view === 'student' ? 'VIT Student Email' : `${view.charAt(0).toUpperCase() + view.slice(1)} Email`}
                   </label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Mail className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="email"
                       required
                       placeholder={view === 'student' ? 'student@vitstudent.ac.in' : `${view}@campus.internal`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className={`w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-3.5 py-2.5 rounded-xl text-sm outline-none transition ${roleInputFocus}`}
+                      className={`w-full bg-[#FAFAF9] focus:bg-[#FFFFFF] border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-10 pr-3.5 py-2.5 rounded-xl text-sm outline-none transition ${roleInputFocus}`}
                     />
                   </div>
                 </div>
 
                 {/* Password Field */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#F1F5F9]">
+                  <label className="block text-xs font-semibold text-[#1E1B16]">
                     Password
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Lock className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className={`w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-10 py-2.5 rounded-xl text-sm outline-none transition ${roleInputFocus}`}
+                      className={`w-full bg-[#FAFAF9] focus:bg-[#FFFFFF] border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-10 pr-10 py-2.5 rounded-xl text-sm outline-none transition ${roleInputFocus}`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#94A3B8] p-1"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B9590] hover:text-[#1E1B16] p-1"
                       title={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -634,12 +617,12 @@ export function Login() {
 
                 {/* Remember Me & Forgot Password */}
                 <div className="flex items-center justify-between text-xs pt-0.5">
-                  <label className="flex items-center gap-2 cursor-pointer text-[#94A3B8] select-none">
+                  <label className="flex items-center gap-2 cursor-pointer text-[#6B6560] select-none">
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 rounded bg-[#0B0E1A] border-slate-700 text-[#8B5CF6] focus:ring-0"
+                      className="w-4 h-4 rounded border-stone-300 text-[#FF6B35] focus:ring-[#FF6B35]"
                     />
                     <span>Remember me</span>
                   </label>
@@ -647,7 +630,8 @@ export function Login() {
                   <button
                     type="button"
                     onClick={() => showToast('Please contact your mess administrator for password resets.', 'info')}
-                    className={`${roleAccentText} font-semibold hover:underline`}
+                    className="font-semibold hover:underline"
+                    style={{ color: roleAccentColor }}
                   >
                     Forgot password?
                   </button>
@@ -681,21 +665,21 @@ export function Login() {
                   /* Step 1: Enter Phone Number */
                   <form onSubmit={handleSendLoginOtp} className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#F1F5F9]">
+                      <label className="block text-xs font-semibold text-[#1E1B16]">
                         Registered Mobile Number
                       </label>
                       <div className="relative">
-                        <Phone className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <Phone className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
                           type="tel"
                           required
                           placeholder="+91 98765 43210"
                           value={otpPhone}
                           onChange={(e) => setOtpPhone(e.target.value)}
-                          className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
+                          className="w-full bg-[#FAFAF9] focus:bg-[#FFFFFF] border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
                         />
                       </div>
-                      <p className="text-[11px] text-[#94A3B8]">
+                      <p className="text-[11px] text-[#6B6560]">
                         We'll send a 6-digit verification code via Twilio Verify SMS to this number.
                       </p>
                     </div>
@@ -719,17 +703,17 @@ export function Login() {
                   /* Step 2: Enter 6-digit OTP */
                   <form onSubmit={handleVerifyLoginOtp} className="space-y-4 animate-slide-up">
                     
-                    <div className="p-3 bg-[#8B5CF6]/10 border border-[#8B5CF6]/25 rounded-xl flex items-center justify-between">
+                    <div className="p-3 bg-[#FFF7F0] border border-orange-100 rounded-xl flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <Smartphone className="w-4 h-4 text-[#8B5CF6]" />
-                        <span className="text-xs text-[#F1F5F9]">
+                        <Smartphone className="w-4 h-4 text-[#FF6B35]" />
+                        <span className="text-xs text-[#1E1B16]">
                           Sent to <strong>{maskPhoneNumber(otpPhone)}</strong>
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => { setOtpSent(false); setOtpCode(''); }}
-                        className="text-xs font-semibold text-[#A78BFA] hover:underline"
+                        className="text-xs font-semibold text-[#FF6B35] hover:underline"
                       >
                         Edit
                       </button>
@@ -737,10 +721,10 @@ export function Login() {
 
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <label className="block text-xs font-semibold text-[#F1F5F9]">
+                        <label className="block text-xs font-semibold text-[#1E1B16]">
                           6-Digit Verification Code
                         </label>
-                        <span className="text-xs font-mono font-bold text-[#A78BFA]">
+                        <span className="text-xs font-mono font-bold text-[#FF6B35]">
                           ⏱️ {countdown > 0 ? `0:${countdown < 10 ? '0' : ''}${countdown}` : 'Expired'}
                         </span>
                       </div>
@@ -752,7 +736,7 @@ export function Login() {
                         placeholder="••••••"
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                        className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] text-center font-mono text-xl tracking-[0.35em] py-2.5 rounded-xl focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
+                        className="w-full bg-[#FAFAF9] focus:bg-[#FFFFFF] border border-stone-200 text-[#1E1B16] text-center font-mono text-xl tracking-[0.35em] py-2.5 rounded-xl focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
                       />
                     </div>
 
@@ -771,13 +755,13 @@ export function Login() {
                       )}
                     </button>
 
-                    <div className="flex items-center justify-between text-xs text-[#94A3B8] pt-0.5">
+                    <div className="flex items-center justify-between text-xs text-[#6B6560] pt-0.5">
                       <span>Didn't receive SMS?</span>
                       <button
                         type="button"
                         onClick={handleResendLoginOtp}
                         disabled={countdown > 0 || resending}
-                        className="font-semibold text-[#A78BFA] hover:underline disabled:opacity-40 flex items-center gap-1"
+                        className="font-semibold text-[#FF6B35] hover:underline disabled:opacity-40 flex items-center gap-1"
                       >
                         <RotateCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
                         <span>{resending ? 'Sending...' : 'Resend OTP'}</span>
@@ -792,13 +776,13 @@ export function Login() {
 
             {/* Bottom Registration Link (Student only) */}
             {view === 'student' && (
-              <div className="pt-4 border-t border-slate-800 text-center">
-                <p className="text-xs text-[#94A3B8]">
+              <div className="pt-4 border-t border-stone-100 text-center">
+                <p className="text-xs text-[#6B6560]">
                   New here?{' '}
                   <button
                     type="button"
                     onClick={() => navigateTo('register', '/register')}
-                    className="font-semibold text-[#8B5CF6] hover:text-[#A78BFA] hover:underline"
+                    className="font-semibold text-[#FF6B35] hover:underline"
                   >
                     Create an account
                   </button>
@@ -821,25 +805,25 @@ export function Login() {
           <button
             type="button"
             onClick={() => navigateTo('student', '/login/student')}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#94A3B8] hover:text-[#F1F5F9] transition"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6B6560] hover:text-[#1E1B16] transition"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>← Back to login</span>
           </button>
 
-          {/* Dark Glass Register Card */}
-          <div className="bg-[rgba(19,23,40,0.7)] backdrop-blur-xl rounded-2xl p-7 sm:p-8 border border-[#8B5CF6]/25 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(139,92,246,0.12)] space-y-6">
+          {/* Clean White Register Card */}
+          <div className="bg-[#FFFFFF] rounded-2xl p-7 sm:p-8 border border-stone-200/80 shadow-card space-y-6">
             
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#A78BFA]">
+                <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#FFF7F0] text-[#FF6B35] border border-orange-100">
                   Student Registration
                 </span>
               </div>
-              <h2 className="text-xl font-bold text-[#F1F5F9] font-heading">
+              <h2 className="text-xl font-bold text-[#1E1B16] font-heading">
                 Create student account
               </h2>
-              <p className="text-xs text-[#94A3B8] mt-1">
+              <p className="text-xs text-[#6B6560] mt-1">
                 Enter your details to receive your 9,000 monthly dining credits
               </p>
             </div>
@@ -848,18 +832,18 @@ export function Login() {
               
               {/* Full Name */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#F1F5F9]">
-                  Full Name <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-[#1E1B16]">
+                  Full Name <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <User className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
                     placeholder="e.g. Alex Chen"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
+                    className="w-full bg-[#FAFAF9] focus:bg-[#FFFFFF] border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
                   />
                 </div>
               </div>
@@ -867,59 +851,59 @@ export function Login() {
               {/* VIT Student Email */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-[#F1F5F9]">
-                    VIT Student Email <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-[#1E1B16]">
+                    VIT Student Email <span className="text-rose-500">*</span>
                   </label>
                   {email && (
-                    <span className={`text-[11px] font-bold ${isVitEmail ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <span className={`text-[11px] font-bold ${isVitEmail ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {isVitEmail ? '✓ Valid VIT Email' : '✗ Must be @vitstudent.ac.in'}
                     </span>
                   )}
                 </div>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     required
                     placeholder="name2024@vitstudent.ac.in"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
+                    className="w-full bg-[#FAFAF9] focus:bg-[#FFFFFF] border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
                   />
                 </div>
               </div>
 
               {/* Mobile Phone Number (Required & Stored) */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#F1F5F9]">
-                  Mobile Phone Number <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-[#1E1B16]">
+                  Mobile Phone Number <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Phone className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="tel"
                     required
                     placeholder="+91 98765 43210"
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
-                    className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
+                    className="w-full bg-[#FAFAF9] focus:bg-[#FFFFFF] border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
                   />
                 </div>
               </div>
 
               {/* Hostel Room (Optional) */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#F1F5F9]">
+                <label className="block text-xs font-semibold text-[#1E1B16]">
                   Hostel Room (Optional)
                 </label>
                 <div className="relative">
-                  <Home className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Home className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     placeholder="e.g. B-302"
                     value={roomNumber}
                     onChange={(e) => setRoomNumber(e.target.value)}
-                    className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
+                    className="w-full bg-[#FAFAF9] focus:bg-[#FFFFFF] border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
                   />
                 </div>
               </div>
@@ -927,23 +911,23 @@ export function Login() {
               {/* Password & Confirm Password */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#F1F5F9]">
-                    Password <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-[#1E1B16]">
+                    Password <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Lock className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-10 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
+                      className="w-full bg-[#FAFAF9] focus:bg-[#FFFFFF] border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-10 pr-10 py-2.5 rounded-xl text-sm focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#94A3B8] p-1"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B9590] hover:text-[#1E1B16] p-1"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -951,23 +935,23 @@ export function Login() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[#F1F5F9]">
-                    Confirm <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-[#1E1B16]">
+                    Confirm <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Lock className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full bg-[#0B0E1A]/80 border border-slate-800 text-[#F1F5F9] placeholder-[#64748B] pl-10 pr-10 py-2.5 rounded-xl text-sm focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6]/20 outline-none transition"
+                      className="w-full bg-[#FAFAF9] focus:bg-[#FFFFFF] border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-10 pr-10 py-2.5 rounded-xl text-sm focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#94A3B8] p-1"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B9590] hover:text-[#1E1B16] p-1"
                     >
                       {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -976,8 +960,8 @@ export function Login() {
               </div>
 
               {/* Monthly Allowance Information Banner */}
-              <div className="p-3 bg-[#8B5CF6]/10 border border-[#8B5CF6]/25 rounded-xl text-xs text-[#A78BFA] flex items-start gap-2.5">
-                <CheckCircle className="w-4 h-4 text-[#8B5CF6] shrink-0 mt-0.5" />
+              <div className="p-3 bg-[#FFF7F0] border border-orange-200/80 rounded-xl text-xs text-[#FF6B35] flex items-start gap-2.5">
+                <CheckCircle className="w-4 h-4 text-[#FF6B35] shrink-0 mt-0.5" />
                 <span>Upon registration, <strong>9,000 monthly dining credits</strong> will be allocated immediately to your student wallet.</span>
               </div>
 
@@ -985,7 +969,7 @@ export function Login() {
               <button
                 type="submit"
                 disabled={loading || !isVitEmail}
-                className="w-full bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] hover:from-[#7C3AED] hover:to-[#0891B2] text-white font-semibold py-3 rounded-xl text-sm shadow-[0_0_24px_rgba(139,92,246,0.4)] transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-[#FF6B35] to-[#F7931E] hover:from-[#E85A2A] hover:to-[#EA580C] text-white font-semibold py-3 rounded-xl text-sm shadow-[0_2px_10px_rgba(255,107,53,0.25)] hover:shadow-[0_4px_16px_rgba(255,107,53,0.35)] transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -999,13 +983,13 @@ export function Login() {
             </form>
 
             {/* Bottom Link to Sign In */}
-            <div className="pt-3 border-t border-slate-800 text-center">
-              <p className="text-xs text-[#94A3B8]">
+            <div className="pt-3 border-t border-stone-100 text-center">
+              <p className="text-xs text-[#6B6560]">
                 Already have an account?{' '}
                 <button
                   type="button"
                   onClick={() => navigateTo('student', '/login/student')}
-                  className="font-semibold text-[#8B5CF6] hover:text-[#A78BFA] hover:underline"
+                  className="font-semibold text-[#FF6B35] hover:underline"
                 >
                   Sign in
                 </button>
@@ -1018,8 +1002,8 @@ export function Login() {
       )}
 
       {/* Bottom Footer Text */}
-      <div className="mt-8 text-center text-xs text-[#64748B] relative z-10">
-        VIT University Campus Mess Network • 256-bit SSL Encrypted
+      <div className="mt-8 text-center text-xs text-[#9B9590] relative z-10">
+        VIT University Campus Mess Network • Secure 256-bit SSL
       </div>
 
     </div>

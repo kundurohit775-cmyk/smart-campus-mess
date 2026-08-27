@@ -83,32 +83,32 @@ export function StudentManager() {
       {/* Header */}
       <div className="card-static flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6">
         <div>
-          <h1 className="text-h1 text-ink flex items-center gap-2.5 font-heading">
-            <Users className="w-6 h-6 text-[#8B5CF6]" />
+          <h1 className="text-xl font-bold text-[#1E1B16] flex items-center gap-2.5 font-heading">
+            <Users className="w-6 h-6 text-[#C2410C]" />
             <span>Student Accounts & Balances</span>
           </h1>
-          <p className="text-body text-xs mt-0.5">
+          <p className="text-xs text-[#6B6560] mt-0.5">
             Monitor credit allowances, trigger 9,000 monthly resets, or grant manual allowances
           </p>
         </div>
 
         <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search student or room..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input-field pl-9 h-9 text-xs"
+            className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-9 pr-3 py-1.5 rounded-xl text-xs focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
           />
         </div>
       </div>
 
-      {/* Students Table (56px row height, hover highlight, status pills) */}
+      {/* Students Table */}
       <div className="card-static p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="text-micro text-muted border-b border-divider bg-[#0B0E1A]/60">
+            <thead className="text-xs font-semibold uppercase tracking-wider text-[#6B6560] border-b border-stone-200 bg-stone-50">
               <tr>
                 <th className="py-3.5 px-6">Student</th>
                 <th className="py-3.5 px-4">Room & Contact</th>
@@ -117,16 +117,16 @@ export function StudentManager() {
                 <th className="py-3.5 px-6 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-divider">
+            <tbody className="divide-y divide-stone-100">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="py-12 text-center text-muted animate-pulse">
+                  <td colSpan="5" className="py-12 text-center text-[#6B6560] animate-pulse">
                     Loading student accounts...
                   </td>
                 </tr>
               ) : filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-12 text-center text-muted">
+                  <td colSpan="5" className="py-12 text-center text-[#9B9590]">
                     No students found.
                   </td>
                 </tr>
@@ -135,23 +135,23 @@ export function StudentManager() {
                   const isLow = (student.remaining_credits ?? 0) < 500;
 
                   return (
-                    <tr key={student.student_id} className="h-14 hover:bg-[#1A1F3A]/70 transition-colors">
+                    <tr key={student.student_id} className="h-14 hover:bg-stone-50/80 transition-colors">
                       <td className="py-3 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#8B5CF6] flex items-center justify-center font-bold shrink-0 font-heading">
+                          <div className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-200 text-[#C2410C] flex items-center justify-center font-bold shrink-0 font-heading">
                             {student.name ? student.name.charAt(0) : 'S'}
                           </div>
                           <div>
-                            <span className="font-bold text-ink block font-heading">{student.name}</span>
-                            <span className="text-xs text-muted font-medium">{student.email}</span>
+                            <span className="font-bold text-[#1E1B16] block font-heading">{student.name}</span>
+                            <span className="text-xs text-[#6B6560] font-medium">{student.email}</span>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-body">
-                        <span className="font-semibold text-ink block">{student.room_number || 'Hostel'}</span>
-                        <span className="text-[11px] text-muted">{student.phone || 'No phone'}</span>
+                      <td className="py-3 px-4 text-[#6B6560]">
+                        <span className="font-semibold text-[#1E1B16] block">{student.room_number || 'Hostel'}</span>
+                        <span className="text-[11px] text-[#9B9590]">{student.phone || 'No phone'}</span>
                       </td>
-                      <td className="py-3 px-4 text-right text-muted font-bold tabular-nums font-heading">
+                      <td className="py-3 px-4 text-right text-[#6B6560] font-bold tabular-nums font-heading">
                         {student.used_credits?.toLocaleString() ?? student.used_credits}
                       </td>
                       <td className="py-3 px-4 text-right">
@@ -173,7 +173,7 @@ export function StudentManager() {
                           </button>
                           <button
                             onClick={() => setAdjustingStudent(student)}
-                            className="btn-primary py-1.5 px-3 text-xs"
+                            className="btn-primary py-1.5 px-3 text-xs shadow-btn-orange"
                           >
                             <span>Adjust</span>
                           </button>
@@ -195,15 +195,15 @@ export function StudentManager() {
         title={`Adjust Credits: ${adjustingStudent?.name}`}
       >
         <form onSubmit={handleAdjustSubmit} className="space-y-4">
-          <div className="p-3.5 bg-[#8B5CF6]/10 rounded-xl border border-[#8B5CF6]/30 flex items-center justify-between text-xs">
-            <span className="text-[#F1F5F9] font-semibold">Current Balance:</span>
-            <span className="font-bold text-[#06B6D4] text-sm tabular-nums font-heading">
+          <div className="p-3.5 bg-[#FFF7F0] rounded-xl border border-orange-200 flex items-center justify-between text-xs">
+            <span className="text-[#1E1B16] font-semibold">Current Balance:</span>
+            <span className="font-bold text-[#FF6B35] text-sm tabular-nums font-heading">
               {adjustingStudent?.remaining_credits?.toLocaleString() ?? adjustingStudent?.remaining_credits} Credits
             </span>
           </div>
 
           <div className="space-y-1">
-            <label className="block text-micro text-muted font-semibold">
+            <label className="block text-xs font-semibold text-[#1E1B16]">
               Adjustment Amount (Positive to Add, Negative to Deduct)
             </label>
             <input
@@ -212,12 +212,12 @@ export function StudentManager() {
               placeholder="e.g. 500 or -200"
               value={adjustAmount}
               onChange={(e) => setAdjustAmount(e.target.value)}
-              className="input-field"
+              className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-micro text-muted font-semibold">
+            <label className="block text-xs font-semibold text-[#1E1B16]">
               Reason / Audit Note
             </label>
             <input
@@ -225,11 +225,11 @@ export function StudentManager() {
               placeholder="e.g. Hackathon reward, Special grant, Mess adjustment"
               value={adjustReason}
               onChange={(e) => setAdjustReason(e.target.value)}
-              className="input-field"
+              className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-divider">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100">
             <button
               type="button"
               onClick={() => setAdjustingStudent(null)}
@@ -240,7 +240,7 @@ export function StudentManager() {
             <button
               type="submit"
               disabled={submitting}
-              className="btn-primary py-2 px-4 text-xs"
+              className="btn-primary py-2 px-4 text-xs shadow-btn-orange"
             >
               {submitting ? 'Applying...' : 'Apply Adjustment'}
             </button>

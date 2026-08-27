@@ -8,80 +8,57 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Space-Tech Base Foundations
-        base: '#0B0E1A',
-        elevated: '#131728',
-        'elevated-glass': 'rgba(19, 23, 40, 0.7)',
-        'surface-card': '#131728',
-        'surface-subtle': '#1A1F3A',
+        // Clean White & Orange Theme Foundations
+        base: '#FFFFFF',
+        subtle: '#FFF7F0',
+        'surface-card': '#FFFFFF',
+        'surface-subtle': '#FFF7F0',
 
-        // Purposeful Accent Palette
-        violet: {
-          DEFAULT: '#8B5CF6',
-          hover: '#7C3AED',
-          light: '#A78BFA',
-          glow: 'rgba(139, 92, 246, 0.4)'
-        },
-        cyan: {
-          DEFAULT: '#06B6D4',
-          hover: '#0891B2',
-          light: '#67E8F9',
-          glow: 'rgba(6, 182, 212, 0.4)'
-        },
-        amber: {
-          DEFAULT: '#F59E0B',
-          hover: '#D97706',
-          light: '#FCD34D',
-          glow: 'rgba(245, 158, 11, 0.4)'
-        },
-        emerald: {
-          DEFAULT: '#10B981',
-          hover: '#059669',
-          light: '#6EE7B7',
-          glow: 'rgba(16, 185, 129, 0.4)'
-        },
-        rose: {
-          DEFAULT: '#F43F5E',
-          hover: '#E11D48',
-          light: '#FDA4AF',
-          glow: 'rgba(244, 63, 94, 0.4)'
-        },
-        sky: {
-          DEFAULT: '#38BDF8',
-          hover: '#0284C7',
-          light: '#BAE6FD',
-          glow: 'rgba(56, 189, 248, 0.4)'
-        },
-
-        // Primary / Secondary Brand Aliases
+        // Primary Orange System
         primary: {
-          DEFAULT: '#8B5CF6',
-          hover: '#7C3AED',
-          active: '#6D28D9',
-          glow: 'rgba(139, 92, 246, 0.4)'
+          DEFAULT: '#FF6B35',
+          hover: '#E85A2A',
+          light: '#FFEFE6',
+          gradient: 'linear-gradient(135deg, #FF6B35 0%, #F7931E 100%)'
         },
-        secondary: {
-          DEFAULT: '#06B6D4',
-          hover: '#0891B2',
-          glow: 'rgba(6, 182, 212, 0.4)'
+        orange: {
+          DEFAULT: '#FF6B35',
+          50: '#FFF7F0',
+          100: '#FFEFE6',
+          200: '#FFD9C7',
+          300: '#FFBFA3',
+          400: '#FF946E',
+          500: '#FF6B35',
+          600: '#E85A2A',
+          700: '#C2410C',
+          800: '#9A3412',
+          900: '#7C2D12'
         },
 
-        // Typography Hierarchy
-        ink: '#F1F5F9',
-        body: '#94A3B8',
-        muted: '#64748B',
+        // Role Accent Variations (on White/Subtle background)
+        role: {
+          student: '#FF6B35',
+          chef: '#EA580C',
+          admin: '#C2410C'
+        },
+
+        // Typography System
+        ink: '#1E1B16',
+        body: '#6B6560',
+        muted: '#9B9590',
 
         // Borders & Dividers
-        border: 'rgba(139, 92, 246, 0.15)',
-        'border-hover': 'rgba(139, 92, 246, 0.4)',
-        divider: 'rgba(139, 92, 246, 0.1)',
+        border: 'rgba(30, 27, 22, 0.08)',
+        'border-subtle': 'rgba(30, 27, 22, 0.05)',
+        'border-hover': 'rgba(255, 107, 53, 0.3)',
+        divider: 'rgba(30, 27, 22, 0.08)',
 
-        // Universal Status States
+        // Status Colors (Used Sparingly & Distinctly)
         status: {
-          success: '#10B981',
-          warning: '#F59E0B',
-          danger: '#F43F5E',
-          info: '#06B6D4'
+          success: '#16A34A',
+          warning: '#D97706',
+          danger: '#DC2626',
+          info: '#2563EB'
         }
       },
       fontFamily: {
@@ -90,31 +67,25 @@ export default {
         display: ['Space Grotesk', 'sans-serif']
       },
       boxShadow: {
-        'level-1': '0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.15)',
-        'level-2': '0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(139, 92, 246, 0.35)',
-        'level-3': '0 24px 48px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(139, 92, 246, 0.4)',
-        'level-4': '0 0 24px rgba(139, 92, 246, 0.4)',
-        'glow-violet': '0 0 24px rgba(139, 92, 246, 0.4)',
-        'glow-primary': '0 0 24px rgba(139, 92, 246, 0.4)',
-        'glow-cyan': '0 0 24px rgba(6, 182, 212, 0.4)',
-        'glow-secondary': '0 0 24px rgba(6, 182, 212, 0.4)',
-        'glow-amber': '0 0 24px rgba(245, 158, 11, 0.4)',
-        'glow-emerald': '0 0 24px rgba(16, 185, 129, 0.4)',
-        'glow-rose': '0 0 24px rgba(244, 63, 94, 0.4)',
-        'glow-sky': '0 0 24px rgba(56, 189, 248, 0.4)'
+        'card': '0 1px 3px rgba(30,27,22,0.06), 0 4px 12px rgba(30,27,22,0.04)',
+        'card-hover': '0 4px 16px rgba(30,27,22,0.08), 0 1px 3px rgba(30,27,22,0.04)',
+        'card-active': '0 6px 20px rgba(255,107,53,0.12), 0 1px 4px rgba(30,27,22,0.06)',
+        'btn-orange': '0 2px 8px rgba(255, 107, 53, 0.22)',
+        'btn-orange-hover': '0 4px 14px rgba(255, 107, 53, 0.32)',
+        'soft-sm': '0 1px 2px rgba(30,27,22,0.05)',
+        'soft-md': '0 4px 12px rgba(30,27,22,0.06)',
+        'soft-lg': '0 10px 25px rgba(30,27,22,0.08)',
+        'modal': '0 20px 40px rgba(30,27,22,0.12), 0 1px 3px rgba(30,27,22,0.08)'
       },
       borderRadius: {
         'card': '16px',
         'btn': '12px',
         'input': '10px',
-        'modal': '24px'
+        'modal': '20px'
       },
       animation: {
-        'fade-in': 'fadeIn 200ms ease-out forwards',
-        'slide-up': 'slideUp 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
-        'drift-slow': 'driftSlow 20s linear infinite',
-        'pulse-glow': 'pulseGlow 3s ease-in-out infinite',
-        'mesh-drift': 'meshDrift 18s ease-in-out infinite alternate'
+        'fade-in': 'fadeIn 180ms ease-out forwards',
+        'slide-up': 'slideUp 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards'
       },
       keyframes: {
         fadeIn: {
@@ -122,22 +93,8 @@ export default {
           '100%': { opacity: '1' }
         },
         slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(12px)' },
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' }
-        },
-        driftSlow: {
-          '0%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-15px) translateX(8px)' },
-          '100%': { transform: 'translateY(0px)' }
-        },
-        pulseGlow: {
-          '0%, 100%': { opacity: '0.4', filter: 'blur(30px)' },
-          '50%': { opacity: '0.7', filter: 'blur(45px)' }
-        },
-        meshDrift: {
-          '0%': { transform: 'translate(0, 0) scale(1)' },
-          '50%': { transform: 'translate(4%, 3%) scale(1.06)' },
-          '100%': { transform: 'translate(-3%, -2%) scale(1)' }
         }
       }
     },

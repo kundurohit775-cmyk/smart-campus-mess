@@ -73,28 +73,28 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
       {/* 1. WELCOME STRIP */}
       <WelcomeStrip subtitle="VIT Campus Mess Network • 9,000 monthly dining credits cycle" />
 
-      {/* 2. HERO STAT ROW (4 Equal-Width Glass Cards, Balance is Featured) */}
+      {/* 2. HERO STAT ROW (4 Clean White Cards, Balance is Featured) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         
         {/* Featured Stat: Balance */}
         <StatCard
           title="Available Balance"
-          value={`${remainingCredits.toLocaleString()} Cr`}
+          value={`${remainingCredits.toLocaleString()} Credits`}
           subtitle="Monthly credit allocation"
           icon={Coins}
-          color="violet"
+          color="orange"
           isFeatured={true}
-          trend={isLow ? 'Low Balance' : 'Active'}
+          trend={isLow ? 'Low Balance' : 'Active Wallet'}
           trendPositive={!isLow}
         />
 
-        {/* Stat 2: Used Monthly Credits */}
+        {/* Stat 2: Spent Monthly Credits */}
         <StatCard
           title="Spent This Cycle"
-          value={`${usedCredits.toLocaleString()} Cr`}
+          value={`${usedCredits.toLocaleString()} Credits`}
           subtitle="Campus dining spend"
           icon={CreditCard}
-          color="violet"
+          color="orange"
           trend="Monthly Spend"
           trendPositive={true}
         />
@@ -105,7 +105,7 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
           value={`${totalCount || (cart || []).length} ${(totalCount || (cart || []).length) === 1 ? 'dish' : 'dishes'}`}
           subtitle={totalAmount > 0 ? `Subtotal: ${totalAmount} credits` : 'Tray is ready'}
           icon={ShoppingBag}
-          color="violet"
+          color="orange"
           onClick={() => setCartOpen(true)}
         />
 
@@ -115,7 +115,7 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
           value="Kitchen Open"
           subtitle="Accepting meal orders"
           icon={Sparkles}
-          color="cyan"
+          color="success"
           trend="Live Queue"
           trendPositive={true}
         />
@@ -131,25 +131,25 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
           <div className="card space-y-6 p-6 sm:p-7">
             
             {/* Header & Filter Controls */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-divider">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
               <div>
-                <h2 className="text-h2 text-ink font-heading">
+                <h2 className="text-xl font-bold text-[#1E1B16] font-heading">
                   Today's Dining Menu
                 </h2>
-                <p className="text-body text-xs mt-0.5">
+                <p className="text-xs text-[#6B6560] mt-0.5">
                   Select dishes to add to your tray and generate instant pickup tokens
                 </p>
               </div>
 
               {/* Search Bar */}
               <div className="relative w-full sm:w-56 shrink-0">
-                <Search className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search dishes..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input-field pl-9 h-9 text-xs"
+                  className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-9 pr-3 py-1.5 rounded-xl text-xs focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
                 />
               </div>
             </div>
@@ -160,10 +160,10 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-180 ${
                     selectedCategory === cat
-                      ? 'bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] text-white shadow-glow-primary'
-                      : 'bg-[#0B0E1A] text-body hover:text-ink hover:bg-[#1A1F3A] border border-border'
+                      ? 'bg-[#FF6B35] text-white shadow-btn-orange font-bold'
+                      : 'bg-stone-100 text-[#6B6560] hover:text-[#1E1B16] hover:bg-stone-200/80 border border-transparent'
                   }`}
                 >
                   {cat}
@@ -173,15 +173,15 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
 
             {/* Dishes Catalog Grid */}
             {loading ? (
-              <div className="py-16 text-center text-muted">
-                <div className="w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto mb-3 shadow-glow-primary" />
+              <div className="py-16 text-center text-[#6B6560]">
+                <div className="w-8 h-8 border-2 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-xs font-semibold">Loading daily fresh menu...</p>
               </div>
             ) : filteredItems.length === 0 ? (
-              <div className="py-16 text-center text-muted space-y-2">
-                <UtensilsCrossed className="w-10 h-10 mx-auto text-muted" />
-                <h3 className="text-h3 text-ink font-heading">No dishes found</h3>
-                <p className="text-body text-xs">Try selecting a different meal category or clearing your search.</p>
+              <div className="py-16 text-center text-[#6B6560] space-y-2">
+                <UtensilsCrossed className="w-10 h-10 mx-auto text-[#9B9590]" />
+                <h3 className="text-base font-bold text-[#1E1B16] font-heading">No dishes found</h3>
+                <p className="text-xs text-[#6B6560]">Try selecting a different meal category or clearing your search.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -195,16 +195,16 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
 
           {/* Section B: Recent Transactions / Activity Table */}
           <div className="card space-y-4 p-6 sm:p-7">
-            <div className="flex items-center justify-between pb-3 border-b border-divider">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
               <div>
-                <h3 className="text-h3 text-ink font-heading">Recent Dining Activity</h3>
-                <p className="text-body text-xs mt-0.5">Latest meal orders and credit movements</p>
+                <h3 className="text-base font-bold text-[#1E1B16] font-heading">Recent Dining Activity</h3>
+                <p className="text-xs text-[#6B6560] mt-0.5">Latest meal orders and credit movements</p>
               </div>
 
               {onNavigateToTransactions && (
                 <button
                   onClick={onNavigateToTransactions}
-                  className="text-xs font-semibold text-[#8B5CF6] hover:underline flex items-center gap-1"
+                  className="text-xs font-semibold text-[#FF6B35] hover:underline flex items-center gap-1"
                 >
                   <span>View All</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -213,11 +213,11 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
             </div>
 
             {recentTransactions.length === 0 ? (
-              <p className="py-6 text-center text-xs text-muted">No dining activity recorded yet.</p>
+              <p className="py-6 text-center text-xs text-[#9B9590]">No dining activity recorded yet.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs sm:text-sm">
-                  <thead className="text-micro text-muted border-b border-divider bg-[#0B0E1A]/40">
+                  <thead className="text-xs font-semibold uppercase tracking-wider text-[#6B6560] border-b border-stone-200 bg-stone-50">
                     <tr>
                       <th className="py-3 px-4">Type</th>
                       <th className="py-3 px-4">Description</th>
@@ -225,12 +225,12 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                       <th className="py-3 px-4 text-right">Balance</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-divider">
+                  <tbody className="divide-y divide-stone-100">
                     {recentTransactions.map((tx) => {
                       const isDebit = tx.transaction_type === 'DEBIT_ORDER';
 
                       return (
-                        <tr key={tx.transaction_id} className="h-14 hover:bg-[#1A1F3A]/70 transition-colors">
+                        <tr key={tx.transaction_id} className="h-14 hover:bg-stone-50/80 transition-colors">
                           <td className="py-3 px-4">
                             <span className={`status-pill text-[11px] font-heading ${
                               isDebit ? 'status-pill-danger' : 'status-pill-success'
@@ -238,15 +238,15 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                               {isDebit ? 'Food Order' : 'Top-Up / Credit'}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-ink font-medium">
+                          <td className="py-3 px-4 text-[#1E1B16] font-medium">
                             {tx.notes || (isDebit ? 'Mess meal purchase' : 'Credit adjustment')}
                           </td>
                           <td className={`py-3 px-4 text-right font-bold tabular-nums font-heading ${
-                            isDebit ? 'text-status-danger' : 'text-status-success'
+                            isDebit ? 'text-[#DC2626]' : 'text-[#16A34A]'
                           }`}>
                             {isDebit ? `-${tx.amount}` : `+${tx.amount}`} Cr
                           </td>
-                          <td className="py-3 px-4 text-right text-muted tabular-nums font-heading">
+                          <td className="py-3 px-4 text-right text-[#6B6560] tabular-nums font-heading">
                             {tx.balance_after?.toLocaleString() ?? tx.balance_after}
                           </td>
                         </tr>
@@ -265,19 +265,19 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
           
           {/* Widget 1: Quick Actions Card */}
           <div className="card space-y-4">
-            <h3 className="text-h3 text-ink font-heading pb-2 border-b border-divider flex items-center gap-2">
-              <Zap className="w-4 h-4 text-[#8B5CF6]" />
+            <h3 className="text-base font-bold text-[#1E1B16] font-heading pb-2 border-b border-stone-100 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[#FF6B35]" />
               <span>Quick Actions</span>
             </h3>
 
             <div className="space-y-2 text-xs">
               <button
                 onClick={() => setCartOpen(true)}
-                className="w-full p-3 rounded-xl border border-border bg-[#0B0E1A] hover:bg-[#1A1F3A] flex items-center justify-between transition group"
+                className="w-full p-3 rounded-xl border border-stone-200 bg-white hover:bg-[#FFF7F0] hover:border-orange-200 flex items-center justify-between transition group shadow-soft-sm"
               >
                 <div className="flex items-center gap-2.5">
-                  <ShoppingBag className="w-4 h-4 text-[#8B5CF6] group-hover:scale-110 transition-transform" />
-                  <span className="font-semibold text-ink font-heading">Review Meal Tray</span>
+                  <ShoppingBag className="w-4 h-4 text-[#FF6B35]" />
+                  <span className="font-semibold text-[#1E1B16] font-heading">Review Meal Tray</span>
                 </div>
                 <span className="status-pill status-pill-info text-[10px]">
                   {(cart || []).length} items
@@ -286,46 +286,46 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
 
               <button
                 onClick={onNavigateToOrders}
-                className="w-full p-3 rounded-xl border border-border bg-[#0B0E1A] hover:bg-[#1A1F3A] flex items-center justify-between transition group"
+                className="w-full p-3 rounded-xl border border-stone-200 bg-white hover:bg-[#FFF7F0] hover:border-orange-200 flex items-center justify-between transition group shadow-soft-sm"
               >
                 <div className="flex items-center gap-2.5">
-                  <Clock className="w-4 h-4 text-[#06B6D4] group-hover:scale-110 transition-transform" />
-                  <span className="font-semibold text-ink font-heading">Track Live Tokens</span>
+                  <Clock className="w-4 h-4 text-[#FF6B35]" />
+                  <span className="font-semibold text-[#1E1B16] font-heading">Track Live Tokens</span>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-muted" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#9B9590]" />
               </button>
 
               <button
                 onClick={onNavigateToTransactions}
-                className="w-full p-3 rounded-xl border border-border bg-[#0B0E1A] hover:bg-[#1A1F3A] flex items-center justify-between transition group"
+                className="w-full p-3 rounded-xl border border-stone-200 bg-white hover:bg-[#FFF7F0] hover:border-orange-200 flex items-center justify-between transition group shadow-soft-sm"
               >
                 <div className="flex items-center gap-2.5">
-                  <Receipt className="w-4 h-4 text-[#8B5CF6] group-hover:scale-110 transition-transform" />
-                  <span className="font-semibold text-ink font-heading">Credit Ledger & History</span>
+                  <Receipt className="w-4 h-4 text-[#FF6B35]" />
+                  <span className="font-semibold text-[#1E1B16] font-heading">Credit Ledger & History</span>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-muted" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#9B9590]" />
               </button>
             </div>
           </div>
 
           {/* Widget 2: Announcements / Notices Card */}
           <div className="card space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b border-divider">
-              <Megaphone className="w-4 h-4 text-[#8B5CF6]" />
-              <h3 className="text-h3 text-ink font-heading">Mess Announcements</h3>
+            <div className="flex items-center gap-2 pb-2 border-b border-stone-100">
+              <Megaphone className="w-4 h-4 text-[#FF6B35]" />
+              <h3 className="text-base font-bold text-[#1E1B16] font-heading">Mess Announcements</h3>
             </div>
 
-            <div className="space-y-3 text-xs text-body">
-              <div className="p-3 bg-[#0B0E1A] rounded-xl border border-border space-y-1">
-                <span className="font-bold text-ink block font-heading">🕒 Dining Service Timings</span>
-                <p className="text-muted leading-relaxed">
+            <div className="space-y-3 text-xs text-[#6B6560]">
+              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 space-y-1">
+                <span className="font-bold text-[#1E1B16] block font-heading">🕒 Dining Service Timings</span>
+                <p className="text-[#6B6560] leading-relaxed">
                   Breakfast: 7:30 - 10:00 AM • Lunch: 12:00 - 3:00 PM • Dinner: 7:30 - 10:00 PM.
                 </p>
               </div>
 
-              <div className="p-3 bg-[#0B0E1A] rounded-xl border border-border space-y-1">
-                <span className="font-bold text-ink block font-heading">✨ Monthly Credit Reset</span>
-                <p className="text-muted leading-relaxed">
+              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 space-y-1">
+                <span className="font-bold text-[#1E1B16] block font-heading">✨ Monthly Credit Reset</span>
+                <p className="text-[#6B6560] leading-relaxed">
                   Monthly 9,000 allowance resets automatically on the 1st of every month.
                 </p>
               </div>
@@ -333,24 +333,24 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
           </div>
 
           {/* Widget 3: Buy Credits CTA Card */}
-          <div className="card bg-gradient-to-br from-[#1A1F3A] via-[#131728] to-[#0B0E1A] border-[#8B5CF6]/40 shadow-glow-primary space-y-4">
+          <div className="card bg-[#FFF7F0] border border-orange-200 space-y-4 shadow-soft-sm">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#8B5CF6] to-[#06B6D4] text-white flex items-center justify-center shadow-glow-primary">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#FF6B35] to-[#F7931E] text-white flex items-center justify-center shadow-soft-sm">
                 <CreditCard className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-ink font-heading">Top Up Credits</h3>
-                <span className="text-[11px] text-[#06B6D4] font-medium font-heading">1 Credit = ₹1 INR</span>
+                <h3 className="text-sm font-bold text-[#1E1B16] font-heading">Top Up Credits</h3>
+                <span className="text-[11px] text-[#FF6B35] font-semibold font-heading">1 Credit = ₹1 INR</span>
               </div>
             </div>
 
-            <p className="text-body text-xs leading-relaxed">
+            <p className="text-xs text-[#6B6560] leading-relaxed">
               Need extra dining balance? Instant Razorpay top-ups via UPI, Debit Card, or NetBanking.
             </p>
 
             <button
               onClick={() => setIsTopupOpen(true)}
-              className="w-full btn-primary py-2.5 text-xs justify-center"
+              className="w-full btn-primary py-2.5 text-xs justify-center shadow-btn-orange"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Buy Dining Credits</span>

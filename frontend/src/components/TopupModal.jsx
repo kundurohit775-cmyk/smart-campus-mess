@@ -59,7 +59,7 @@ export function TopupModal({ isOpen, onClose }) {
           contact: user?.phone || ''
         },
         theme: {
-          color: '#8B5CF6'
+          color: '#FF6B35'
         },
         handler: async function (response) {
           try {
@@ -138,14 +138,14 @@ export function TopupModal({ isOpen, onClose }) {
     >
       {paymentSuccess ? (
         <div className="py-8 text-center space-y-4 animate-fade-in">
-          <div className="w-16 h-16 rounded-full bg-[#34D399]/15 text-status-success border border-[#34D399]/30 flex items-center justify-center mx-auto shadow-glow-emerald">
+          <div className="w-16 h-16 rounded-full bg-emerald-50 text-[#16A34A] border border-emerald-200 flex items-center justify-center mx-auto shadow-soft-sm">
             <CheckCircle2 className="w-9 h-9" />
           </div>
           <div>
-            <h3 className="text-h3 text-ink font-heading">
+            <h3 className="text-lg font-bold text-[#1E1B16] font-heading">
               Payment Successful!
             </h3>
-            <p className="text-body text-sm mt-1">
+            <p className="text-sm text-[#6B6560] mt-1">
               +{amount} credits added directly to your mess balance.
             </p>
           </div>
@@ -157,19 +157,19 @@ export function TopupModal({ isOpen, onClose }) {
         <form onSubmit={handlePayment} className="space-y-5">
           
           {/* Rate notice badge */}
-          <div className="p-3.5 bg-[#8B5CF6]/10 rounded-xl border border-[#8B5CF6]/30 flex items-center justify-between">
+          <div className="p-3.5 bg-[#FFF7F0] rounded-xl border border-orange-200/80 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Coins className="w-4 h-4 text-[#8B5CF6]" />
-              <span className="text-xs font-semibold text-ink">Exchange Rate</span>
+              <Coins className="w-4 h-4 text-[#FF6B35]" />
+              <span className="text-xs font-semibold text-[#1E1B16]">Exchange Rate</span>
             </div>
-            <span className="text-xs font-bold text-[#06B6D4] bg-[#0B0E1A] px-2.5 py-0.5 rounded-[6px] border border-[#06B6D4]/40 font-heading">
+            <span className="text-xs font-bold text-[#FF6B35] bg-white px-2.5 py-0.5 rounded-[6px] border border-orange-200 font-heading">
               1 Credit = ₹1 INR
             </span>
           </div>
 
           {/* Preset Buttons */}
           <div className="space-y-1.5">
-            <label className="block text-micro text-muted font-semibold">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#6B6560]">
               Select Preset Amount
             </label>
             <div className="grid grid-cols-4 gap-2">
@@ -178,10 +178,10 @@ export function TopupModal({ isOpen, onClose }) {
                   key={preset}
                   type="button"
                   onClick={() => handlePresetSelect(preset)}
-                  className={`py-2.5 rounded-xl text-xs font-bold font-heading transition-all duration-200 ${
+                  className={`py-2.5 rounded-xl text-xs font-bold font-heading transition-all duration-180 ${
                     amount === preset
-                      ? 'bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] text-white shadow-glow-primary scale-105'
-                      : 'bg-[#0B0E1A] border border-border text-ink hover:bg-[#1A1F3A]'
+                      ? 'bg-[#FF6B35] text-white shadow-btn-orange scale-[1.02]'
+                      : 'bg-white border border-stone-200 text-[#1E1B16] hover:bg-[#FFF7F0] hover:border-orange-200'
                   }`}
                 >
                   ₹{preset}
@@ -192,11 +192,11 @@ export function TopupModal({ isOpen, onClose }) {
 
           {/* Custom Amount Input */}
           <div className="space-y-1.5">
-            <label className="block text-micro text-muted font-semibold">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#6B6560]">
               Or Enter Custom Amount (₹)
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-[#06B6D4] text-sm">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-[#FF6B35] text-sm">
                 ₹
               </span>
               <input
@@ -207,11 +207,11 @@ export function TopupModal({ isOpen, onClose }) {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="100"
-                className="input-field pl-8 font-bold text-ink font-heading"
+                className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] font-bold pl-8 pr-3.5 py-2.5 rounded-xl text-sm focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
               />
             </div>
-            <span className="text-[11px] text-muted block">
-              You will receive <strong className="text-[#34D399] font-heading">{amount || 0} dining credits</strong>.
+            <span className="text-[11px] text-[#6B6560] block">
+              You will receive <strong className="text-[#16A34A] font-heading">{amount || 0} dining credits</strong>.
             </span>
           </div>
 
@@ -219,7 +219,7 @@ export function TopupModal({ isOpen, onClose }) {
           <button
             type="submit"
             disabled={loading || !amount || amount < 10}
-            className="w-full btn-primary"
+            className="w-full btn-primary py-3 shadow-btn-orange"
           >
             {loading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -233,8 +233,8 @@ export function TopupModal({ isOpen, onClose }) {
           </button>
 
           {/* Footer Security Badge */}
-          <div className="pt-2 border-t border-divider flex items-center justify-center gap-1.5 text-label-small">
-            <Lock className="w-3.5 h-3.5 text-muted" />
+          <div className="pt-2 border-t border-stone-100 flex items-center justify-center gap-1.5 text-xs text-[#9B9590]">
+            <Lock className="w-3.5 h-3.5" />
             <span>256-Bit SSL Encrypted Razorpay Checkout</span>
           </div>
         </form>
