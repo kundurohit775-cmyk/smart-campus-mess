@@ -74,8 +74,9 @@ export function PreOrderModal({ item, isOpen, onClose, onSuccess }) {
         {/* Dish Info Card */}
         <div className="flex gap-3.5 p-3 rounded-2xl bg-stone-50 border border-stone-200/80">
           <img
-            src={item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80'}
+            src={item.display_image_url || item.image_url || item.fallback_image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80'}
             alt={item.item_name}
+            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80'; }}
             className="w-16 h-16 rounded-xl object-cover border border-stone-200 shadow-soft-sm shrink-0"
           />
           <div className="flex-1 min-w-0">

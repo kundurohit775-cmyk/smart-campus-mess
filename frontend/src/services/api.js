@@ -135,6 +135,9 @@ export const api = {
     method: 'PATCH',
     body: JSON.stringify(payload)
   }),
+  refreshItemImage: (itemId) => request(`/admin/menu/${itemId}/refresh-image`, {
+    method: 'POST'
+  }),
   deleteMenuItem: (itemId) => request(`/admin/menu/${itemId}`, { method: 'DELETE' }),
   getAdminOrders: () => request('/admin/orders'),
   getAdminTransactions: () => request('/admin/transactions'),

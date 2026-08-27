@@ -1,10 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, UtensilsCrossed, CheckCircle, XCircle, Flame, Heart, Sparkles, Calendar } from 'lucide-react';
+import { 
+  Plus, 
+  Edit2, 
+  Trash2, 
+  Search, 
+  UtensilsCrossed, 
+  CheckCircle, 
+  XCircle, 
+  Flame, 
+  Heart, 
+  Sparkles, 
+  Calendar,
+  RotateCw,
+  Image as ImageIcon
+} from 'lucide-react';
 import { api } from '../../services/api';
 import { Modal } from '../../components/Modal';
 import { useToast } from '../../context/ToastContext';
 
 const CATEGORIES = ['Breakfast', 'Lunch', 'Snacks', 'Dinner', 'Beverages'];
+const GENERIC_PLACEHOLDER = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80';
 
 function getTomorrowDateStr() {
   const d = new Date();
@@ -22,6 +37,7 @@ export function MenuManager() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [refreshingImage, setRefreshingImage] = useState(false);
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -35,6 +51,7 @@ export function MenuManager() {
     special_available_date: getTomorrowDateStr(),
     description: '',
     image_url: '',
+    fallback_image_url: '',
     available_quantity: 40
   });
 
@@ -64,7 +81,8 @@ export function MenuManager() {
       special_stock_limit: 20,
       special_available_date: getTomorrowDateStr(),
       description: '',
-      image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+      image_url: '',
+      fallback_image_url: '',
       available_quantity: 40
     });
     setIsAddOpen(true);
@@ -87,8 +105,28 @@ export function MenuManager() {
       special_available_date: item.special_available_date ? String(item.special_available_date).split('T')[0] : getTomorrowDateStr(),
       description: item.description || '',
       image_url: item.image_url || '',
+      fallback_image_url: item.fallback_image_url || '',
       available_quantity: item.available_quantity
     });
+  };
+
+  const handleRefreshImage = async () => {
+    if (!editingItem) return;
+    setRefreshingImage(true);
+    try {
+      const res = await api.refreshItemImage(editingItem.item_id);
+      showToast('Fetched new matching food photo!', 'success');
+      setFormData(prev => ({
+        ...prev,
+        fallback_image_url: res.fallbackImageUrl,
+        image_url: '' // cleared so fallback is used
+      }));
+      await fetchItems();
+    } catch (err) {
+      showToast(err.message || 'Failed to refresh image', 'error');
+    } finally {
+      setRefreshingImage(false);
+    }
   };
 
   const handleSave = async (e) => {
@@ -148,6 +186,9 @@ export function MenuManager() {
     (i.category && i.category.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const previewImage = formData.image_url || formData.fallback_image_url || GENERIC_PLACEHOLDER;
+  const isUsingAutoImage = !formData.image_url && Boolean(formData.fallback_image_url || editingItem?.is_auto_image);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       
@@ -156,10 +197,10 @@ export function MenuManager() {
         <div>
           <h1 className="text-xl font-bold text-[#1E1B16] flex items-center gap-2.5 font-heading">
             <UtensilsCrossed className="w-6 h-6 text-[#C2410C]" />
-            <span>Menu & Special Pre-Orders Catalog</span>
+            <span>Menu & Pre-Orders Catalog</span>
           </h1>
           <p className="text-xs text-[#6B6560] mt-0.5">
-            Manage dishes, pricing, limited next-day pre-order specials, and calorie data
+            Dishes, pricing, auto-fetched food photos, tomorrow specials, and calorie controls
           </p>
         </div>
 
@@ -191,7 +232,7 @@ export function MenuManager() {
           <table className="w-full text-left text-xs sm:text-sm">
             <thead className="text-xs font-semibold uppercase tracking-wider text-[#6B6560] border-b border-stone-200 bg-stone-50">
               <tr>
-                <th className="py-3.5 px-6">Dish</th>
+                <th className="py-3.5 px-6">Dish & Photo</th>
                 <th className="py-3.5 px-4">Category</th>
                 <th className="py-3.5 px-4 text-right">Price</th>
                 <th className="py-3.5 px-4 text-center">Type</th>
@@ -218,16 +259,29 @@ export function MenuManager() {
                 filteredItems.map(item => {
                   const isSpecial = Boolean(item.is_special || item.isSpecial);
                   const remaining = item.remaining_stock ?? item.available_quantity;
+                  const itemImg = item.display_image_url || item.image_url || item.fallback_image_url || GENERIC_PLACEHOLDER;
+                  const isAuto = Boolean(item.is_auto_image || (!item.image_url && item.fallback_image_url));
 
                   return (
                     <tr key={item.item_id} className="h-14 hover:bg-stone-50/80 transition-colors">
                       <td className="py-3 px-6">
                         <div className="flex items-center gap-3">
-                          <img
-                            src={item.image_url}
-                            alt={item.item_name}
-                            className="w-10 h-10 rounded-xl object-cover shrink-0 border border-stone-200 shadow-soft-sm"
-                          />
+                          <div className="relative shrink-0">
+                            <img
+                              src={itemImg}
+                              alt={item.item_name}
+                              onError={(e) => { e.currentTarget.src = GENERIC_PLACEHOLDER; }}
+                              className="w-11 h-11 rounded-xl object-cover border border-stone-200 shadow-soft-sm"
+                            />
+                            {isAuto && (
+                              <span 
+                                title="Auto-fetched food photo"
+                                className="absolute -bottom-1 -right-1 bg-white text-[#FF6B35] rounded-full p-0.5 border border-orange-200 shadow-soft-sm text-[9px] font-bold"
+                              >
+                                ✨
+                              </span>
+                            )}
+                          </div>
                           <div>
                             <div className="flex items-center gap-1.5">
                               <span className="font-bold text-[#1E1B16] block font-heading">{item.item_name}</span>
@@ -235,6 +289,11 @@ export function MenuManager() {
                                 <span className="bg-[#FF6B35] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full font-heading flex items-center gap-0.5">
                                   <Sparkles className="w-2.5 h-2.5" />
                                   Special
+                                </span>
+                              )}
+                              {isAuto && (
+                                <span className="text-[10px] text-[#6B6560] bg-stone-100 px-1.5 py-0.2 rounded border border-stone-200 font-heading">
+                                  Auto Photo
                                 </span>
                               )}
                             </div>
@@ -318,6 +377,54 @@ export function MenuManager() {
         title={editingItem ? `Edit "${editingItem.item_name}"` : 'Add New Menu Dish'}
       >
         <form onSubmit={handleSave} className="space-y-4">
+          
+          {/* Dish Image Preview & Auto-Fetch Controller */}
+          <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#1E1B16] flex items-center gap-1.5 font-heading">
+                <ImageIcon className="w-4 h-4 text-[#FF6B35]" />
+                Dish Photo Preview
+              </span>
+              {isUsingAutoImage && (
+                <span className="text-[10px] font-bold text-[#FF6B35] bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200 font-heading">
+                  ✨ Auto-Fetched Matching Photo
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3.5">
+              <img
+                src={previewImage}
+                alt="Dish preview"
+                onError={(e) => { e.currentTarget.src = GENERIC_PLACEHOLDER; }}
+                className="w-16 h-16 rounded-xl object-cover border border-stone-200 shadow-soft-sm shrink-0"
+              />
+              <div className="flex-1 space-y-1 text-xs">
+                {isUsingAutoImage ? (
+                  <p className="text-[#6B6560] text-[11px] leading-relaxed">
+                    Auto-matched food photo. Enter a custom link below to override, or refresh to get another matching photo.
+                  </p>
+                ) : (
+                  <p className="text-[#16A34A] text-[11px] font-medium leading-relaxed">
+                    Custom chef photo uploaded and active.
+                  </p>
+                )}
+
+                {editingItem && (
+                  <button
+                    type="button"
+                    onClick={handleRefreshImage}
+                    disabled={refreshingImage}
+                    className="text-xs font-semibold text-[#FF6B35] hover:text-[#E85A2A] bg-white px-2.5 py-1 rounded-lg border border-orange-200 shadow-soft-sm flex items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+                  >
+                    <RotateCw className={`w-3.5 h-3.5 ${refreshingImage ? 'animate-spin' : ''}`} />
+                    <span>{refreshingImage ? 'Finding Photo...' : 'Refresh Auto Photo'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-1">
             <label className="block text-xs font-semibold text-[#1E1B16]">Dish Name</label>
             <input
@@ -435,10 +542,10 @@ export function MenuManager() {
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[#1E1B16]">Image URL</label>
+              <label className="block text-xs font-semibold text-[#1E1B16]">Custom Image URL (Optional)</label>
               <input
                 type="url"
-                placeholder="https://..."
+                placeholder="Leave blank to auto-fetch"
                 value={formData.image_url}
                 onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
                 className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"

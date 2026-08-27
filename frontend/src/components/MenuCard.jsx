@@ -16,6 +16,7 @@ export function MenuCard({ item, healthMode = false, consumedToday = 0, dailyCal
 
   const itemCalories = item?.calories;
   const wouldExceedGoal = healthMode && dailyCalorieGoal && itemCalories && (consumedToday + totalCalories + Number(itemCalories) > dailyCalorieGoal);
+  const imageUrl = item.display_image_url || item.effective_image_url || item.image_url || item.fallback_image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80';
 
   return (
     <div className={`card flex flex-col justify-between overflow-hidden relative group transition-all duration-200 ${
@@ -25,8 +26,11 @@ export function MenuCard({ item, healthMode = false, consumedToday = 0, dailyCal
       {/* Top Image Section */}
       <div className="relative h-44 -mx-6 -mt-6 mb-4 overflow-hidden bg-stone-100">
         <img
-          src={item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80'}
+          src={imageUrl}
           alt={item.item_name}
+          onError={(e) => {
+            e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80';
+          }}
           className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
             isOutOfStock ? 'grayscale opacity-50' : ''
           }`}

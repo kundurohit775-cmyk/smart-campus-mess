@@ -117,13 +117,12 @@ export function CartDrawer({ onOrderSuccess }) {
               cartList.map(item => (
                 <div key={item.item_id} className="p-3.5 rounded-2xl bg-[#FFF7F0]/50 border border-stone-200/80 flex items-center justify-between gap-3 shadow-soft-sm">
                   <div className="flex items-center gap-3">
-                    {item.image_url && (
-                      <img
-                        src={item.image_url}
-                        alt={item.item_name}
-                        className="w-12 h-12 rounded-xl object-cover border border-stone-200/80 shrink-0"
-                      />
-                    )}
+                    <img
+                      src={item.display_image_url || item.effective_image_url || item.image_url || item.fallback_image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80'}
+                      alt={item.item_name}
+                      onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80'; }}
+                      className="w-12 h-12 rounded-xl object-cover border border-stone-200/80 shrink-0"
+                    />
                     <div>
                       <h4 className="text-xs font-bold text-[#1E1B16] font-heading">{item.item_name}</h4>
                       <div className="flex items-center gap-2 mt-0.5">

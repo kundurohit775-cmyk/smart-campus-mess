@@ -2,11 +2,12 @@ import express from 'express';
 import db from '../db/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { creditService } from '../services/creditService.js';
+import { imageService, GENERIC_FOOD_PLACEHOLDER } from '../services/imageService.js';
 
 const router = express.Router();
 
-// Require admin access for all routes in this file
-router.use(authenticateToken, requireRole('admin'));
+// Allow Admin and Chef to manage menu, analytics & food catalog
+router.use(authenticateToken, requireRole('admin', 'chef'));
 
 /**
  * GET /api/admin/analytics
@@ -164,8 +165,19 @@ router.get('/menu', async (req, res, next) => {
         remainingStock = Math.max(0, limit - booked);
       }
 
+      const hasUploadedImg = Boolean(row.image_url && row.image_url.trim() !== '');
+      const fallbackImg = row.fallback_image_url || imageService.resolveDishImage(row.item_name, row.category);
+      const displayImg = hasUploadedImg ? row.image_url : (fallbackImg || GENERIC_FOOD_PLACEHOLDER);
+      const isAutoImage = !hasUploadedImg && Boolean(fallbackImg);
+
       return {
         ...row,
+        image_url: hasUploadedImg ? row.image_url : null,
+        fallback_image_url: fallbackImg,
+        display_image_url: displayImg,
+        effective_image_url: displayImg,
+        is_auto_image: isAutoImage,
+        isAutoImage,
         is_special: isSpecial,
         isSpecial,
         remaining_stock: remainingStock,
@@ -175,6 +187,25 @@ router.get('/menu', async (req, res, next) => {
       };
     });
     res.json({ items });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/menu/:itemId/refresh-image
+ * Chef / Admin: Re-fetch an alternate auto-matched food photo for the dish
+ */
+router.post('/menu/:itemId/refresh-image', async (req, res, next) => {
+  try {
+    const itemId = parseInt(req.params.itemId, 10);
+    const result = await imageService.refreshDishImage(itemId);
+
+    res.json({
+      success: true,
+      message: 'Dish image refreshed successfully.',
+      ...result
+    });
   } catch (err) {
     next(err);
   }
@@ -196,7 +227,8 @@ router.post('/menu', async (req, res, next) => {
       return res.status(400).json({ error: 'Item name, category, and price are required.' });
     }
 
-    const defaultImg = image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
+    const uploadedImg = (image_url && image_url.trim() !== '') ? image_url.trim() : null;
+    const fallbackImg = uploadedImg ? null : imageService.resolveDishImage(item_name, category);
     const cal = (calories !== undefined && calories !== null && calories !== '') ? parseInt(calories, 10) : null;
     let overrideVal = null;
     if (healthy_override === true || healthy_override === 'true') overrideVal = true;
@@ -212,12 +244,12 @@ router.post('/menu', async (req, res, next) => {
       INSERT INTO menu_items (
         item_name, category, price, calories, healthy_override, 
         is_special, special_stock_limit, special_available_date,
-        description, image_url, available_quantity, is_active
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+        description, image_url, fallback_image_url, available_quantity, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
     `, 
       item_name.trim(), category.trim(), parseInt(price, 10), cal, overrideVal, 
       isSpecialVal, stockLimitVal, availDateVal,
-      description || '', defaultImg, parseInt(available_quantity || 0, 10)
+      description || '', uploadedImg, fallbackImg, parseInt(available_quantity || 0, 10)
     );
 
     const newItem = await db.get('SELECT * FROM menu_items WHERE item_id = ?', result.lastInsertRowid);
@@ -228,9 +260,17 @@ router.post('/menu', async (req, res, next) => {
       is_healthy = Number(newItem.calories) <= 400;
     }
 
+    const displayImg = newItem.image_url || newItem.fallback_image_url || GENERIC_FOOD_PLACEHOLDER;
+
     res.status(201).json({
       message: `Menu item "${newItem.item_name}" created successfully.`,
-      item: { ...newItem, is_healthy, isHealthy: is_healthy }
+      item: { 
+        ...newItem, 
+        display_image_url: displayImg,
+        is_auto_image: !newItem.image_url && Boolean(newItem.fallback_image_url),
+        is_healthy, 
+        isHealthy: is_healthy 
+      }
     });
   } catch (err) {
     next(err);
@@ -280,6 +320,20 @@ router.patch('/menu/:itemId', async (req, res, next) => {
       availDateVal = (special_available_date === null || special_available_date === '') ? null : special_available_date;
     }
 
+    let uploadedImgVal = existing.image_url;
+    let fallbackImgVal = existing.fallback_image_url;
+
+    if (image_url !== undefined) {
+      if (image_url && image_url.trim() !== '') {
+        uploadedImgVal = image_url.trim();
+      } else {
+        uploadedImgVal = null;
+        if (!fallbackImgVal) {
+          fallbackImgVal = imageService.resolveDishImage(item_name || existing.item_name, category || existing.category);
+        }
+      }
+    }
+
     await db.run(`
       UPDATE menu_items 
       SET item_name = COALESCE(?, item_name),
@@ -291,7 +345,8 @@ router.patch('/menu/:itemId', async (req, res, next) => {
           special_stock_limit = ?,
           special_available_date = ?,
           description = COALESCE(?, description),
-          image_url = COALESCE(?, image_url),
+          image_url = ?,
+          fallback_image_url = ?,
           available_quantity = COALESCE(?, available_quantity),
           is_active = COALESCE(?, is_active)
       WHERE item_id = ?
@@ -305,7 +360,8 @@ router.patch('/menu/:itemId', async (req, res, next) => {
       stockLimitVal,
       availDateVal,
       description !== undefined ? description : null,
-      image_url !== undefined ? image_url : null,
+      uploadedImgVal,
+      fallbackImgVal,
       available_quantity !== undefined ? parseInt(available_quantity, 10) : null,
       is_active !== undefined ? (is_active ? 1 : 0) : null,
       itemId
@@ -319,9 +375,17 @@ router.patch('/menu/:itemId', async (req, res, next) => {
       is_healthy = Number(updated.calories) <= 400;
     }
 
+    const displayImg = updated.image_url || updated.fallback_image_url || GENERIC_FOOD_PLACEHOLDER;
+
     res.json({
       message: `Menu item "${updated.item_name}" updated.`,
-      item: { ...updated, is_healthy, isHealthy: is_healthy }
+      item: { 
+        ...updated, 
+        display_image_url: displayImg,
+        is_auto_image: !updated.image_url && Boolean(updated.fallback_image_url),
+        is_healthy, 
+        isHealthy: is_healthy 
+      }
     });
   } catch (err) {
     next(err);

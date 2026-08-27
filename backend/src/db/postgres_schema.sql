@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
     special_available_date DATE DEFAULT NULL,
     description TEXT,
     image_url TEXT,
+    fallback_image_url TEXT,
     available_quantity INT DEFAULT 0,
     is_active INT DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
