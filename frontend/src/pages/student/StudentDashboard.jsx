@@ -14,20 +14,27 @@ import {
   Megaphone, 
   ArrowUpRight, 
   Receipt, 
-  Zap 
+  Zap,
+  Heart,
+  Flame,
+  Edit3
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { useToast } from '../../context/ToastContext';
 import { WelcomeStrip } from '../../components/WelcomeStrip';
 import { StatCard } from '../../components/StatCard';
 import { MenuCard } from '../../components/MenuCard';
 import { TopupModal } from '../../components/TopupModal';
+import { Modal } from '../../components/Modal';
 
 const CATEGORIES = ['All', 'Breakfast', 'Lunch', 'Snacks', 'Dinner', 'Beverages'];
+const GOAL_PRESETS = [1500, 2000, 2500];
 
 export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions }) {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const { cart = [], totalAmount = 0, totalCount = 0, setIsOpen: setCartOpen } = useCart();
   
   const [items, setItems] = useState([]);
@@ -37,14 +44,30 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
   const [searchQuery, setSearchQuery] = useState('');
   const [isTopupOpen, setIsTopupOpen] = useState(false);
 
+  // Health Mode states
+  const [healthMode, setHealthMode] = useState(() => {
+    return localStorage.getItem('smartmess_health_mode') === 'true';
+  });
+  const [healthStats, setHealthStats] = useState(null);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [goalInput, setGoalInput] = useState('');
+  const [savingGoal, setSavingGoal] = useState(false);
+
   const fetchDashboardData = async () => {
     try {
-      const [menuRes, transRes] = await Promise.all([
+      const [menuRes, transRes, healthRes] = await Promise.all([
         api.getMenu(),
-        api.getTransactions().catch(() => ({ transactions: [] }))
+        api.getTransactions().catch(() => ({ transactions: [] })),
+        api.getHealthStats().catch(() => null)
       ]);
       setItems(menuRes?.items || []);
       setRecentTransactions(transRes?.transactions?.slice(0, 4) || []);
+      if (healthRes) {
+        setHealthStats(healthRes);
+        if (healthRes.dailyCalorieGoal) {
+          setGoalInput(healthRes.dailyCalorieGoal);
+        }
+      }
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     } finally {
@@ -56,9 +79,56 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
     fetchDashboardData();
   }, []);
 
+  const handleToggleHealthMode = () => {
+    const nextVal = !healthMode;
+    setHealthMode(nextVal);
+    localStorage.setItem('smartmess_health_mode', String(nextVal));
+
+    if (nextVal) {
+      showToast('Health Mode ON: Calorie tracking activated', 'success', 2500);
+      // If student hasn't set a goal yet, show modal to prompt setting goal
+      if (!healthStats?.dailyCalorieGoal) {
+        setIsGoalModalOpen(true);
+      }
+    } else {
+      showToast('Health Mode OFF', 'info', 2000);
+    }
+  };
+
+  const handleSaveGoal = async (targetGoal) => {
+    const val = parseInt(targetGoal || goalInput, 10);
+    if (!val || isNaN(val) || val < 500) {
+      showToast('Please enter a realistic calorie goal (min 500 kcal).', 'warning');
+      return;
+    }
+
+    setSavingGoal(true);
+    try {
+      const res = await api.setCalorieGoal(val);
+      setHealthStats(prev => ({
+        ...prev,
+        dailyCalorieGoal: res.dailyCalorieGoal,
+        consumedToday: res.consumedToday ?? (prev?.consumedToday || 0)
+      }));
+      setGoalInput(res.dailyCalorieGoal);
+      setIsGoalModalOpen(false);
+      showToast(`Daily calorie goal set to ${res.dailyCalorieGoal} kcal!`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to save goal', 'error');
+    } finally {
+      setSavingGoal(false);
+    }
+  };
+
   const remainingCredits = user?.credits?.remaining ?? 9000;
   const usedCredits = user?.credits?.used ?? 0;
   const isLow = remainingCredits < 500;
+
+  const consumedToday = healthStats?.consumedToday || 0;
+  const dailyCalorieGoal = healthStats?.dailyCalorieGoal;
+  const effectiveGoal = dailyCalorieGoal || 2000;
+  const progressPercent = Math.min(100, Math.round((consumedToday / effectiveGoal) * 100));
+  const isOverGoal = Boolean(dailyCalorieGoal && consumedToday > dailyCalorieGoal);
 
   const filteredItems = (items || []).filter((item) => {
     const matchesCategory = selectedCategory === 'All' || item.category.toLowerCase() === selectedCategory.toLowerCase();
@@ -73,7 +143,7 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
       {/* 1. WELCOME STRIP */}
       <WelcomeStrip subtitle="VIT Campus Mess Network • 9,000 monthly dining credits cycle" />
 
-      {/* 2. HERO STAT ROW (4 Clean White Cards, Balance is Featured) */}
+      {/* 2. HERO STAT ROW */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         
         {/* Featured Stat: Balance */}
@@ -130,7 +200,7 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
           {/* Section A: Today's Menu Catalog Card */}
           <div className="card space-y-6 p-6 sm:p-7">
             
-            {/* Header & Filter Controls */}
+            {/* Header & Filter Controls + Health Mode Toggle */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
               <div>
                 <h2 className="text-xl font-bold text-[#1E1B16] font-heading">
@@ -141,18 +211,85 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                 </p>
               </div>
 
-              {/* Search Bar */}
-              <div className="relative w-full sm:w-56 shrink-0">
-                <Search className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search dishes..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-9 pr-3 py-1.5 rounded-xl text-xs focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
-                />
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                {/* Health Mode Switch */}
+                <button
+                  type="button"
+                  onClick={handleToggleHealthMode}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 border cursor-pointer ${
+                    healthMode
+                      ? 'bg-[#FFF7F0] text-[#FF6B35] border-orange-300 shadow-soft-sm'
+                      : 'bg-stone-100 text-[#6B6560] border-stone-200 hover:text-[#1E1B16]'
+                  }`}
+                  title="Toggle calorie awareness and daily intake tracking"
+                >
+                  <Heart className={`w-3.5 h-3.5 ${healthMode ? 'fill-[#FF6B35] text-[#FF6B35]' : 'text-[#9B9590]'}`} />
+                  <span className="font-heading">Health Mode</span>
+                  <span className={`w-2 h-2 rounded-full ${healthMode ? 'bg-[#FF6B35] animate-pulse' : 'bg-stone-300'}`} />
+                </button>
+
+                {/* Search Bar */}
+                <div className="relative flex-1 sm:w-48 shrink-0">
+                  <Search className="w-4 h-4 text-[#9B9590] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-9 pr-3 py-1.5 rounded-xl text-xs focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
+                  />
+                </div>
               </div>
             </div>
+
+            {/* Health Mode Sticky / Top Calorie Progress Bar */}
+            {healthMode && (
+              <div className="p-4 rounded-2xl bg-[#FFF7F0] border border-orange-200 shadow-soft-sm space-y-2.5 animate-slide-up">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-[#FF6B35] text-white flex items-center justify-center shadow-soft-sm font-bold shrink-0">
+                      <Flame className="w-4 h-4 fill-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-[#1E1B16] font-heading">Daily Calorie Tracker</span>
+                        <span className="text-[10px] text-[#6B6560] font-medium bg-white px-2 py-0.5 rounded-full border border-stone-200">
+                          {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#6B6560] mt-0.5">
+                        Consumed today: <strong className="text-[#1E1B16] font-heading font-bold">{consumedToday}</strong> / <span className="font-heading font-bold text-[#FF6B35]">{effectiveGoal} kcal</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {isOverGoal && (
+                      <span className="status-pill status-pill-warning text-[10px] font-heading">
+                        Goal Exceeded (+{consumedToday - effectiveGoal} kcal)
+                      </span>
+                    )}
+                    <button
+                      onClick={() => setIsGoalModalOpen(true)}
+                      className="text-xs font-semibold text-[#FF6B35] hover:text-[#E85A2A] bg-white px-2.5 py-1 rounded-lg border border-orange-200 shadow-soft-sm flex items-center gap-1 transition"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      <span>{dailyCalorieGoal ? 'Edit Goal' : 'Set Goal'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full bg-stone-200/80 rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      isOverGoal ? 'bg-gradient-to-r from-[#FF6B35] to-[#DC2626]' : 'bg-gradient-to-r from-[#FF6B35] to-[#F7931E]'
+                    }`}
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Category Filter Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
@@ -186,7 +323,13 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {(filteredItems || []).map((item) => (
-                  <MenuCard key={item.item_id} item={item} />
+                  <MenuCard 
+                    key={item.item_id} 
+                    item={item} 
+                    healthMode={healthMode}
+                    consumedToday={consumedToday}
+                    dailyCalorieGoal={dailyCalorieGoal}
+                  />
                 ))}
               </div>
             )}
@@ -360,6 +503,73 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
         </div>
 
       </div>
+
+      {/* Set Daily Calorie Goal Modal */}
+      <Modal
+        isOpen={isGoalModalOpen}
+        onClose={() => setIsGoalModalOpen(false)}
+        title="Set Daily Calorie Goal"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-[#6B6560] leading-relaxed">
+            Set your target daily calorie intake. Health Mode tracks every meal order and keeps you aware of your daily nutrition.
+          </p>
+
+          {/* Quick Presets */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-[#1E1B16]">Quick Presets</label>
+            <div className="grid grid-cols-3 gap-2">
+              {(GOAL_PRESETS || []).map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setGoalInput(preset)}
+                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all duration-180 font-heading ${
+                    Number(goalInput) === preset
+                      ? 'bg-[#FF6B35] text-white border-[#FF6B35] shadow-btn-orange'
+                      : 'bg-[#FAFAF9] text-[#1E1B16] border-stone-200 hover:bg-[#FFF7F0] hover:border-orange-300'
+                  }`}
+                >
+                  {preset} kcal
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Input */}
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-[#1E1B16]">Custom Daily Goal (kcal)</label>
+            <input
+              type="number"
+              min="500"
+              max="10000"
+              step="50"
+              placeholder="e.g. 2100"
+              value={goalInput}
+              onChange={(e) => setGoalInput(e.target.value)}
+              className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] px-3.5 py-2 rounded-xl text-sm focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15 outline-none transition"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100">
+            <button
+              type="button"
+              onClick={() => setIsGoalModalOpen(false)}
+              className="btn-secondary py-2 px-4 text-xs"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSaveGoal()}
+              disabled={savingGoal || !goalInput}
+              className="btn-primary py-2 px-5 text-xs shadow-btn-orange"
+            >
+              {savingGoal ? 'Saving...' : 'Save Goal'}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Razorpay Top-Up Modal */}
       <TopupModal isOpen={isTopupOpen} onClose={() => setIsTopupOpen(false)} />

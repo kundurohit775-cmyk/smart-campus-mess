@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS students (
     phone VARCHAR(50),
     password_hash VARCHAR(255) NOT NULL,
     room_number VARCHAR(50),
+    daily_calorie_goal INT DEFAULT NULL,
     status VARCHAR(50) DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -28,6 +29,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
     item_name VARCHAR(255) NOT NULL,
     category VARCHAR(100) NOT NULL,
     price INT NOT NULL,
+    calories INT DEFAULT 250,
     description TEXT,
     image_url TEXT,
     available_quantity INT DEFAULT 0,
@@ -39,6 +41,7 @@ CREATE TABLE IF NOT EXISTS orders (
     order_id SERIAL PRIMARY KEY,
     student_id INT NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
     total_amount INT NOT NULL,
+    total_calories INT DEFAULT 0,
     order_status VARCHAR(50) NOT NULL DEFAULT 'Pending',
     order_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     completed_time TIMESTAMP WITH TIME ZONE,
@@ -51,7 +54,18 @@ CREATE TABLE IF NOT EXISTS order_items (
     item_id INT NOT NULL REFERENCES menu_items(item_id),
     quantity INT NOT NULL,
     price INT NOT NULL,
+    calories INT DEFAULT 0,
     subtotal INT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS student_daily_intake (
+    intake_id SERIAL PRIMARY KEY,
+    student_id INT NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    calories INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(student_id, date)
 );
 
 CREATE TABLE IF NOT EXISTS transactions (
@@ -89,4 +103,4 @@ CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_student ON transactions(student_id);
 CREATE INDEX IF NOT EXISTS idx_credits_student_period ON credits(student_id, month, year);
 CREATE INDEX IF NOT EXISTS idx_otps_phone ON otps(phone_number);
-
+CREATE INDEX IF NOT EXISTS idx_daily_intake_student_date ON student_daily_intake(student_id, date);

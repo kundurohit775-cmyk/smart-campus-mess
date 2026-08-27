@@ -3,7 +3,7 @@ import { creditService } from './creditService.js';
 
 export const orderService = {
   /**
-   * ATOMIC ORDER PLACEMENT IN POSTGRESQL
+   * ATOMIC ORDER PLACEMENT IN POSTGRESQL (WITH CALORIE ACCUMULATION)
    */
   async placeOrder(studentId, items) {
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -15,7 +15,7 @@ export const orderService = {
     // 1. Fetch current student credits
     const creditRecord = await creditService.getOrCreateMonthlyCredits(numericStudentId);
 
-    // 2. Fetch and validate all ordered menu items from DB
+    // 2. Fetch and validate all ordered menu items from DB (including calories)
     const itemIds = items.map(i => parseInt(i.itemId || i.item_id || i.id, 10)).filter(id => !isNaN(id));
     
     if (itemIds.length === 0) {
@@ -24,7 +24,7 @@ export const orderService = {
 
     const placeholders = itemIds.map((_, idx) => `$${idx + 1}`).join(',');
     const dbItemsRes = await db.pool.query(`
-      SELECT item_id, item_name, price, available_quantity, is_active 
+      SELECT item_id, item_name, price, COALESCE(calories, 250) as calories, available_quantity, is_active 
       FROM menu_items 
       WHERE item_id IN (${placeholders})
     `, itemIds);
@@ -37,6 +37,7 @@ export const orderService = {
     }
 
     let totalAmount = 0;
+    let totalCalories = 0;
     const orderItemsToInsert = [];
 
     for (const itemReq of items) {
@@ -64,13 +65,18 @@ export const orderService = {
       }
 
       const subtotal = Number(dbItem.price) * qty;
+      const itemCal = Number(dbItem.calories || 250);
+      const subtotalCalories = itemCal * qty;
+
       totalAmount += subtotal;
+      totalCalories += subtotalCalories;
 
       orderItemsToInsert.push({
         itemId: parseInt(dbItem.item_id, 10),
         name: dbItem.item_name,
         quantity: qty,
         price: Number(dbItem.price),
+        calories: itemCal,
         subtotal
       });
     }
@@ -99,34 +105,43 @@ export const orderService = {
       `, item.quantity, item.itemId);
     }
 
-    // 6. Generate order token & insert order record
+    // 6. Generate order token & insert order record (including total_calories)
     const tokenNumber = Math.floor(1000 + Math.random() * 9000);
     const pickupToken = `TK-${tokenNumber}`;
 
     const orderResult = await db.run(`
-      INSERT INTO orders (student_id, total_amount, order_status, pickup_token, order_time)
-      VALUES (?, ?, 'Pending', ?, NOW())
-    `, numericStudentId, totalAmount, pickupToken);
+      INSERT INTO orders (student_id, total_amount, total_calories, order_status, pickup_token, order_time)
+      VALUES (?, ?, ?, 'Pending', ?, NOW())
+    `, numericStudentId, totalAmount, totalCalories, pickupToken);
     const orderId = orderResult.lastInsertRowid;
 
-    // 7. Insert order items
+    // 7. Insert order items (including item calories)
     for (const item of orderItemsToInsert) {
       await db.run(`
-        INSERT INTO order_items (order_id, item_id, quantity, price, subtotal)
-        VALUES (?, ?, ?, ?, ?)
-      `, orderId, item.itemId, item.quantity, item.price, item.subtotal);
+        INSERT INTO order_items (order_id, item_id, quantity, price, calories, subtotal)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, orderId, item.itemId, item.quantity, item.price, item.calories, item.subtotal);
     }
 
-    // 8. Log the debit transaction
+    // 8. Atomically add to student's daily calorie intake for today
+    await db.run(`
+      INSERT INTO student_daily_intake (student_id, date, calories, updated_at)
+      VALUES (?, CURRENT_DATE, ?, NOW())
+      ON CONFLICT (student_id, date)
+      DO UPDATE SET calories = student_daily_intake.calories + EXCLUDED.calories, updated_at = NOW()
+    `, numericStudentId, totalCalories);
+
+    // 9. Log the debit transaction
     await db.run(`
       INSERT INTO transactions (student_id, order_id, amount, transaction_type, balance_after, notes)
       VALUES (?, ?, ?, 'DEBIT_ORDER', ?, ?)
-    `, numericStudentId, orderId, totalAmount, newRemaining, `Order #${orderId} (${pickupToken}) - ${orderItemsToInsert.length} item(s)`);
+    `, numericStudentId, orderId, totalAmount, newRemaining, `Order #${orderId} (${pickupToken}) - ${orderItemsToInsert.length} item(s) • ${totalCalories} kcal`);
 
     return {
       orderId,
       pickupToken,
       totalAmount,
+      totalCalories,
       orderStatus: 'Pending',
       remainingCredits: newRemaining,
       items: orderItemsToInsert
@@ -142,7 +157,7 @@ export const orderService = {
     const numericStudentId = parseInt(studentId, 10);
 
     const order = await db.get(`
-      SELECT order_id, student_id, total_amount, order_status, pickup_token 
+      SELECT order_id, student_id, total_amount, COALESCE(total_calories, 0) as total_calories, DATE(order_time) as order_date, order_status, pickup_token 
       FROM orders 
       WHERE order_id = ?
     `, numericOrderId);
@@ -192,6 +207,15 @@ export const orderService = {
       WHERE credit_id = ?
     `, refundedRemaining, refundedUsed, creditRecord.credit_id);
 
+    // Deduct calories from daily intake if order had calories
+    if (order.total_calories > 0 && order.order_date) {
+      await db.run(`
+        UPDATE student_daily_intake 
+        SET calories = GREATEST(0, calories - ?), updated_at = NOW()
+        WHERE student_id = ? AND date = ?
+      `, order.total_calories, order.student_id, order.order_date);
+    }
+
     await db.run(`
       INSERT INTO transactions (student_id, order_id, amount, transaction_type, balance_after, notes)
       VALUES (?, ?, ?, 'CREDIT_REFUND', ?, ?)
@@ -238,7 +262,7 @@ export const orderService = {
   async getOrderById(orderId) {
     const numericOrderId = parseInt(orderId, 10);
     const order = await db.get(`
-      SELECT o.*, s.name as student_name, s.email as student_email, s.room_number
+      SELECT o.*, COALESCE(o.total_calories, 0) as total_calories, s.name as student_name, s.email as student_email, s.room_number
       FROM orders o
       JOIN students s ON o.student_id = s.student_id
       WHERE o.order_id = ?
@@ -247,7 +271,7 @@ export const orderService = {
     if (!order) return null;
 
     const items = await db.all(`
-      SELECT oi.*, m.item_name, m.category, m.image_url
+      SELECT oi.*, COALESCE(oi.calories, m.calories, 250) as calories, m.item_name, m.category, m.image_url
       FROM order_items oi
       JOIN menu_items m ON oi.item_id = m.item_id
       WHERE oi.order_id = ?
@@ -265,7 +289,7 @@ export const orderService = {
   async getOrdersByStudentId(studentId) {
     const numericStudentId = parseInt(studentId, 10);
     const orders = await db.all(`
-      SELECT * FROM orders 
+      SELECT *, COALESCE(total_calories, 0) as total_calories FROM orders 
       WHERE student_id = ? 
       ORDER BY order_id DESC
     `, numericStudentId);
@@ -273,7 +297,7 @@ export const orderService = {
     const fullOrders = [];
     for (const order of orders) {
       const items = await db.all(`
-        SELECT oi.*, m.item_name, m.category, m.image_url
+        SELECT oi.*, COALESCE(oi.calories, m.calories, 250) as calories, m.item_name, m.category, m.image_url
         FROM order_items oi
         JOIN menu_items m ON oi.item_id = m.item_id
         WHERE oi.order_id = ?
@@ -289,7 +313,7 @@ export const orderService = {
    */
   async getAllOrders(statusFilter = null) {
     let query = `
-      SELECT o.*, s.name as student_name, s.email as student_email, s.room_number
+      SELECT o.*, COALESCE(o.total_calories, 0) as total_calories, s.name as student_name, s.email as student_email, s.room_number
       FROM orders o
       JOIN students s ON o.student_id = s.student_id
     `;
@@ -307,7 +331,7 @@ export const orderService = {
     const fullOrders = [];
     for (const order of orders) {
       const items = await db.all(`
-        SELECT oi.*, m.item_name, m.category, m.image_url
+        SELECT oi.*, COALESCE(oi.calories, m.calories, 250) as calories, m.item_name, m.category, m.image_url
         FROM order_items oi
         JOIN menu_items m ON oi.item_id = m.item_id
         WHERE oi.order_id = ?

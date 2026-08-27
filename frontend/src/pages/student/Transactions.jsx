@@ -195,7 +195,14 @@ export function Transactions() {
                       </td>
 
                       <td className="py-3 px-4 text-[#1E1B16] font-medium">
-                        {tx.notes || (isDebit ? 'Mess meal order payment' : isTopup ? 'Razorpay credit top-up' : 'Credit adjustment')}
+                        <div>
+                          <span>{tx.notes || (isDebit ? 'Mess meal order payment' : isTopup ? 'Razorpay credit top-up' : 'Credit adjustment')}</span>
+                          {tx.total_calories > 0 && (
+                            <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-md bg-orange-50 border border-orange-200/80 text-[10px] font-bold text-[#FF6B35] font-heading">
+                              🔥 {tx.total_calories} kcal
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="py-3 px-4 text-right">

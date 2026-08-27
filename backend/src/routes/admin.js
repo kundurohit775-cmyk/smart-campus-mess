@@ -154,18 +154,19 @@ router.get('/menu', async (req, res, next) => {
  */
 router.post('/menu', async (req, res, next) => {
   try {
-    const { item_name, category, price, description, image_url, available_quantity } = req.body;
+    const { item_name, category, price, calories, description, image_url, available_quantity } = req.body;
 
     if (!item_name || !category || price === undefined) {
       return res.status(400).json({ error: 'Item name, category, and price are required.' });
     }
 
     const defaultImg = image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
+    const cal = calories !== undefined && calories !== null && calories !== '' ? parseInt(calories, 10) : 250;
 
     const result = await db.run(`
-      INSERT INTO menu_items (item_name, category, price, description, image_url, available_quantity, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, 1)
-    `, item_name.trim(), category.trim(), parseInt(price, 10), description || '', defaultImg, parseInt(available_quantity || 0, 10));
+      INSERT INTO menu_items (item_name, category, price, calories, description, image_url, available_quantity, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+    `, item_name.trim(), category.trim(), parseInt(price, 10), cal, description || '', defaultImg, parseInt(available_quantity || 0, 10));
 
     const newItem = await db.get('SELECT * FROM menu_items WHERE item_id = ?', result.lastInsertRowid);
 
@@ -185,7 +186,7 @@ router.post('/menu', async (req, res, next) => {
 router.patch('/menu/:itemId', async (req, res, next) => {
   try {
     const itemId = parseInt(req.params.itemId, 10);
-    const { item_name, category, price, description, image_url, available_quantity, is_active } = req.body;
+    const { item_name, category, price, calories, description, image_url, available_quantity, is_active } = req.body;
 
     const existing = await db.get('SELECT * FROM menu_items WHERE item_id = ?', itemId);
     if (!existing) {
@@ -197,6 +198,7 @@ router.patch('/menu/:itemId', async (req, res, next) => {
       SET item_name = COALESCE(?, item_name),
           category = COALESCE(?, category),
           price = COALESCE(?, price),
+          calories = COALESCE(?, calories),
           description = COALESCE(?, description),
           image_url = COALESCE(?, image_url),
           available_quantity = COALESCE(?, available_quantity),
@@ -206,6 +208,7 @@ router.patch('/menu/:itemId', async (req, res, next) => {
       item_name ? item_name.trim() : null,
       category ? category.trim() : null,
       price !== undefined ? parseInt(price, 10) : null,
+      calories !== undefined && calories !== null && calories !== '' ? parseInt(calories, 10) : null,
       description !== undefined ? description : null,
       image_url !== undefined ? image_url : null,
       available_quantity !== undefined ? parseInt(available_quantity, 10) : null,

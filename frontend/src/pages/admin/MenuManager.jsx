@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, UtensilsCrossed, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, UtensilsCrossed, CheckCircle, XCircle, Flame } from 'lucide-react';
 import { api } from '../../services/api';
 import { Modal } from '../../components/Modal';
 import { useToast } from '../../context/ToastContext';
@@ -22,6 +22,7 @@ export function MenuManager() {
     item_name: '',
     category: 'Lunch',
     price: '',
+    calories: 250,
     description: '',
     image_url: '',
     available_quantity: 40
@@ -47,6 +48,7 @@ export function MenuManager() {
       item_name: '',
       category: 'Lunch',
       price: '',
+      calories: 250,
       description: '',
       image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
       available_quantity: 40
@@ -60,6 +62,7 @@ export function MenuManager() {
       item_name: item.item_name,
       category: item.category,
       price: item.price,
+      calories: item.calories || 250,
       description: item.description || '',
       image_url: item.image_url || '',
       available_quantity: item.available_quantity
@@ -118,10 +121,10 @@ export function MenuManager() {
         <div>
           <h1 className="text-xl font-bold text-[#1E1B16] flex items-center gap-2.5 font-heading">
             <UtensilsCrossed className="w-6 h-6 text-[#C2410C]" />
-            <span>Menu Items Catalog</span>
+            <span>Menu Items & Calorie Catalog</span>
           </h1>
           <p className="text-xs text-[#6B6560] mt-0.5">
-            Add, update, or price menu dishes and configure campus food inventory
+            Add, update, or price menu dishes, configure calorie counts (kcal), and manage inventory
           </p>
         </div>
 
@@ -156,6 +159,7 @@ export function MenuManager() {
                 <th className="py-3.5 px-6">Dish</th>
                 <th className="py-3.5 px-4">Category</th>
                 <th className="py-3.5 px-4 text-right">Price (Credits)</th>
+                <th className="py-3.5 px-4 text-center">Calories</th>
                 <th className="py-3.5 px-4 text-center">Available Stock</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
                 <th className="py-3.5 px-6 text-right">Actions</th>
@@ -164,13 +168,13 @@ export function MenuManager() {
             <tbody className="divide-y divide-stone-100">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="py-12 text-center text-[#6B6560] animate-pulse">
+                  <td colSpan="7" className="py-12 text-center text-[#6B6560] animate-pulse">
                     Loading menu items...
                   </td>
                 </tr>
               ) : filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="py-12 text-center text-[#9B9590]">
+                  <td colSpan="7" className="py-12 text-center text-[#9B9590]">
                     No menu items found.
                   </td>
                 </tr>
@@ -197,6 +201,12 @@ export function MenuManager() {
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-[#1E1B16] tabular-nums font-heading">
                       {item.price} Credits
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className="inline-flex items-center gap-1 font-bold text-xs text-[#FF6B35] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200/80 font-heading">
+                        <Flame className="w-3 h-3 text-[#FF6B35]" />
+                        {item.calories || 250} kcal
+                      </span>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className={`status-pill text-xs font-heading ${
@@ -255,7 +265,7 @@ export function MenuManager() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
               <label className="block text-xs font-semibold text-[#1E1B16]">Category</label>
               <select
@@ -277,6 +287,18 @@ export function MenuManager() {
                 placeholder="e.g. 90"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-[#1E1B16]">Calories (kcal)</label>
+              <input
+                type="number"
+                min="10"
+                max="5000"
+                placeholder="e.g. 320"
+                value={formData.calories}
+                onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
                 className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] px-3.5 py-2 rounded-xl text-sm focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15 outline-none transition"
               />
             </div>

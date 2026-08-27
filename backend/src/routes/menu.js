@@ -6,12 +6,12 @@ const router = express.Router();
 
 /**
  * GET /api/menu
- * Public or Authenticated: Returns all active menu items with live available stock from Neon PostgreSQL.
+ * Public or Authenticated: Returns all active menu items with live available stock and calorie counts from Neon PostgreSQL.
  */
 router.get('/', async (req, res, next) => {
   try {
     const result = await db.query(`
-      SELECT item_id, item_name, category, price, description, image_url, available_quantity, is_active,
+      SELECT item_id, item_name, category, price, COALESCE(calories, 250) as calories, description, image_url, available_quantity, is_active,
              (CASE WHEN available_quantity <= 0 THEN 1 ELSE 0 END) as is_sold_out
       FROM menu_items
       WHERE is_active = 1

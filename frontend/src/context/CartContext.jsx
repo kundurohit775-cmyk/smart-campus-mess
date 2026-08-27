@@ -31,6 +31,10 @@ export function CartProvider({ children }) {
     return (items || []).reduce((sum, item) => sum + (item.price * item.quantity), 0);
   }, [items]);
 
+  const totalCalories = useMemo(() => {
+    return (items || []).reduce((sum, item) => sum + ((item.calories || 250) * item.quantity), 0);
+  }, [items]);
+
   const totalItemCount = useMemo(() => {
     return (items || []).reduce((sum, item) => sum + item.quantity, 0);
   }, [items]);
@@ -65,6 +69,7 @@ export function CartProvider({ children }) {
           item_name: menuItem.item_name,
           category: menuItem.category,
           price: menuItem.price,
+          calories: menuItem.calories || 250,
           image_url: menuItem.image_url,
           available_quantity: menuItem.available_quantity,
           quantity: initialQty
@@ -116,6 +121,7 @@ export function CartProvider({ children }) {
       removeItem,
       clearCart,
       totalAmount,
+      totalCalories,
       totalCount: totalItemCount,
       totalItemCount,
       remainingCredits,

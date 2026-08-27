@@ -149,12 +149,26 @@ export function OrderTracking({ onBrowseMenu }) {
 
                     {/* Items List */}
                     <div className="p-4 bg-stone-50 rounded-xl border border-stone-200/80 space-y-2">
-                      <span className="text-xs font-semibold text-[#6B6560] block">Order Dishes</span>
+                      <div className="flex items-center justify-between text-xs font-semibold text-[#6B6560]">
+                        <span>Order Dishes</span>
+                        {order.total_calories > 0 && (
+                          <span className="text-[#FF6B35] font-bold font-heading">
+                            🔥 {order.total_calories} kcal
+                          </span>
+                        )}
+                      </div>
                       <div className="space-y-1 text-xs">
                         {(order.items || []).map((item, idx) => (
                           <div key={idx} className="flex justify-between text-[#1E1B16]">
-                            <span className="font-heading font-medium">{item.quantity}x {item.item_name}</span>
-                            <span className="text-[#6B6560] tabular-nums font-heading">{item.price_at_order * item.quantity} Cr</span>
+                            <span className="font-heading font-medium">
+                              {item.quantity}x {item.item_name}
+                              {item.calories > 0 && (
+                                <span className="text-[#9B9590] text-[11px] ml-1.5">
+                                  ({item.calories * item.quantity} kcal)
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-[#6B6560] tabular-nums font-heading">{(item.price || item.price_at_order || 0) * item.quantity} Cr</span>
                           </div>
                         ))}
                       </div>
@@ -197,9 +211,16 @@ export function OrderTracking({ onBrowseMenu }) {
                         #{order.order_id}
                       </div>
                       <div>
-                        <span className="font-semibold text-xs sm:text-sm text-[#1E1B16] block font-heading">
-                          Token: {order.pickup_token}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-xs sm:text-sm text-[#1E1B16] block font-heading">
+                            Token: {order.pickup_token}
+                          </span>
+                          {order.total_calories > 0 && (
+                            <span className="text-[10px] font-bold text-[#FF6B35] bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200/80 font-heading">
+                              🔥 {order.total_calories} kcal
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[11px] text-[#9B9590]">
                           {new Date(order.order_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                         </span>
@@ -221,11 +242,25 @@ export function OrderTracking({ onBrowseMenu }) {
 
                   {isExpanded && (
                     <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-1.5 animate-fade-in">
-                      <span className="text-xs font-semibold text-[#6B6560] block">Items Breakdown:</span>
+                      <div className="flex items-center justify-between text-xs font-semibold text-[#6B6560]">
+                        <span>Items Breakdown:</span>
+                        {order.total_calories > 0 && (
+                          <span className="text-[#FF6B35] font-bold font-heading">
+                            Total: {order.total_calories} kcal
+                          </span>
+                        )}
+                      </div>
                       {(order.items || []).map((item, idx) => (
                         <div key={idx} className="flex justify-between text-[#6B6560]">
-                          <span className="font-heading font-medium">{item.quantity}x {item.item_name}</span>
-                          <span className="tabular-nums font-semibold font-heading text-[#1E1B16]">{item.price_at_order * item.quantity} Credits</span>
+                          <span className="font-heading font-medium">
+                            {item.quantity}x {item.item_name}
+                            {item.calories > 0 && (
+                              <span className="text-[#9B9590] text-[11px] ml-1.5">
+                                ({item.calories * item.quantity} kcal)
+                              </span>
+                            )}
+                          </span>
+                          <span className="tabular-nums font-semibold font-heading text-[#1E1B16]">{(item.price || item.price_at_order || 0) * item.quantity} Credits</span>
                         </div>
                       ))}
                     </div>

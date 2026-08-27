@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, AlertTriangle, Coins, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, AlertTriangle, Coins, Sparkles, Flame, Heart } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -7,15 +7,29 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 
 export function CartDrawer({ onOrderSuccess }) {
-  const { cart = [], isOpen, setIsOpen, updateQuantity, removeFromCart, clearCart, totalAmount = 0, remainingCredits = 0, balanceAfterOrder = 0, isInsufficientCredit = false } = useCart();
+  const { cart = [], isOpen, setIsOpen, updateQuantity, removeFromCart, clearCart, totalAmount = 0, totalCalories = 0, remainingCredits = 0, balanceAfterOrder = 0, isInsufficientCredit = false } = useCart();
   const { refreshUser } = useAuth();
   const { showToast } = useToast();
 
   const [loading, setLoading] = useState(false);
+  const [healthStats, setHealthStats] = useState(null);
+  const [isHealthMode, setIsHealthMode] = useState(false);
+
+  useEffect(() => {
+    const isHM = localStorage.getItem('smartmess_health_mode') === 'true';
+    setIsHealthMode(isHM);
+
+    if (isHM && isOpen) {
+      api.getHealthStats().then(setHealthStats).catch(() => {});
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const cartList = cart || [];
+  const consumedToday = healthStats?.consumedToday || 0;
+  const dailyGoal = healthStats?.dailyCalorieGoal;
+  const willExceedDailyCal = isHealthMode && dailyGoal && (consumedToday + totalCalories > dailyGoal);
 
   const handlePlaceOrder = async () => {
     if (cartList.length === 0) return;
@@ -112,9 +126,17 @@ export function CartDrawer({ onOrderSuccess }) {
                     )}
                     <div>
                       <h4 className="text-xs font-bold text-[#1E1B16] font-heading">{item.item_name}</h4>
-                      <span className="text-xs font-bold text-[#FF6B35] font-heading tabular-nums">
-                        {item.price} Cr
-                      </span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs font-bold text-[#FF6B35] font-heading tabular-nums">
+                          {item.price} Cr
+                        </span>
+                        {isHealthMode && (
+                          <span className="text-[10px] text-[#6B6560] font-semibold flex items-center gap-0.5">
+                            <Flame className="w-3 h-3 text-[#FF6B35]" />
+                            {(item.calories || 250) * item.quantity} kcal
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -133,7 +155,7 @@ export function CartDrawer({ onOrderSuccess }) {
                         onClick={() => updateQuantity(item.item_id, item.quantity + 1)}
                         className="w-6 h-6 rounded-lg bg-[#FF6B35] text-white flex items-center justify-center transition shadow-soft-sm"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
@@ -152,8 +174,31 @@ export function CartDrawer({ onOrderSuccess }) {
 
           {/* Drawer Footer & Checkout */}
           {cartList.length > 0 && (
-            <div className="p-5 border-t border-stone-100 bg-[#FFF7F0] space-y-4">
+            <div className="p-5 border-t border-stone-100 bg-[#FFF7F0] space-y-3.5">
               
+              {/* Health Mode Calorie Summary */}
+              {isHealthMode && (
+                <div className="p-3 bg-white rounded-xl border border-orange-200/80 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-[#6B6560] font-medium">
+                    <Flame className="w-4 h-4 text-[#FF6B35]" />
+                    <span>Tray Calories:</span>
+                  </div>
+                  <span className="font-bold text-[#1E1B16] font-heading tabular-nums">
+                    {totalCalories} kcal
+                  </span>
+                </div>
+              )}
+
+              {/* Informative over-goal alert */}
+              {willExceedDailyCal && (
+                <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200/80 text-[11px] text-[#D97706] flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>
+                    This order will bring today's total to <strong>{consumedToday + totalCalories} kcal</strong>, which exceeds your daily goal of <strong>{dailyGoal} kcal</strong>.
+                  </span>
+                </div>
+              )}
+
               {/* Financial Balance Breakdown */}
               <div className="p-3.5 bg-white rounded-xl border border-stone-200/80 space-y-2 text-xs">
                 <div className="flex justify-between text-[#6B6560]">

@@ -1,18 +1,21 @@
 import React from 'react';
-import { Plus, Minus, Check, Sparkles, Utensils, AlertCircle } from 'lucide-react';
+import { Plus, Minus, Check, Sparkles, Utensils, AlertCircle, Flame } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
-export function MenuCard({ item }) {
-  const { cart = [], addToCart, updateQuantity } = useCart();
+export function MenuCard({ item, healthMode = false, consumedToday = 0, dailyCalorieGoal = null }) {
+  const { cart = [], totalCalories = 0, addToCart, updateQuantity } = useCart();
   const cartList = cart || [];
   const cartItem = cartList.find(i => i.item_id === item?.item_id);
   const isOutOfStock = (item?.available_quantity ?? 0) <= 0;
   const isLowStock = (item?.available_quantity ?? 0) > 0 && item.available_quantity <= 5;
 
+  const itemCalories = item?.calories || 250;
+  const wouldExceedGoal = healthMode && dailyCalorieGoal && (consumedToday + totalCalories + itemCalories > dailyCalorieGoal);
+
   if (!item) return null;
 
   return (
-    <div className="card flex flex-col justify-between overflow-hidden relative group hover:border-orange-300">
+    <div className="card flex flex-col justify-between overflow-hidden relative group hover:border-orange-300 transition-all duration-200">
       
       {/* Top Image Section */}
       <div className="relative h-44 -mx-6 -mt-6 mb-4 overflow-hidden bg-stone-100">
@@ -25,15 +28,22 @@ export function MenuCard({ item }) {
           loading="lazy"
         />
 
-        {/* Category Pill on top-left */}
-        <div className="absolute top-3 left-3">
+        {/* Category & Health Badges on top-left */}
+        <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
           <span className="bg-white/95 text-[#1E1B16] font-semibold px-2.5 py-1 rounded-full border border-stone-200/80 shadow-soft-sm text-[11px]">
             {item.category}
           </span>
+
+          {healthMode && (
+            <span className="bg-orange-500 text-white font-bold px-2 py-0.5 rounded-full shadow-soft-sm text-[10px] flex items-center gap-1 font-heading animate-fade-in">
+              <Flame className="w-3 h-3 fill-current text-white" />
+              <span>{itemCalories} kcal</span>
+            </span>
+          )}
         </div>
 
         {/* Stock Badge on top-right */}
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
           {isOutOfStock ? (
             <span className="status-pill status-pill-danger text-[11px] bg-white shadow-soft-sm">
               Sold Out
@@ -52,21 +62,34 @@ export function MenuCard({ item }) {
 
       {/* Content Section */}
       <div className="space-y-1.5 flex-1">
-        <h3 className="text-base font-bold text-[#1E1B16] leading-tight font-heading group-hover:text-[#FF6B35] transition-colors">
-          {item.item_name}
-        </h3>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-base font-bold text-[#1E1B16] leading-tight font-heading group-hover:text-[#FF6B35] transition-colors">
+            {item.item_name}
+          </h3>
+        </div>
         
         <p className="text-xs text-[#6B6560] line-clamp-2 leading-relaxed">
           {item.description || 'Freshly prepared delicious campus meal.'}
         </p>
+
+        {/* Non-blocking Over-Goal Warning */}
+        {wouldExceedGoal && (
+          <div className="pt-1">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#D97706] bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-lg">
+              <AlertCircle className="w-3 h-3 text-[#D97706]" />
+              <span>Will exceed daily goal</span>
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Bottom Price and Add CTA */}
+      {/* Bottom Price, Calories & Add CTA */}
       <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
         <div>
           <span className="text-[11px] font-semibold text-[#9B9590] uppercase tracking-wider block">Price</span>
-          <div className="text-lg font-bold text-[#1E1B16] tabular-nums font-heading">
-            {item.price} <span className="text-xs font-semibold text-[#6B6560]">Credits</span>
+          <div className="text-lg font-bold text-[#1E1B16] tabular-nums font-heading flex items-baseline gap-1.5">
+            <span>{item.price}</span>
+            <span className="text-xs font-semibold text-[#6B6560]">Credits</span>
           </div>
         </div>
 

@@ -62,8 +62,13 @@ export const api = {
     body: JSON.stringify({ available_quantity })
   }),
 
-  // Credits & Student
+  // Credits & Student & Health Mode
   getCredits: (studentId) => request(`/credits/${studentId}`),
+  getHealthStats: () => request('/credits/health-stats'),
+  setCalorieGoal: (dailyCalorieGoal) => request('/credits/calorie-goal', {
+    method: 'PATCH',
+    body: JSON.stringify({ dailyCalorieGoal })
+  }),
   getTransactions: async (studentId) => {
     try {
       const me = JSON.parse(localStorage.getItem('mess_user_session') || '{}');
