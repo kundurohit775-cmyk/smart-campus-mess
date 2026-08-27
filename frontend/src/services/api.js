@@ -94,6 +94,18 @@ export const api = {
   fulfillPreOrder: (preOrderId) => request(`/preorders/admin/${preOrderId}/fulfill`, {
     method: 'PATCH'
   }),
+
+  // Sick Leave & Hostel Delivery (Warden Approval)
+  submitSickLeaveRequest: (data) => request('/sick-leave/request', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  getMySickLeaveStatus: (date) => {
+    const qs = date ? `?date=${date}` : '';
+    return request(`/sick-leave/my-status${qs}`);
+  },
+  getHostelDirectory: () => request('/sick-leave/hostels'),
+  getAdminSickLeaveRequests: () => request('/sick-leave/admin/all'),
   getTransactions: async (studentId) => {
     try {
       const me = JSON.parse(localStorage.getItem('mess_user_session') || '{}');
@@ -107,7 +119,10 @@ export const api = {
   },
 
   // Orders
-  placeOrder: (items) => request('/orders', { method: 'POST', body: JSON.stringify({ items }) }),
+  placeOrder: (items, deliveryType = 'self-pickup', hostelName = null, roomNumber = null) => request('/orders', { 
+    method: 'POST', 
+    body: JSON.stringify({ items, deliveryType, hostelName, roomNumber }) 
+  }),
   getOrders: (status) => request(status ? `/orders?status=${status}` : '/orders'),
   getChefOrders: (status) => request(status ? `/orders?status=${status}` : '/orders'),
   getChefInventory: () => request('/admin/menu'),

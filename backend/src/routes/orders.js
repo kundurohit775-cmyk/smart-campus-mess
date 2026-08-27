@@ -26,16 +26,25 @@ async function resolveStudentId(user) {
 router.post('/', authenticateToken, requireRole('student'), async (req, res, next) => {
   try {
     const studentId = await resolveStudentId(req.user);
-    const { items } = req.body;
+    const { items, deliveryType, hostelName, roomNumber } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Cart is empty. Please add items to place an order.' });
     }
 
-    const orderResult = await orderService.placeOrder(studentId, items);
+    const orderResult = await orderService.placeOrder(studentId, items, {
+      deliveryType,
+      hostelName,
+      roomNumber: roomNumber || req.user.roomNumber
+    });
+
+    const isDelivery = orderResult.deliveryType === 'hostel-delivery';
+    const successMsg = isDelivery
+      ? `Order #${orderResult.orderId} placed for Hostel Room Delivery (${orderResult.deliveryAddress})! Token: ${orderResult.pickupToken}`
+      : `Order #${orderResult.orderId} placed successfully! Token: ${orderResult.pickupToken}`;
 
     res.status(201).json({
-      message: `Order #${orderResult.orderId} placed successfully! Token: ${orderResult.pickupToken}`,
+      message: successMsg,
       order: orderResult
     });
   } catch (err) {

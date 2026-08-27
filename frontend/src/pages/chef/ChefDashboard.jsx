@@ -267,10 +267,22 @@ export function ChefDashboard({ onNavigateToInventory }) {
                                 }`}>
                                   {order.order_status}
                                 </span>
+                                {order.delivery_type === 'hostel-delivery' && (
+                                  <span className="bg-[#FF6B35] text-white text-[10px] font-bold px-2 py-0.5 rounded-md font-heading flex items-center gap-1 shadow-soft-sm animate-pulse">
+                                    🏠 HOSTEL DELIVERY
+                                  </span>
+                                )}
                               </div>
-                              <span className="text-[11px] text-[#6B6560]">
-                                Student: {order.student_name || 'Student'} ({order.room_number || 'Hostel'})
-                              </span>
+                              <div className="text-[11px] text-[#6B6560] flex items-center gap-2 mt-0.5">
+                                <span>Student: <strong>{order.student_name || 'Student'}</strong></span>
+                                {order.delivery_type === 'hostel-delivery' ? (
+                                  <span className="text-[#FF6B35] font-bold">
+                                    • Deliver to: {order.delivery_address || order.room_number || 'Hostel Room'}
+                                  </span>
+                                ) : (
+                                  <span>({order.room_number || 'Counter Pickup'})</span>
+                                )}
+                              </div>
                             </div>
                           </div>
 

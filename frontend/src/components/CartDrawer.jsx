@@ -1,10 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, AlertTriangle, Coins, Sparkles, Flame, Heart } from 'lucide-react';
+import { 
+  X, 
+  Trash2, 
+  Plus, 
+  Minus, 
+  ShoppingBag, 
+  ArrowRight, 
+  AlertTriangle, 
+  Coins, 
+  Sparkles, 
+  Flame, 
+  Heart,
+  Home,
+  DoorClosed,
+  HeartPulse,
+  CheckCircle2,
+  Clock
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
+import { SickLeaveModal } from './SickLeaveModal';
 
 export function CartDrawer({ onOrderSuccess }) {
   const { cart = [], isOpen, setIsOpen, updateQuantity, removeFromCart, clearCart, totalAmount = 0, totalCalories = 0, remainingCredits = 0, balanceAfterOrder = 0, isInsufficientCredit = false } = useCart();
@@ -15,12 +33,29 @@ export function CartDrawer({ onOrderSuccess }) {
   const [healthStats, setHealthStats] = useState(null);
   const [isHealthMode, setIsHealthMode] = useState(false);
 
+  // Delivery type states: 'self-pickup' | 'hostel-delivery'
+  const [deliveryType, setDeliveryType] = useState('self-pickup');
+  const [sickLeaveStatus, setSickLeaveStatus] = useState(null);
+  const [isSickLeaveModalOpen, setIsSickLeaveModalOpen] = useState(false);
+
+  const fetchSickLeaveStatus = async () => {
+    try {
+      const res = await api.getMySickLeaveStatus();
+      setSickLeaveStatus(res?.hasRequest ? res : null);
+    } catch {
+      setSickLeaveStatus(null);
+    }
+  };
+
   useEffect(() => {
     const isHM = localStorage.getItem('smartmess_health_mode') === 'true';
     setIsHealthMode(isHM);
 
-    if (isHM && isOpen) {
-      api.getHealthStats().then(setHealthStats).catch(() => {});
+    if (isOpen) {
+      if (isHM) {
+        api.getHealthStats().then(setHealthStats).catch(() => {});
+      }
+      fetchSickLeaveStatus();
     }
   }, [isOpen]);
 
@@ -31,10 +66,19 @@ export function CartDrawer({ onOrderSuccess }) {
   const dailyGoal = healthStats?.dailyCalorieGoal;
   const willExceedDailyCal = isHealthMode && dailyGoal && (consumedToday + totalCalories > dailyGoal);
 
+  const isDeliverySelected = deliveryType === 'hostel-delivery';
+  const isDeliveryApproved = isDeliverySelected && Boolean(sickLeaveStatus?.isApproved);
+  const isDeliveryBlocked = isDeliverySelected && !isDeliveryApproved;
+
   const handlePlaceOrder = async () => {
     if (cartList.length === 0) return;
     if (isInsufficientCredit) {
       showToast('Insufficient credit balance to place this order.', 'error');
+      return;
+    }
+
+    if (isDeliverySelected && !isDeliveryApproved) {
+      showToast('Hostel room delivery requires an approved sick leave request from your Warden.', 'warning');
       return;
     }
 
@@ -45,7 +89,12 @@ export function CartDrawer({ onOrderSuccess }) {
         quantity: item.quantity
       }));
 
-      const res = await api.placeOrder(orderPayload);
+      const res = await api.placeOrder(
+        orderPayload,
+        deliveryType,
+        sickLeaveStatus?.hostelName,
+        sickLeaveStatus?.roomNumber
+      );
 
       // Trigger celebratory confetti
       confetti({
@@ -54,7 +103,11 @@ export function CartDrawer({ onOrderSuccess }) {
         origin: { y: 0.6 }
       });
 
-      showToast(`Order Placed! Pickup Token: ${res.order.pickupToken}`, 'success', 5000);
+      const successNotice = isDeliverySelected
+        ? `Hostel Delivery Order Placed for ${res.order.deliveryAddress}! Token: ${res.order.pickupToken}`
+        : `Order Placed! Pickup Token: ${res.order.pickupToken}`;
+
+      showToast(successNotice, 'success', 5000);
       clearCart();
       await refreshUser();
       setIsOpen(false);
@@ -140,12 +193,12 @@ export function CartDrawer({ onOrderSuccess }) {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 bg-white border border-stone-200 p-1 rounded-xl shadow-soft-sm">
+                    <div className="flex items-center gap-1 bg-white border border-stone-200 p-1 rounded-xl shadow-soft-sm">
                       <button
                         onClick={() => updateQuantity(item.item_id, item.quantity - 1)}
-                        className="w-6 h-6 rounded-lg bg-stone-50 hover:bg-stone-100 flex items-center justify-center text-[#1E1B16] transition"
+                        className="w-6 h-6 rounded-lg bg-stone-100 text-[#1E1B16] hover:bg-stone-200 flex items-center justify-center transition"
                       >
-                        <Minus className="w-3 h-3" />
+                        <Minus className="w-3.5 h-3.5" />
                       </button>
                       <span className="text-xs font-bold text-[#1E1B16] px-1.5 tabular-nums font-heading">
                         {item.quantity}
@@ -175,6 +228,84 @@ export function CartDrawer({ onOrderSuccess }) {
           {cartList.length > 0 && (
             <div className="p-5 border-t border-stone-100 bg-[#FFF7F0] space-y-3.5">
               
+              {/* Delivery Option Selector */}
+              <div className="p-3 bg-white rounded-2xl border border-orange-200 space-y-2.5 shadow-soft-sm">
+                <span className="text-xs font-bold text-[#1E1B16] block font-heading">
+                  Select Delivery Mode
+                </span>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryType('self-pickup')}
+                    className={`p-2 rounded-xl border text-xs font-bold transition-all duration-180 flex flex-col items-center gap-1 font-heading ${
+                      deliveryType === 'self-pickup'
+                        ? 'bg-[#FF6B35] text-white border-[#FF6B35] shadow-soft-sm'
+                        : 'bg-stone-50 text-[#6B6560] border-stone-200 hover:bg-[#FFF7F0]'
+                    }`}
+                  >
+                    <span>🏃 Counter Pickup</span>
+                    <span className="text-[10px] opacity-80 font-normal">Standard Mess</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryType('hostel-delivery')}
+                    className={`p-2 rounded-xl border text-xs font-bold transition-all duration-180 flex flex-col items-center gap-1 font-heading ${
+                      deliveryType === 'hostel-delivery'
+                        ? 'bg-[#FF6B35] text-white border-[#FF6B35] shadow-soft-sm'
+                        : 'bg-stone-50 text-[#6B6560] border-stone-200 hover:bg-[#FFF7F0]'
+                    }`}
+                  >
+                    <span>🏠 Hostel Delivery</span>
+                    <span className="text-[10px] opacity-80 font-normal">Sick Leave Only</span>
+                  </button>
+                </div>
+
+                {/* Hostel Delivery Status Check Feedback */}
+                {isDeliverySelected && (
+                  <div className="pt-1 text-xs">
+                    {isDeliveryApproved ? (
+                      <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-[#15803D] flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 shrink-0 text-[#16A34A]" />
+                        <span>
+                          Warden Approved for <strong>{sickLeaveStatus.hostelName}, {sickLeaveStatus.roomNumber}</strong>.
+                        </span>
+                      </div>
+                    ) : sickLeaveStatus?.isPending ? (
+                      <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[#B45309] space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 shrink-0 text-[#D97706] animate-pulse" />
+                          <span>Sick leave pending Warden authorization.</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsSickLeaveModalOpen(true)}
+                          className="text-[11px] font-bold text-[#D97706] underline"
+                        >
+                          Check Status
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[#B45309] space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0 text-[#D97706]" />
+                          <span>Requires Warden email approval.</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsSickLeaveModalOpen(true)}
+                          className="w-full btn-primary py-1.5 text-xs justify-center shadow-soft-sm"
+                        >
+                          <HeartPulse className="w-3.5 h-3.5" />
+                          <span>Request Sick Leave Approval</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Health Mode Calorie Summary */}
               {isHealthMode && (
                 <div className="p-3 bg-white rounded-xl border border-orange-200/80 flex items-center justify-between text-xs">
@@ -226,14 +357,16 @@ export function CartDrawer({ onOrderSuccess }) {
               {/* Checkout Button */}
               <button
                 onClick={handlePlaceOrder}
-                disabled={loading || isInsufficientCredit || cartList.length === 0}
-                className="w-full btn-primary py-3 flex items-center justify-center gap-2 text-sm shadow-btn-orange"
+                disabled={loading || isInsufficientCredit || cartList.length === 0 || isDeliveryBlocked}
+                className="w-full btn-primary py-3 flex items-center justify-center gap-2 text-sm shadow-btn-orange disabled:opacity-50"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>Confirm Order ({totalAmount} Credits)</span>
+                    <span>
+                      {isDeliverySelected ? `Confirm Hostel Delivery (${totalAmount} Cr)` : `Confirm Order (${totalAmount} Credits)`}
+                    </span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -243,6 +376,15 @@ export function CartDrawer({ onOrderSuccess }) {
 
         </div>
       </div>
+
+      {/* Sick Leave Modal Trigger */}
+      <SickLeaveModal
+        isOpen={isSickLeaveModalOpen}
+        onClose={() => setIsSickLeaveModalOpen(false)}
+        onStatusChange={(status) => {
+          setSickLeaveStatus(status);
+        }}
+      />
     </div>
   );
 }

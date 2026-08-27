@@ -204,9 +204,15 @@ export function OrderTracking({ onBrowseMenu }) {
                     <div className="bg-[#16A34A] text-white px-4 py-1.5 -mx-6 -mt-6 mb-4 flex items-center justify-between text-xs font-bold font-heading">
                       <span className="flex items-center gap-1.5">
                         <BellRing className="w-4 h-4" />
-                        MEAL IS READY FOR PICKUP!
+                        {order.delivery_type === 'hostel-delivery'
+                          ? `MEAL READY FOR HOSTEL ROOM DISPATCH!`
+                          : `MEAL IS READY FOR PICKUP!`}
                       </span>
-                      <span>Show Token #{order.pickup_token} at Counter</span>
+                      <span>
+                        {order.delivery_type === 'hostel-delivery'
+                          ? `Delivering to: ${order.delivery_address || 'Hostel Room'}`
+                          : `Show Token #${order.pickup_token} at Counter`}
+                      </span>
                     </div>
                   )}
 
@@ -228,9 +234,19 @@ export function OrderTracking({ onBrowseMenu }) {
                             }`}>
                               {order.order_status}
                             </span>
+                            {order.delivery_type === 'hostel-delivery' && (
+                              <span className="bg-[#FF6B35] text-white text-[10px] font-bold px-2 py-0.5 rounded-md font-heading flex items-center gap-1 shadow-soft-sm">
+                                🏠 Room Delivery
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-[#6B6560] mt-0.5">
                             Placed: {new Date(order.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {order.delivery_type === 'hostel-delivery' && (
+                              <span className="text-[#FF6B35] font-semibold ml-2">
+                                • To: {order.delivery_address || 'Hostel Room'}
+                              </span>
+                            )}
                           </p>
                         </div>
                       </div>

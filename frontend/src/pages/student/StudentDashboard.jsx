@@ -31,6 +31,8 @@ import { MenuCard } from '../../components/MenuCard';
 import { TopupModal } from '../../components/TopupModal';
 import { Modal } from '../../components/Modal';
 import { PreOrderModal } from '../../components/PreOrderModal';
+import { SickLeaveModal } from '../../components/SickLeaveModal';
+import { HeartPulse } from 'lucide-react';
 
 const CATEGORIES = ['All', 'Breakfast', 'Lunch', 'Snacks', 'Dinner', 'Beverages'];
 const GOAL_PRESETS = [1500, 2000, 2500];
@@ -53,6 +55,10 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
   const [isMyPreOrdersOpen, setIsMyPreOrdersOpen] = useState(false);
   const [cancellingPreOrderId, setCancellingPreOrderId] = useState(null);
 
+  // Sick Leave / Hostel Delivery states
+  const [isSickLeaveOpen, setIsSickLeaveOpen] = useState(false);
+  const [sickLeaveStatus, setSickLeaveStatus] = useState(null);
+
   // Health Mode states
   const [healthMode, setHealthMode] = useState(() => {
     return localStorage.getItem('smartmess_health_mode') === 'true';
@@ -64,15 +70,21 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
 
   const fetchDashboardData = async () => {
     try {
-      const [menuRes, transRes, healthRes, preOrderRes] = await Promise.all([
+      const [menuRes, transRes, healthRes, preOrderRes, sickRes] = await Promise.all([
         api.getMenu(),
         api.getTransactions().catch(() => ({ transactions: [] })),
         api.getHealthStats().catch(() => null),
-        api.getMyPreOrders().catch(() => ({ preOrders: [] }))
+        api.getMyPreOrders().catch(() => ({ preOrders: [] })),
+        api.getMySickLeaveStatus().catch(() => null)
       ]);
       setItems(menuRes?.items || []);
       setRecentTransactions(transRes?.transactions?.slice(0, 4) || []);
       setMyPreOrders(preOrderRes?.preOrders || []);
+      if (sickRes?.hasRequest) {
+        setSickLeaveStatus(sickRes);
+      } else {
+        setSickLeaveStatus(null);
+      }
 
       if (healthRes) {
         setHealthStats(healthRes);
@@ -356,6 +368,65 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
               </div>
             )}
 
+            {/* Sick Leave / Health Request Banner */}
+            <div className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-all ${
+              sickLeaveStatus?.isApproved
+                ? 'bg-emerald-50/70 border-emerald-200 text-[#15803D]'
+                : sickLeaveStatus?.isPending
+                ? 'bg-amber-50/70 border-amber-200 text-[#B45309]'
+                : sickLeaveStatus?.isRejected
+                ? 'bg-red-50/70 border-red-200 text-[#B91C1C]'
+                : 'bg-[#FFF7F0] border-orange-200/80 text-[#1E1B16]'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 font-bold ${
+                  sickLeaveStatus?.isApproved
+                    ? 'bg-[#16A34A] text-white'
+                    : sickLeaveStatus?.isPending
+                    ? 'bg-[#D97706] text-white'
+                    : sickLeaveStatus?.isRejected
+                    ? 'bg-[#DC2626] text-white'
+                    : 'bg-[#FF6B35] text-white'
+                }`}>
+                  <HeartPulse className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-bold block font-heading">
+                    {sickLeaveStatus?.isApproved
+                      ? '🏠 Hostel Room Delivery Active (Warden Approved)'
+                      : sickLeaveStatus?.isPending
+                      ? '⏳ Sick Leave Pending Warden Approval'
+                      : sickLeaveStatus?.isRejected
+                      ? '❌ Sick Leave Request Declined'
+                      : '🤒 Feeling unwell or on sick leave?'}
+                  </span>
+                  <p className="text-[11px] opacity-90">
+                    {sickLeaveStatus?.isApproved
+                      ? `Delivery unlocked for ${sickLeaveStatus.hostelName}, ${sickLeaveStatus.roomNumber}. Select 'Hostel Delivery' in your tray!`
+                      : sickLeaveStatus?.isPending
+                      ? `Awaiting confirmation from ${sickLeaveStatus.wardenName || 'Hostel Warden'}. Delivery unlocks once approved.`
+                      : sickLeaveStatus?.isRejected
+                      ? 'Warden did not approve room delivery for today. Counter pickup is available.'
+                      : 'Request hostel room delivery with one-click authorization from your Warden.'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsSickLeaveOpen(true)}
+                className={`py-1.5 px-3 rounded-xl font-bold text-xs self-start sm:self-auto transition font-heading shrink-0 shadow-soft-sm ${
+                  sickLeaveStatus?.isApproved
+                    ? 'bg-white text-[#16A34A] border border-emerald-200 hover:bg-emerald-50'
+                    : sickLeaveStatus?.isPending
+                    ? 'bg-white text-[#D97706] border border-amber-200 hover:bg-amber-50'
+                    : 'bg-white text-[#FF6B35] border border-orange-200 hover:bg-orange-50'
+                }`}
+              >
+                {sickLeaveStatus ? 'View Status / Edit' : 'Request Delivery'}
+              </button>
+            </div>
+
             {/* Category Filter Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
               {(CATEGORIES || []).map((cat) => (
@@ -523,6 +594,26 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
                   <span className="font-semibold text-[#1E1B16] font-heading">Track Live Tokens</span>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-[#9B9590]" />
+              </button>
+
+              {/* Sick Leave / Room Delivery Button */}
+              <button
+                onClick={() => setIsSickLeaveOpen(true)}
+                className="w-full p-3 rounded-xl border border-stone-200 bg-white hover:bg-[#FFF7F0] hover:border-orange-200 flex items-center justify-between transition group shadow-soft-sm"
+              >
+                <div className="flex items-center gap-2.5">
+                  <HeartPulse className="w-4 h-4 text-[#FF6B35]" />
+                  <span className="font-semibold text-[#1E1B16] font-heading">Sick Leave Delivery</span>
+                </div>
+                <span className={`status-pill text-[10px] font-heading ${
+                  sickLeaveStatus?.isApproved 
+                    ? 'status-pill-success font-bold' 
+                    : sickLeaveStatus?.isPending 
+                    ? 'status-pill-warning font-bold' 
+                    : 'status-pill-info'
+                }`}>
+                  {sickLeaveStatus?.isApproved ? 'Approved' : sickLeaveStatus?.isPending ? 'Pending' : 'Request'}
+                </span>
               </button>
 
               <button
@@ -747,6 +838,13 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
           </div>
         </div>
       </Modal>
+
+      {/* Sick Leave & Hostel Delivery Modal */}
+      <SickLeaveModal
+        isOpen={isSickLeaveOpen}
+        onClose={() => setIsSickLeaveOpen(false)}
+        onStatusChange={(status) => setSickLeaveStatus(status)}
+      />
 
       {/* Razorpay Top-Up Modal */}
       <TopupModal isOpen={isTopupOpen} onClose={() => setIsTopupOpen(false)} />

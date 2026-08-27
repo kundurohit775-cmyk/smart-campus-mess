@@ -3,14 +3,39 @@ import { creditService } from './creditService.js';
 
 export const orderService = {
   /**
-   * ATOMIC ORDER PLACEMENT IN POSTGRESQL (WITH CALORIE ACCUMULATION)
+   * ATOMIC ORDER PLACEMENT IN POSTGRESQL (WITH CALORIE ACCUMULATION & HOSTEL SICK LEAVE DELIVERY GUARD)
    */
-  async placeOrder(studentId, items) {
+  async placeOrder(studentId, items, deliveryOptions = {}) {
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error('Order must contain at least one item.');
     }
 
     const numericStudentId = parseInt(studentId, 10);
+    const { deliveryType, hostelName, roomNumber } = deliveryOptions;
+
+    let validatedDeliveryType = 'self-pickup';
+    let healthRequestId = null;
+    let approvalStatus = 'not-applicable';
+    let deliveryAddress = null;
+
+    // Sick leave hostel delivery validation
+    if (deliveryType === 'hostel-delivery') {
+      const healthReqRes = await db.query(`
+        SELECT * FROM health_requests 
+        WHERE student_id = $1 AND requested_date = CURRENT_DATE AND status = 'approved'
+        ORDER BY request_id DESC LIMIT 1
+      `, [numericStudentId]);
+
+      if (!healthReqRes.rows.length) {
+        throw new Error('Hostel room delivery requires an approved Sick Leave request from your hostel warden for today.');
+      }
+
+      const healthReq = healthReqRes.rows[0];
+      validatedDeliveryType = 'hostel-delivery';
+      healthRequestId = healthReq.request_id;
+      approvalStatus = 'approved';
+      deliveryAddress = `${healthReq.hostel_name}, Room ${healthReq.room_number}`;
+    }
 
     // 1. Fetch current student credits
     const creditRecord = await creditService.getOrCreateMonthlyCredits(numericStudentId);
@@ -115,9 +140,11 @@ export const orderService = {
     const pickupToken = `TK-${tokenNumber}`;
 
     const orderResult = await db.run(`
-      INSERT INTO orders (student_id, total_amount, total_calories, order_status, pickup_token, order_time)
-      VALUES (?, ?, ?, 'Pending', ?, NOW())
-    `, numericStudentId, totalAmount, totalCalories, pickupToken);
+      INSERT INTO orders (
+        student_id, total_amount, total_calories, order_status, pickup_token, 
+        delivery_type, health_request_id, approval_status, delivery_address, order_time
+      ) VALUES (?, ?, ?, 'Pending', ?, ?, ?, ?, ?, NOW())
+    `, numericStudentId, totalAmount, totalCalories, pickupToken, validatedDeliveryType, healthRequestId, approvalStatus, deliveryAddress);
     const orderId = orderResult.lastInsertRowid;
 
     // 7. Insert order items (including item calories)
@@ -137,10 +164,11 @@ export const orderService = {
     `, numericStudentId, totalCalories);
 
     // 9. Log the debit transaction
+    const deliveryNote = validatedDeliveryType === 'hostel-delivery' ? ` [Hostel Delivery: ${deliveryAddress}]` : '';
     await db.run(`
       INSERT INTO transactions (student_id, order_id, amount, transaction_type, balance_after, notes)
       VALUES (?, ?, ?, 'DEBIT_ORDER', ?, ?)
-    `, numericStudentId, orderId, totalAmount, newRemaining, `Order #${orderId} (${pickupToken}) - ${orderItemsToInsert.length} item(s) • ${totalCalories} kcal`);
+    `, numericStudentId, orderId, totalAmount, newRemaining, `Order #${orderId} (${pickupToken})${deliveryNote} - ${orderItemsToInsert.length} item(s) • ${totalCalories} kcal`);
 
     return {
       orderId,
@@ -148,6 +176,10 @@ export const orderService = {
       totalAmount,
       totalCalories,
       orderStatus: 'Pending',
+      deliveryType: validatedDeliveryType,
+      healthRequestId,
+      approvalStatus,
+      deliveryAddress,
       remainingCredits: newRemaining,
       items: orderItemsToInsert
     };

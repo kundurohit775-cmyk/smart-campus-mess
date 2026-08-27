@@ -57,6 +57,21 @@ CREATE TABLE IF NOT EXISTS pre_orders (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS health_requests (
+    request_id SERIAL PRIMARY KEY,
+    student_id INT NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+    hostel_name VARCHAR(100) NOT NULL,
+    room_number VARCHAR(50) NOT NULL,
+    reason TEXT NOT NULL,
+    requested_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    warden_email VARCHAR(255) NOT NULL,
+    warden_name VARCHAR(255),
+    approval_token VARCHAR(128) UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    responded_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
+);
+
 CREATE TABLE IF NOT EXISTS orders (
     order_id SERIAL PRIMARY KEY,
     student_id INT NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
@@ -65,7 +80,11 @@ CREATE TABLE IF NOT EXISTS orders (
     order_status VARCHAR(50) NOT NULL DEFAULT 'Pending',
     order_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     completed_time TIMESTAMP WITH TIME ZONE,
-    pickup_token VARCHAR(50)
+    pickup_token VARCHAR(50),
+    delivery_type VARCHAR(50) DEFAULT 'self-pickup',
+    health_request_id INT REFERENCES health_requests(request_id) ON DELETE SET NULL,
+    approval_status VARCHAR(50) DEFAULT 'not-applicable',
+    delivery_address VARCHAR(255) DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS order_items (

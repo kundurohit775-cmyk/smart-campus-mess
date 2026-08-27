@@ -18,6 +18,7 @@ import ordersRoutes from './routes/orders.js';
 import preordersRoutes from './routes/preorders.js';
 import adminRoutes from './routes/admin.js';
 import paymentsRoutes from './routes/payments.js';
+import sickLeaveRoutes from './routes/sickLeave.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -173,6 +174,7 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/preorders', preordersRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentsRoutes);
+app.use('/api/sick-leave', sickLeaveRoutes);
 
 // Static frontend serving and SPA fallback for /login/student, /login/chef, /login/admin
 const distPath = path.join(__dirname, '../../frontend/dist');
