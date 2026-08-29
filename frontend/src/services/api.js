@@ -133,6 +133,16 @@ export const api = {
   }),
   cancelOrder: (orderId) => request(`/orders/${orderId}/cancel`, { method: 'PATCH' }),
 
+  // Demand Forecasting & Wastage Logging (Chef)
+  getTodayForecast: (date) => request(date ? `/chef/forecast/today?date=${date}` : '/chef/forecast/today'),
+  getDishForecast: (dishId, date) => request(date ? `/chef/forecast/${dishId}?date=${date}` : `/chef/forecast/${dishId}`),
+  getWastagePreload: (date) => request(date ? `/chef/wastage/preload?date=${date}` : '/chef/wastage/preload'),
+  logWastage: (entries) => request('/chef/wastage', {
+    method: 'POST',
+    body: JSON.stringify(entries)
+  }),
+  getWastageTrends: (period) => request(period ? `/chef/wastage/trends?period=${period}` : '/chef/wastage/trends'),
+
   // Admin
   getAdminStats: () => request('/admin/analytics'),
   getAdminAnalytics: () => request('/admin/analytics'),
@@ -156,6 +166,7 @@ export const api = {
   deleteMenuItem: (itemId) => request(`/admin/menu/${itemId}`, { method: 'DELETE' }),
   getAdminOrders: () => request('/admin/orders'),
   getAdminTransactions: () => request('/admin/transactions'),
+  getAdminWastageSummary: () => request('/admin/wastage/summary'),
 
   // Payments / Razorpay Top-up (1 Rupee = 1 Credit)
   createPaymentOrder: (amount) => request('/payments/create-order', {

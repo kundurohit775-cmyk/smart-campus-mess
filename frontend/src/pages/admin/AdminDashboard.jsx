@@ -12,7 +12,8 @@ import {
   AlertTriangle, 
   Receipt, 
   Zap, 
-  Megaphone 
+  Megaphone,
+  TrendingDown 
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { WelcomeStrip } from '../../components/WelcomeStrip';
@@ -21,16 +22,19 @@ import { StatCard } from '../../components/StatCard';
 export function AdminDashboard({ onNavigate }) {
   const [stats, setStats] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [wastageSummary, setWastageSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = async () => {
     try {
-      const [statsRes, ordersRes] = await Promise.all([
+      const [statsRes, ordersRes, wasteRes] = await Promise.all([
         api.getAdminStats(),
-        api.getAdminOrders().catch(() => ({ orders: [] }))
+        api.getAdminOrders().catch(() => ({ orders: [] })),
+        api.getAdminWastageSummary().catch(() => null)
       ]);
       setStats(statsRes || null);
       setRecentOrders(ordersRes?.orders?.slice(0, 4) || []);
+      setWastageSummary(wasteRes);
     } catch (err) {
       console.error('Failed to load admin stats:', err);
     } finally {
@@ -239,9 +243,54 @@ export function AdminDashboard({ onNavigate }) {
 
         </div>
 
-        {/* RIGHT 30% (col-span-4): Low Balance Alerts & Quick Governance Tools */}
+        {/* RIGHT 30% (col-span-4): Sustainability, Low Balance Alerts & Quick Governance Tools */}
         <div className="lg:col-span-4 space-y-6">
           
+          {/* Food Waste & Kitchen Sustainability Widget */}
+          {wastageSummary && (
+            <div className="card p-6 space-y-4 border border-orange-200 bg-[#FFF7F0]/40">
+              <div className="flex items-center justify-between pb-3 border-b border-orange-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#FFF7F0] border border-orange-200 text-[#C2410C] flex items-center justify-center font-bold">
+                    <TrendingDown className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#1E1B16] font-heading">Food Waste Reduction</h3>
+                    <p className="text-[11px] text-[#6B6560]">Campus dining efficiency</p>
+                  </div>
+                </div>
+                <span className={`status-pill text-[10px] font-heading ${
+                  wastageSummary.isPositiveTrend ? 'status-pill-success' : 'status-pill-warning'
+                }`}>
+                  {wastageSummary.trendBadgeText}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-white rounded-xl border border-stone-200/80">
+                  <span className="text-[11px] text-[#6B6560] block">Waste Rate (30d)</span>
+                  <span className="text-lg font-bold text-[#C2410C] font-heading tabular-nums block mt-0.5">
+                    {wastageSummary.wastageRate}%
+                  </span>
+                  <span className="text-[10px] text-[#6B6560]">Portion loss</span>
+                </div>
+
+                <div className="p-3 bg-white rounded-xl border border-stone-200/80">
+                  <span className="text-[11px] text-[#6B6560] block">Kitchen Efficiency</span>
+                  <span className="text-lg font-bold text-[#16A34A] font-heading tabular-nums block mt-0.5">
+                    {wastageSummary.kitchenEfficiency}%
+                  </span>
+                  <span className="text-[10px] text-[#6B6560]">Cooked vs sold</span>
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-[11px] text-[#15803D] flex items-center gap-2">
+                <span className="font-bold">🌱 Sustainability Impact:</span>
+                <span>~{wastageSummary.estimatedSavedPortions} meals saved through accurate forecasting.</span>
+              </div>
+            </div>
+          )}
+
           {/* Low Balance Warning Widget */}
           <div className="card p-6 space-y-4 border border-red-200 bg-red-50/20">
             <div className="flex items-center gap-3">

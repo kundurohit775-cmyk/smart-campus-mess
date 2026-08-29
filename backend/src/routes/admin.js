@@ -3,6 +3,7 @@ import db from '../db/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { creditService } from '../services/creditService.js';
 import { imageService, GENERIC_FOOD_PLACEHOLDER } from '../services/imageService.js';
+import { wastageService } from '../services/wastageService.js';
 
 const router = express.Router();
 
@@ -457,6 +458,19 @@ router.get('/transactions', async (req, res, next) => {
     `);
 
     res.json({ transactions });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/admin/wastage/summary
+ * Platform-wide food wastage reduction and sustainability insights
+ */
+router.get('/wastage/summary', async (req, res, next) => {
+  try {
+    const summary = await wastageService.getAdminSummary();
+    res.json(summary);
   } catch (err) {
     next(err);
   }

@@ -136,6 +136,20 @@ CREATE TABLE IF NOT EXISTS otps (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS wastage_logs (
+    log_id SERIAL PRIMARY KEY,
+    dish_id INT NOT NULL REFERENCES menu_items(item_id) ON DELETE CASCADE,
+    chef_id INT REFERENCES admins(admin_id) ON DELETE SET NULL,
+    log_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    quantity_prepared INT NOT NULL DEFAULT 0,
+    quantity_sold INT NOT NULL DEFAULT 0,
+    quantity_wasted INT NOT NULL DEFAULT 0,
+    reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_dish_log_date UNIQUE (dish_id, log_date)
+);
+
 CREATE INDEX IF NOT EXISTS idx_orders_student ON orders(student_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(order_status);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
@@ -143,3 +157,6 @@ CREATE INDEX IF NOT EXISTS idx_transactions_student ON transactions(student_id);
 CREATE INDEX IF NOT EXISTS idx_credits_student_period ON credits(student_id, month, year);
 CREATE INDEX IF NOT EXISTS idx_otps_phone ON otps(phone_number);
 CREATE INDEX IF NOT EXISTS idx_daily_intake_student_date ON student_daily_intake(student_id, date);
+CREATE INDEX IF NOT EXISTS idx_wastage_logs_dish_date ON wastage_logs(dish_id, log_date);
+CREATE INDEX IF NOT EXISTS idx_wastage_logs_date ON wastage_logs(log_date);
+
