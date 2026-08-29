@@ -19,7 +19,8 @@ import {
   Flame,
   Edit3,
   Calendar,
-  XCircle
+  XCircle,
+  Leaf
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -37,7 +38,7 @@ import { HeartPulse } from 'lucide-react';
 const CATEGORIES = ['All', 'Breakfast', 'Lunch', 'Snacks', 'Dinner', 'Beverages'];
 const GOAL_PRESETS = [1500, 2000, 2500];
 
-export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions }) {
+export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions, onNavigateToImpact }) {
   const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
   const { cart = [], totalAmount = 0, totalCount = 0, setIsOpen: setCartOpen } = useCart();
@@ -196,6 +197,39 @@ export function StudentDashboard({ onNavigateToOrders, onNavigateToTransactions 
       
       {/* 1. WELCOME STRIP */}
       <WelcomeStrip subtitle="VIT Campus Mess Network • 9,000 monthly dining credits cycle" />
+
+      {/* Sustainability Impact Live Milestone Banner */}
+      <div 
+        onClick={() => {
+          if (onNavigateToImpact) onNavigateToImpact();
+          else window.location.href = '/impact';
+        }}
+        className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 via-white to-orange-50/50 border border-emerald-200/80 shadow-soft-sm flex items-center justify-between cursor-pointer hover:border-emerald-300 hover:shadow-md transition group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-emerald-100/80 text-[#15803D] flex items-center justify-center font-bold shrink-0">
+            <Leaf className="w-4 h-4 text-[#16A34A] fill-[#16A34A]" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-[#1E1B16] font-heading group-hover:text-[#16A34A] transition">
+                🌱 Campus Sustainability Milestone:
+              </span>
+              <span className="text-[10px] font-bold text-[#16A34A] font-heading bg-emerald-100/80 px-2 py-0.5 rounded-md">
+                Food Waste Avoidance Hub
+              </span>
+            </div>
+            <p className="text-[11px] text-[#6B6560]">
+              Every Next-Day Special pre-order eliminates kitchen overproduction.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 text-xs font-bold text-[#16A34A] font-heading shrink-0 pl-2">
+          <span className="hidden sm:inline">See Live Impact</span>
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </div>
+      </div>
 
       {/* 2. HERO STAT ROW */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">

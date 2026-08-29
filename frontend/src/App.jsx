@@ -6,6 +6,9 @@ import { NotificationBanner } from './components/NotificationBanner';
 import { CartDrawer } from './components/CartDrawer';
 import { api } from './services/api';
 
+// Public Sustainability Impact Page
+import { SustainabilityImpact } from './pages/public/SustainabilityImpact';
+
 // Student Pages
 import { StudentDashboard } from './pages/student/StudentDashboard';
 import { OrderTracking } from './pages/student/OrderTracking';
@@ -25,6 +28,10 @@ export function App() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('menu');
   const [readyOrders, setReadyOrders] = useState([]);
+
+  // Check URL pathname for public impact page (/impact or /food-saved)
+  const isPublicImpactPath = typeof window !== 'undefined' && 
+    (window.location.pathname === '/impact' || window.location.pathname === '/food-saved' || window.location.hash === '#impact' || window.location.hash === '#food-saved');
 
   // Auto-set default activeTab when user logs in based on role
   useEffect(() => {
@@ -53,6 +60,22 @@ export function App() {
     const interval = setInterval(checkReadyOrders, 4000);
     return () => clearInterval(interval);
   }, [user]);
+
+  // 1. PUBLIC IMPACT ROUTE (No authentication required)
+  if (isPublicImpactPath) {
+    return (
+      <SustainabilityImpact 
+        onNavigateHome={() => {
+          window.history.pushState({}, '', '/');
+          if (user) {
+            setActiveTab(user.role === 'student' || user.isStudent ? 'menu' : 'dashboard');
+          } else {
+            window.location.href = '/';
+          }
+        }} 
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -86,13 +109,22 @@ export function App() {
 
       {/* Main Page Area */}
       <main className="flex-1 pb-16">
+        
+        {/* Global Impact Tab View (When user clicks Impact in navbar or dashboard) */}
+        {activeTab === 'impact' && (
+          <SustainabilityImpact 
+            onNavigateHome={() => setActiveTab(isStudent ? 'menu' : 'dashboard')} 
+          />
+        )}
+
         {/* Student View */}
-        {isStudent && (
+        {isStudent && activeTab !== 'impact' && (
           <>
             {activeTab === 'menu' && (
               <StudentDashboard 
                 onNavigateToOrders={() => setActiveTab('orders')} 
                 onNavigateToTransactions={() => setActiveTab('transactions')}
+                onNavigateToImpact={() => setActiveTab('impact')}
               />
             )}
             {activeTab === 'orders' && (
@@ -105,7 +137,7 @@ export function App() {
         )}
 
         {/* Chef View */}
-        {isChef && (
+        {isChef && activeTab !== 'impact' && (
           <>
             {activeTab === 'dashboard' && (
               <ChefDashboard 
@@ -117,7 +149,7 @@ export function App() {
         )}
 
         {/* Admin View */}
-        {isAdmin && (
+        {isAdmin && activeTab !== 'impact' && (
           <>
             {activeTab === 'dashboard' && <AdminDashboard onNavigate={setActiveTab} />}
             {activeTab === 'menu-mgr' && <MenuManager />}

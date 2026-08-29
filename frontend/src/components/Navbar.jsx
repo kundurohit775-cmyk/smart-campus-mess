@@ -11,7 +11,8 @@ import {
   Plus, 
   Sparkles, 
   Layers, 
-  Bell 
+  Bell,
+  Leaf 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TopupModal } from './TopupModal';
@@ -168,6 +169,19 @@ export function Navbar({ activeTab, setActiveTab }) {
                   </button>
                 </>
               )}
+
+              {/* Public Impact Hub Link */}
+              <button
+                onClick={() => setActiveTab('impact')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-semibold whitespace-nowrap transition-all duration-180 ${
+                  activeTab === 'impact'
+                    ? 'bg-[#FFFFFF] text-[#16A34A] shadow-soft-sm font-bold border border-emerald-200'
+                    : 'text-[#6B6560] hover:text-[#16A34A]'
+                }`}
+              >
+                <Leaf className="w-3.5 h-3.5 text-[#16A34A]" />
+                <span>Impact</span>
+              </button>
             </nav>
 
             {/* 3. Right: Balance (Student) + Notifications + Avatar */}

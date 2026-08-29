@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
     description TEXT,
     image_url TEXT,
     fallback_image_url TEXT,
+    portion_weight_kg NUMERIC(6,3) DEFAULT 0.450,
     available_quantity INT DEFAULT 0,
     is_active INT DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -150,6 +151,20 @@ CREATE TABLE IF NOT EXISTS wastage_logs (
     CONSTRAINT unique_dish_log_date UNIQUE (dish_id, log_date)
 );
 
+CREATE TABLE IF NOT EXISTS sustainability_metrics (
+    metric_id SERIAL PRIMARY KEY,
+    dish_id INT NOT NULL REFERENCES menu_items(item_id) ON DELETE CASCADE,
+    batch_date DATE NOT NULL,
+    quantity_preordered INT NOT NULL DEFAULT 0,
+    portion_weight_kg NUMERIC(6,3) NOT NULL DEFAULT 0.450,
+    estimated_qty_without_preorder INT NOT NULL DEFAULT 0,
+    kg_saved NUMERIC(8,2) NOT NULL DEFAULT 0.00,
+    co2_avoided_kg NUMERIC(8,2) NOT NULL DEFAULT 0.00,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_dish_batch_date UNIQUE (dish_id, batch_date)
+);
+
 CREATE INDEX IF NOT EXISTS idx_orders_student ON orders(student_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(order_status);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
@@ -159,4 +174,7 @@ CREATE INDEX IF NOT EXISTS idx_otps_phone ON otps(phone_number);
 CREATE INDEX IF NOT EXISTS idx_daily_intake_student_date ON student_daily_intake(student_id, date);
 CREATE INDEX IF NOT EXISTS idx_wastage_logs_dish_date ON wastage_logs(dish_id, log_date);
 CREATE INDEX IF NOT EXISTS idx_wastage_logs_date ON wastage_logs(log_date);
+CREATE INDEX IF NOT EXISTS idx_sustainability_batch_date ON sustainability_metrics(batch_date);
+CREATE INDEX IF NOT EXISTS idx_sustainability_dish_id ON sustainability_metrics(dish_id);
+
 

@@ -185,7 +185,10 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(payload)
   }),
-  getPaymentHistory: () => request('/payments/history')
+  getPaymentHistory: () => request('/payments/history'),
+
+  // Public Sustainability Impact
+  getPublicFoodSavedStats: () => request('/public/food-saved')
 };
 
 export default api;
