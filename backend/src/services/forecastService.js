@@ -60,7 +60,7 @@ export const forecastService = {
 
     // 1. Fetch dish details
     const dishRes = await db.query(
-      'SELECT item_id, item_name, category, price, available_quantity, is_active FROM menu_items WHERE item_id = $1',
+      'SELECT item_id, item_name, category, price, available_quantity, image_url, is_active FROM menu_items WHERE item_id = $1',
       [numDishId]
     );
     if (!dishRes.rows.length) {
@@ -117,15 +117,41 @@ export const forecastService = {
     // 4. If no order history, return baseline default
     if (rawHistory.length === 0) {
       const fallbackQty = dish.available_quantity > 0 ? dish.available_quantity : DEFAULT_BATCH_FALLBACK;
+      const baselineQty = Math.max(25, Math.round(fallbackQty * 1.25));
+
       return {
+        dish_id: dish.item_id,
         dishId: dish.item_id,
+        dish_name: dish.item_name,
         dishName: dish.item_name,
+        item_name: dish.item_name,
+        name: dish.item_name,
         category: dish.category,
+        price: dish.price,
+        image_url: dish.image_url,
+        target_date: targetDateStr,
         targetDate: targetDateStr,
+        target_day_name: targetDayName,
         targetDayName,
+        recommended_quantity: fallbackQty,
+        recommendedQuantity: fallbackQty,
+        forecasted_quantity: fallbackQty,
         forecastedQuantity: fallbackQty,
+        expected_demand: fallbackQty,
+        expectedDemand: fallbackQty,
+        baseline_quantity: baselineQty,
+        baselineQuantity: baselineQty,
         confidence: 'Low Confidence',
+        confidence_score: 20,
         confidenceScore: 20,
+        seasonality_factor: 1.0,
+        seasonalityFactor: 1.0,
+        weighted_average: fallbackQty,
+        weightedRecencyAverage: fallbackQty,
+        historical_mean: fallbackQty,
+        historicalMean: fallbackQty,
+        same_weekday_matches: 0,
+        sameWeekdayPoints: 0,
         reasoning: 'No historical order data available within the past 30 days. Baseline menu batch allocated.',
         metrics: {
           totalDataPoints: 0,
@@ -198,15 +224,41 @@ export const forecastService = {
       reasoning = `Limited sample size (${n} days of orders). Weighted moving average applied with conservative bounds.`;
     }
 
+    const baselineQty = Math.max(25, Math.round(forecastedQuantity * 1.25));
+
     return {
+      dish_id: dish.item_id,
       dishId: dish.item_id,
+      dish_name: dish.item_name,
       dishName: dish.item_name,
+      item_name: dish.item_name,
+      name: dish.item_name,
       category: dish.category,
+      price: dish.price,
+      image_url: dish.image_url,
+      target_date: targetDateStr,
       targetDate: targetDateStr,
+      target_day_name: targetDayName,
       targetDayName,
+      recommended_quantity: forecastedQuantity,
+      recommendedQuantity: forecastedQuantity,
+      forecasted_quantity: forecastedQuantity,
       forecastedQuantity,
+      expected_demand: Math.round(wma * 10) / 10,
+      expectedDemand: Math.round(wma * 10) / 10,
+      baseline_quantity: baselineQty,
+      baselineQuantity: baselineQty,
       confidence,
+      confidence_score: confidenceScore,
       confidenceScore,
+      seasonality_factor: Math.round(seasonalityFactor * 100) / 100,
+      seasonalityFactor: Math.round(seasonalityFactor * 100) / 100,
+      weighted_average: Math.round(wma * 10) / 10,
+      weightedRecencyAverage: Math.round(wma * 10) / 10,
+      historical_mean: Math.round(overallMean * 10) / 10,
+      historicalMean: Math.round(overallMean * 10) / 10,
+      same_weekday_matches: sameWeekdayPoints.length,
+      sameWeekdayPoints: sameWeekdayPoints.length,
       reasoning,
       metrics: {
         totalDataPoints: n,
@@ -232,27 +284,31 @@ export const forecastService = {
 
     // Fetch all active menu items
     const itemsRes = await db.query(`
-      SELECT item_id, item_name, category, price, available_quantity, is_special
+      SELECT item_id, item_name, category, price, available_quantity, image_url, is_special
       FROM menu_items
       WHERE is_active = 1
       ORDER BY category ASC, item_name ASC
     `);
 
-    const forecasts = [];
-    for (const item of itemsRes.rows) {
-      const fc = await this.getDishForecast(item.item_id, targetDateStr);
-      forecasts.push(fc);
-    }
+    // Execute in parallel for sub-second responsiveness
+    const forecasts = await Promise.all(
+      itemsRes.rows.map(item => this.getDishForecast(item.item_id, targetDateStr))
+    );
 
     const totalPredictedPortions = forecasts.reduce((acc, cur) => acc + cur.forecastedQuantity, 0);
     const highConfidenceCount = forecasts.filter(f => f.confidence === 'High Confidence').length;
 
     return {
       targetDate: targetDateStr,
+      target_date: targetDateStr,
       targetDayName,
+      target_day_name: targetDayName,
       totalDishes: forecasts.length,
+      total_dishes: forecasts.length,
       totalPredictedPortions,
+      total_predicted_portions: totalPredictedPortions,
       highConfidenceCount,
+      high_confidence_count: highConfidenceCount,
       forecasts
     };
   }

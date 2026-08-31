@@ -274,8 +274,9 @@ export function ChefDashboard({ onNavigateToInventory }) {
 
   const allForecasts = forecastData?.forecasts || [];
   const filteredForecasts = allForecasts.filter(fc => {
+    const name = fc.dish_name || fc.dishName || fc.item_name || fc.name || '';
     const matchCat = forecastCategory === 'All' || fc.category === forecastCategory;
-    const matchSearch = !forecastSearch || fc.dishName.toLowerCase().includes(forecastSearch.toLowerCase());
+    const matchSearch = !forecastSearch || name.toLowerCase().includes(forecastSearch.toLowerCase());
     return matchCat && matchSearch;
   });
 
@@ -783,23 +784,28 @@ export function ChefDashboard({ onNavigateToInventory }) {
               {filteredForecasts.map((dishFc) => {
                 const isHigh = dishFc.confidence === 'High Confidence';
                 const isMed = dishFc.confidence === 'Medium Confidence';
+                const foodName = dishFc.dish_name || dishFc.dishName || dishFc.item_name || dishFc.name || 'Dish';
 
                 return (
-                  <div key={dishFc.dishId} className="card p-5 space-y-4 hover:shadow-md transition">
-                    <div className="flex items-start justify-between gap-2 pb-3 border-b border-stone-100">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#EA580C] block">
+                  <div key={dishFc.dish_id || dishFc.dishId} className="card p-5 space-y-4 hover:shadow-md transition">
+                    
+                    {/* Card Header: Category + Confidence Badge, then Prominent Dish Name */}
+                    <div className="space-y-1.5 pb-3 border-b border-stone-100">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[#EA580C] font-heading">
                           {dishFc.category}
                         </span>
-                        <h3 className="text-base font-bold text-[#1E1B16] font-heading mt-0.5">
-                          {dishFc.dishName}
-                        </h3>
+                        <span className={`status-pill text-[10px] font-heading shrink-0 ${
+                          isHigh ? 'status-pill-success' : isMed ? 'status-pill-warning' : 'status-pill-info'
+                        }`}>
+                          {dishFc.confidence}
+                        </span>
                       </div>
-                      <span className={`status-pill text-[10px] font-heading shrink-0 ${
-                        isHigh ? 'status-pill-success' : isMed ? 'status-pill-warning' : 'status-pill-info'
-                      }`}>
-                        {dishFc.confidence}
-                      </span>
+
+                      {/* Prominent Food Name */}
+                      <h3 className="text-lg sm:text-xl font-extrabold text-[#1E1B16] font-heading tracking-tight leading-tight break-words pt-0.5">
+                        {foodName}
+                      </h3>
                     </div>
 
                     {/* Prominent Forecast Number Display */}
@@ -807,7 +813,7 @@ export function ChefDashboard({ onNavigateToInventory }) {
                       <div>
                         <span className="text-[10px] font-semibold text-[#6B6560] block">Recommended Prep:</span>
                         <span className="text-3xl font-extrabold text-[#EA580C] font-heading tabular-nums tracking-tight">
-                          {dishFc.forecastedQuantity}
+                          {dishFc.recommended_quantity ?? dishFc.forecastedQuantity ?? dishFc.recommendedQuantity ?? 30}
                         </span>
                         <span className="text-xs font-bold text-[#1E1B16] ml-1.5">portions</span>
                       </div>
@@ -815,9 +821,13 @@ export function ChefDashboard({ onNavigateToInventory }) {
                       <div className="text-right text-xs">
                         <span className="text-[10px] text-[#6B6560] block">Seasonality Factor</span>
                         <span className={`font-bold font-heading ${
-                          dishFc.metrics.seasonalityFactor > 1.05 ? 'text-[#16A34A]' : dishFc.metrics.seasonalityFactor < 0.95 ? 'text-[#DC2626]' : 'text-[#6B6560]'
+                          (dishFc.metrics?.seasonalityFactor || dishFc.seasonality_factor || 1) > 1.05 
+                            ? 'text-[#16A34A]' 
+                            : (dishFc.metrics?.seasonalityFactor || dishFc.seasonality_factor || 1) < 0.95 
+                            ? 'text-[#DC2626]' 
+                            : 'text-[#6B6560]'
                         }`}>
-                          {dishFc.metrics.seasonalityFactor}x ({dishFc.targetDayName})
+                          {dishFc.metrics?.seasonalityFactor || dishFc.seasonality_factor || 1}x ({dishFc.target_day_name || dishFc.targetDayName || 'Today'})
                         </span>
                       </div>
                     </div>
@@ -826,15 +836,21 @@ export function ChefDashboard({ onNavigateToInventory }) {
                     <div className="space-y-1.5 text-xs text-[#6B6560] pt-1">
                       <div className="flex justify-between">
                         <span>Recency Weighted Avg (WMA):</span>
-                        <span className="font-bold text-[#1E1B16] tabular-nums">{dishFc.metrics.weightedRecencyAverage}</span>
+                        <span className="font-bold text-[#1E1B16] tabular-nums">
+                          {dishFc.metrics?.weightedRecencyAverage ?? dishFc.weighted_average ?? 30}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Historical 30d Mean:</span>
-                        <span className="font-bold text-[#1E1B16] tabular-nums">{dishFc.metrics.historicalMean}</span>
+                        <span className="font-bold text-[#1E1B16] tabular-nums">
+                          {dishFc.metrics?.historicalMean ?? dishFc.historical_mean ?? 30}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Same Weekday Matches:</span>
-                        <span className="font-bold text-[#1E1B16] tabular-nums">{dishFc.metrics.sameWeekdayPoints} {dishFc.targetDayName}s</span>
+                        <span className="font-bold text-[#1E1B16] tabular-nums">
+                          {dishFc.metrics?.sameWeekdayPoints ?? dishFc.same_weekday_matches ?? 0} {dishFc.target_day_name || dishFc.targetDayName || 'Day'}s
+                        </span>
                       </div>
                     </div>
 
