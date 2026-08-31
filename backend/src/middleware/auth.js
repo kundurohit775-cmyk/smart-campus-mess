@@ -163,33 +163,47 @@ export function requireRole(...allowedRoles) {
 
     const isChef = Boolean(configuredChefEmail) && cleanEmail === configuredChefEmail;
     const isAdmin = Boolean(configuredAdminEmail) && cleanEmail === configuredAdminEmail;
+    const isWarden = req.user.role === 'warden';
+    const isStudent = req.user.role === 'student';
 
-    // Check admin-only routes
-    if (allowedRoles.includes('admin') && !allowedRoles.includes('student') && !allowedRoles.includes('chef')) {
-      if (isAdmin || req.user.role === 'admin') {
-        return next();
-      }
-      return res.status(403).json({
-        error: 'Forbidden: Admin access is restricted.'
-      });
+    // 1. If Student is allowed and user is a student
+    if (allowedRoles.includes('student') && (isStudent || req.user.role === 'student')) {
+      return next();
     }
 
-    // Check chef-allowed routes
-    if (allowedRoles.includes('chef')) {
-      if (isChef || req.user.role === 'chef' || (allowedRoles.includes('admin') && (isAdmin || req.user.role === 'admin'))) {
-        return next();
-      }
-      return res.status(403).json({
-        error: 'Forbidden: Chef access is restricted.'
-      });
+    // 2. If Admin is allowed and user is an admin
+    if (allowedRoles.includes('admin') && (isAdmin || req.user.role === 'admin')) {
+      return next();
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        error: `Forbidden: Access restricted to [${allowedRoles.join(', ')}]. Your role: ${req.user.role}`
-      });
+    // 3. If Chef is allowed and user is a chef
+    if (allowedRoles.includes('chef') && (isChef || req.user.role === 'chef')) {
+      return next();
     }
 
-    next();
+    // 4. If Warden is allowed and user is a warden
+    if (allowedRoles.includes('warden') && isWarden) {
+      return next();
+    }
+
+    // 5. Generic role match
+    if (allowedRoles.includes(req.user.role)) {
+      return next();
+    }
+
+    // Role-specific forbidden messages when access is denied
+    if (allowedRoles.every(r => r === 'admin')) {
+      return res.status(403).json({ error: 'Forbidden: Admin access is restricted.' });
+    }
+    if (allowedRoles.every(r => r === 'chef' || r === 'admin')) {
+      return res.status(403).json({ error: 'Forbidden: Chef access is restricted.' });
+    }
+    if (allowedRoles.every(r => r === 'warden')) {
+      return res.status(403).json({ error: 'Forbidden: Warden access is restricted.' });
+    }
+
+    return res.status(403).json({
+      error: `Forbidden: Access restricted to [${allowedRoles.join(', ')}]. Your role: ${req.user.role}`
+    });
   };
 }
