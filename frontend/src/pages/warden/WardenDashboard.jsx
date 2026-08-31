@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ShieldCheck, 
   Clock, 
@@ -17,7 +17,9 @@ import {
   Search,
   Filter,
   Building2,
-  HeartPulse
+  HeartPulse,
+  Layers,
+  ChevronDown
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -26,9 +28,25 @@ import { StatCard } from '../../components/StatCard';
 import { Modal } from '../../components/Modal';
 import { useToast } from '../../context/ToastContext';
 
+export const HOSTEL_BLOCKS = [
+  { id: "Men's Hostel Block A", label: "Block A", short: "MH-A", category: "Men's Hostel" },
+  { id: "Men's Hostel Block B", label: "Block B", short: "MH-B", category: "Men's Hostel" },
+  { id: "Men's Hostel Block C", label: "Block C", short: "MH-C", category: "Men's Hostel" },
+  { id: "Men's Hostel Block D", label: "Block D", short: "MH-D", category: "Men's Hostel" },
+  { id: "Ladies Hostel Block A", label: "LH Block A", short: "LH-A", category: "Ladies Hostel" },
+  { id: "Ladies Hostel Block B", label: "LH Block B", short: "LH-B", category: "Ladies Hostel" },
+  { id: "Ladies Hostel Block C", label: "LH Block C", short: "LH-C", category: "Ladies Hostel" },
+  { id: "ALL", label: "All Blocks", short: "ALL", category: "Campus Overview" }
+];
+
 export function WardenDashboard() {
   const { user } = useAuth();
   const { showToast } = useToast();
+
+  // Dynamic Selected Hostel Block State
+  const [selectedBlock, setSelectedBlock] = useState(() => {
+    return localStorage.getItem('warden_selected_block') || "Men's Hostel Block A";
+  });
 
   const [activeTab, setActiveTab] = useState('PENDING'); // 'PENDING' | 'HISTORY'
   const [stats, setStats] = useState(null);
@@ -43,14 +61,16 @@ export function WardenDashboard() {
   const [historyFilter, setHistoryFilter] = useState('ALL'); // 'ALL' | 'approved' | 'rejected'
   const [searchQuery, setSearchQuery] = useState('');
 
-  const assignedBlock = user?.assignedHostelBlock || "Men's Hostel Block A";
-
-  const fetchWardenData = async () => {
+  const fetchWardenData = useCallback(async (blockToFetch = selectedBlock) => {
+    if (!blockToFetch) {
+      setLoading(false);
+      return;
+    }
     setError(null);
     try {
       const [statsRes, requestsRes] = await Promise.all([
-        api.getWardenStats(),
-        api.getWardenRequests()
+        api.getWardenStats(blockToFetch),
+        api.getWardenRequests(undefined, blockToFetch)
       ]);
       setStats(statsRes);
       setRequests(requestsRes?.requests || []);
@@ -60,20 +80,27 @@ export function WardenDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedBlock]);
 
   useEffect(() => {
-    fetchWardenData();
-    const interval = setInterval(fetchWardenData, 5000);
+    fetchWardenData(selectedBlock);
+    const interval = setInterval(() => fetchWardenData(selectedBlock), 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchWardenData, selectedBlock]);
+
+  const handleSelectBlock = (newBlock) => {
+    setSelectedBlock(newBlock);
+    localStorage.setItem('warden_selected_block', newBlock);
+    setLoading(true);
+    fetchWardenData(newBlock);
+  };
 
   const handleApprove = async (requestId, studentName) => {
     setProcessingId(requestId);
     try {
       const res = await api.approveWardenRequest(requestId);
       showToast(res.message || `Delivery unlocked for ${studentName}!`, 'success');
-      await fetchWardenData();
+      await fetchWardenData(selectedBlock);
     } catch (err) {
       showToast(err.message || 'Failed to approve request', 'error');
     } finally {
@@ -94,7 +121,7 @@ export function WardenDashboard() {
       showToast(res.message || 'Request rejected.', 'info');
       setRejectingRequest(null);
       setRejectionReason('');
-      await fetchWardenData();
+      await fetchWardenData(selectedBlock);
     } catch (err) {
       showToast(err.message || 'Failed to reject request', 'error');
     } finally {
@@ -114,11 +141,60 @@ export function WardenDashboard() {
     return matchStatus && matchSearch;
   });
 
+  const selectedBlockLabel = HOSTEL_BLOCKS.find(b => b.id === selectedBlock)?.label || selectedBlock;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8 animate-fade-in">
       
       {/* 1. WELCOME STRIP */}
-      <WelcomeStrip subtitle={`Hostel Warden Dispatch • Assigned to ${assignedBlock}`} />
+      <WelcomeStrip subtitle={`Hostel Warden Portal • Authorized review for student sick-leave deliveries`} />
+
+      {/* 2. PROMINENT HOSTEL BLOCK SELECTOR */}
+      <div className="card p-5 sm:p-6 bg-gradient-to-r from-[#FFFFFF] via-[#FFF7F0] to-[#FFFFFF] border border-orange-200/90 shadow-soft-sm space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-[#D97706]" />
+              <h2 className="text-base sm:text-lg font-bold text-[#1E1B16] font-heading">
+                Active Hostel Block Management
+              </h2>
+            </div>
+            <p className="text-xs text-[#6B6560]">
+              Select a hostel block below to review and authorize room deliveries for students in that building.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-semibold text-[#6B6560]">Currently Viewing:</span>
+            <span className="px-3 py-1.5 rounded-xl bg-amber-50 text-[#D97706] border border-amber-200 text-xs font-bold font-heading shadow-soft-sm">
+              {selectedBlock === 'ALL' ? '🏢 All Campus Blocks' : `📍 ${selectedBlock}`}
+            </span>
+          </div>
+        </div>
+
+        {/* Block Selector Pills Grid */}
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {HOSTEL_BLOCKS.map((block) => {
+            const isSelected = selectedBlock === block.id;
+            return (
+              <button
+                key={block.id}
+                type="button"
+                onClick={() => handleSelectBlock(block.id)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-180 flex items-center gap-1.5 font-heading cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#D97706] text-white shadow-[0_2px_8px_rgba(217,119,6,0.3)] scale-[1.02]'
+                    : 'bg-white hover:bg-amber-50/70 text-[#1E1B16] border border-stone-200/80 hover:border-amber-200'
+                }`}
+              >
+                <Home className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-[#D97706]'}`} />
+                <span>{block.label}</span>
+                {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white ml-0.5 animate-pulse" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Error Alert Banner if fetch fails */}
       {error && (
@@ -128,7 +204,7 @@ export function WardenDashboard() {
             <span><strong>Data Sync Warning:</strong> {error}</span>
           </div>
           <button
-            onClick={fetchWardenData}
+            onClick={() => fetchWardenData(selectedBlock)}
             className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shrink-0 transition"
           >
             Retry Sync
@@ -136,18 +212,18 @@ export function WardenDashboard() {
         </div>
       )}
 
-      {/* 2. HERO STAT ROW */}
+      {/* 3. HERO STAT ROW */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         
         {/* Featured Stat: Pending Approvals */}
         <StatCard
           title="Pending Approvals"
           value={`${stats?.pendingCount ?? pendingRequests.length} Requests`}
-          subtitle="Waiting for your review"
+          subtitle={`Requires review in ${selectedBlockLabel}`}
           icon={HeartPulse}
           color="orange"
           isFeatured={true}
-          trend={(stats?.pendingCount ?? pendingRequests.length) > 0 ? 'Requires Action' : 'All Clear'}
+          trend={(stats?.pendingCount ?? pendingRequests.length) > 0 ? 'Action Needed' : 'All Clear'}
           trendPositive={(stats?.pendingCount ?? pendingRequests.length) === 0}
           onClick={() => setActiveTab('PENDING')}
         />
@@ -167,7 +243,7 @@ export function WardenDashboard() {
         <StatCard
           title="Rejected Requests"
           value={`${stats?.rejectedCount ?? 0} Requests`}
-          subtitle="Requires dispensary visit"
+          subtitle="Dispensary slip required"
           icon={XCircle}
           color="orange"
           onClick={() => {
@@ -178,9 +254,9 @@ export function WardenDashboard() {
 
         {/* Stat 4: Total Block Logs */}
         <StatCard
-          title="Total Block Requests"
+          title="Total Logged Requests"
           value={`${stats?.totalCount ?? requests.length} Total`}
-          subtitle={`All logs for ${assignedBlock}`}
+          subtitle={`Logs for ${selectedBlockLabel}`}
           icon={Building2}
           color="orange"
           onClick={() => {
@@ -197,7 +273,7 @@ export function WardenDashboard() {
             onClick={() => setActiveTab('PENDING')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition font-heading ${
               activeTab === 'PENDING'
-                ? 'bg-[#EA580C] text-white shadow-soft-sm'
+                ? 'bg-[#D97706] text-white shadow-soft-sm'
                 : 'bg-stone-100 text-[#6B6560] hover:bg-stone-200'
             }`}
           >
@@ -209,7 +285,7 @@ export function WardenDashboard() {
             onClick={() => setActiveTab('HISTORY')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition font-heading ${
               activeTab === 'HISTORY'
-                ? 'bg-[#EA580C] text-white shadow-soft-sm'
+                ? 'bg-[#D97706] text-white shadow-soft-sm'
                 : 'bg-stone-100 text-[#6B6560] hover:bg-stone-200'
             }`}
           >
@@ -219,7 +295,7 @@ export function WardenDashboard() {
         </div>
 
         <button
-          onClick={fetchWardenData}
+          onClick={() => fetchWardenData(selectedBlock)}
           className="text-xs text-[#6B6560] hover:text-[#1E1B16] flex items-center gap-1.5 font-semibold"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -227,25 +303,25 @@ export function WardenDashboard() {
         </button>
       </div>
 
-      {/* 3. TAB 1: PENDING REQUESTS QUEUE */}
+      {/* 4. TAB 1: PENDING REQUESTS QUEUE */}
       {activeTab === 'PENDING' && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2">
             <div>
               <h2 className="text-xl font-bold text-[#1E1B16] font-heading flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-[#EA580C]" />
+                <ShieldCheck className="w-5 h-5 text-[#D97706]" />
                 <span>Pending Sick Leave Delivery Requests</span>
               </h2>
               <p className="text-xs text-[#6B6560] mt-0.5">
-                Approve or reject sick leave room delivery requests for students in <strong>{assignedBlock}</strong>.
+                Approve or reject sick leave room delivery requests for students in <strong>{selectedBlockLabel}</strong>.
               </p>
             </div>
           </div>
 
           {loading ? (
             <div className="card py-16 text-center text-[#6B6560]">
-              <div className="w-8 h-8 border-2 border-[#EA580C] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              <p className="text-xs font-semibold">Loading student requests...</p>
+              <div className="w-8 h-8 border-2 border-[#D97706] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              <p className="text-xs font-semibold">Loading student requests for {selectedBlockLabel}...</p>
             </div>
           ) : pendingRequests.length === 0 ? (
             <div className="card py-16 text-center text-[#6B6560] space-y-3">
@@ -254,7 +330,8 @@ export function WardenDashboard() {
                 All Sick Leave Requests Reviewed
               </h3>
               <p className="text-xs max-w-md mx-auto">
-                There are no pending requests waiting for approval in {assignedBlock}. New student applications will stream here in real time.
+                There are no pending sick leave requests waiting for approval in <strong>{selectedBlockLabel}</strong>. 
+                Switch blocks above or select <strong>All Blocks</strong> to inspect other hostels.
               </p>
             </div>
           ) : (
@@ -266,14 +343,14 @@ export function WardenDashboard() {
                 >
                   <div className="flex items-start justify-between gap-3 pb-3 border-b border-stone-100">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#FFF7F0] border border-orange-200 text-[#EA580C] flex items-center justify-center font-bold font-heading shadow-soft-sm">
+                      <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-[#D97706] flex items-center justify-center font-bold font-heading shadow-soft-sm">
                         <User className="w-5 h-5" />
                       </div>
                       <div>
                         <h4 className="text-base font-bold text-[#1E1B16] font-heading">
                           {req.student_name}
                         </h4>
-                        <span className="text-xs text-[#EA580C] font-bold flex items-center gap-1 font-heading">
+                        <span className="text-xs text-[#D97706] font-bold flex items-center gap-1 font-heading">
                           <Home className="w-3.5 h-3.5" />
                           {req.hostel_name}, Room {req.room_number}
                         </span>
@@ -281,7 +358,7 @@ export function WardenDashboard() {
                     </div>
 
                     <span className="status-pill status-pill-warning text-[10px] font-heading shrink-0">
-                      Pending Approval
+                      Pending Review
                     </span>
                   </div>
 
@@ -289,7 +366,7 @@ export function WardenDashboard() {
                   <div className="space-y-2 text-xs bg-stone-50 p-3.5 rounded-xl border border-stone-200/70">
                     <div className="flex items-center justify-between text-[#6B6560]">
                       <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-[#EA580C]" />
+                        <Calendar className="w-3.5 h-3.5 text-[#D97706]" />
                         Requested Date:
                       </span>
                       <strong className="text-[#1E1B16]">{req.requested_date}</strong>
@@ -297,7 +374,7 @@ export function WardenDashboard() {
 
                     <div className="flex items-center justify-between text-[#6B6560]">
                       <span className="flex items-center gap-1">
-                        <Mail className="w-3.5 h-3.5 text-[#EA580C]" />
+                        <Mail className="w-3.5 h-3.5 text-[#D97706]" />
                         Student Email:
                       </span>
                       <span className="text-[#1E1B16]">{req.student_email}</span>
@@ -306,7 +383,7 @@ export function WardenDashboard() {
                     {req.student_phone && (
                       <div className="flex items-center justify-between text-[#6B6560]">
                         <span className="flex items-center gap-1">
-                          <Phone className="w-3.5 h-3.5 text-[#EA580C]" />
+                          <Phone className="w-3.5 h-3.5 text-[#D97706]" />
                           Contact Phone:
                         </span>
                         <span className="text-[#1E1B16] font-semibold">{req.student_phone}</span>
@@ -329,7 +406,7 @@ export function WardenDashboard() {
                     <button
                       onClick={() => handleApprove(req.request_id, req.student_name)}
                       disabled={processingId === req.request_id}
-                      className="flex-1 bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-soft-sm transition flex items-center justify-center gap-1.5 font-heading"
+                      className="flex-1 bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-soft-sm transition flex items-center justify-center gap-1.5 font-heading cursor-pointer"
                     >
                       <Check className="w-4 h-4" />
                       <span>{processingId === req.request_id ? 'Approving...' : 'Approve Delivery'}</span>
@@ -338,7 +415,7 @@ export function WardenDashboard() {
                     <button
                       onClick={() => handleOpenRejectModal(req)}
                       disabled={processingId === req.request_id}
-                      className="flex-1 bg-white hover:bg-red-50 border border-red-200 hover:border-red-300 text-[#DC2626] font-bold text-xs py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-1.5 font-heading shadow-soft-sm"
+                      className="flex-1 bg-white hover:bg-red-50 border border-red-200 hover:border-red-300 text-[#DC2626] font-bold text-xs py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-1.5 font-heading shadow-soft-sm cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                       <span>Reject</span>
@@ -352,14 +429,14 @@ export function WardenDashboard() {
         </div>
       )}
 
-      {/* 4. TAB 2: REVIEW HISTORY */}
+      {/* 5. TAB 2: REVIEW HISTORY */}
       {activeTab === 'HISTORY' && (
         <div className="card p-6 sm:p-7 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
             <div>
               <h2 className="text-xl font-bold text-[#1E1B16] font-heading flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#EA580C]" />
-                <span>Reviewed Requests History</span>
+                <FileText className="w-5 h-5 text-[#D97706]" />
+                <span>Reviewed Requests History ({selectedBlockLabel})</span>
               </h2>
               <p className="text-xs text-[#6B6560] mt-0.5">
                 Past approved and rejected sick leave delivery decisions
@@ -373,9 +450,9 @@ export function WardenDashboard() {
                   <button
                     key={f}
                     onClick={() => setHistoryFilter(f)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition font-heading capitalize ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition font-heading capitalize cursor-pointer ${
                       historyFilter === f
-                        ? 'bg-white text-[#EA580C] shadow-soft-sm'
+                        ? 'bg-white text-[#D97706] shadow-soft-sm'
                         : 'text-[#6B6560] hover:text-[#1E1B16]'
                     }`}
                   >
@@ -389,14 +466,14 @@ export function WardenDashboard() {
                 placeholder="Search history..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-[#FAFAF9] border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] text-xs px-3.5 py-1.5 rounded-xl outline-none focus:border-[#EA580C] w-44"
+                className="bg-[#FAFAF9] border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] text-xs px-3.5 py-1.5 rounded-xl outline-none focus:border-[#D97706] w-44"
               />
             </div>
           </div>
 
           {filteredHistory.length === 0 ? (
             <div className="py-12 text-center text-[#6B6560]">
-              <p className="text-sm">No reviewed requests found matching your filter.</p>
+              <p className="text-sm">No reviewed requests found in {selectedBlockLabel} matching your filter.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -404,6 +481,7 @@ export function WardenDashboard() {
                 <thead className="text-xs font-semibold uppercase tracking-wider text-[#6B6560] border-b border-stone-200 bg-stone-50">
                   <tr>
                     <th className="py-3 px-4">Student & Room</th>
+                    <th className="py-3 px-3">Hostel Block</th>
                     <th className="py-3 px-3">Date Needed</th>
                     <th className="py-3 px-4">Condition Reason</th>
                     <th className="py-3 px-3 text-center">Status</th>
@@ -420,8 +498,12 @@ export function WardenDashboard() {
                         <td className="py-3.5 px-4">
                           <span className="font-bold text-[#1E1B16] font-heading block">{item.student_name}</span>
                           <span className="text-[11px] text-[#6B6560]">
-                            {item.hostel_name}, Room {item.room_number}
+                            Room {item.room_number}
                           </span>
+                        </td>
+
+                        <td className="py-3.5 px-3 text-xs font-semibold text-[#D97706]">
+                          {item.hostel_name}
                         </td>
 
                         <td className="py-3.5 px-3 font-semibold text-[#1E1B16]">
@@ -457,7 +539,7 @@ export function WardenDashboard() {
         </div>
       )}
 
-      {/* 5. REJECTION REASON MODAL */}
+      {/* 6. REJECTION REASON MODAL */}
       <Modal
         isOpen={Boolean(rejectingRequest)}
         onClose={() => setRejectingRequest(null)}
@@ -466,7 +548,7 @@ export function WardenDashboard() {
       >
         <div className="space-y-4 pt-1">
           <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-xs text-[#DC2626]">
-            You are rejecting the hostel delivery request for <strong>{rejectingRequest?.student_name}</strong> (Room {rejectingRequest?.room_number}).
+            You are rejecting the hostel delivery request for <strong>{rejectingRequest?.student_name}</strong> ({rejectingRequest?.hostel_name}, Room {rejectingRequest?.room_number}).
           </div>
 
           <div className="space-y-1.5">
@@ -494,7 +576,7 @@ export function WardenDashboard() {
                   key={preset}
                   type="button"
                   onClick={() => setRejectionReason(preset)}
-                  className="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-[11px] text-[#1E1B16] transition"
+                  className="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-[11px] text-[#1E1B16] transition cursor-pointer"
                 >
                   {preset}
                 </button>
@@ -506,7 +588,7 @@ export function WardenDashboard() {
             <button
               type="button"
               onClick={() => setRejectingRequest(null)}
-              className="flex-1 btn-secondary text-xs py-2.5"
+              className="flex-1 btn-secondary text-xs py-2.5 cursor-pointer"
             >
               Cancel
             </button>
@@ -514,7 +596,7 @@ export function WardenDashboard() {
               type="button"
               onClick={handleConfirmReject}
               disabled={processingId === rejectingRequest?.request_id}
-              className="flex-1 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-xs py-2.5 rounded-xl shadow-soft-sm transition font-heading"
+              className="flex-1 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-xs py-2.5 rounded-xl shadow-soft-sm transition font-heading cursor-pointer"
             >
               {processingId === rejectingRequest?.request_id ? 'Rejecting...' : 'Confirm Rejection'}
             </button>

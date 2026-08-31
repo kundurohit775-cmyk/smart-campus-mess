@@ -174,7 +174,7 @@ export function Navbar({ activeTab, setActiveTab }) {
               {isWarden && (
                 <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] text-xs whitespace-nowrap bg-[#FFFFFF] text-[#D97706] shadow-soft-sm font-bold border border-amber-200">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>{user.assignedHostelBlock || "Hostel Warden"}</span>
+                  <span>Hostel Warden Portal</span>
                 </div>
               )}
 

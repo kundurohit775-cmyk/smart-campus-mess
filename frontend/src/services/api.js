@@ -108,8 +108,17 @@ export const api = {
   getAdminSickLeaveRequests: () => request('/sick-leave/admin/all'),
 
   // Warden In-App Approval Portal
-  getWardenStats: () => request('/warden/stats'),
-  getWardenRequests: (status) => request(status ? `/warden/requests?status=${status}` : '/warden/requests'),
+  getWardenStats: (block) => {
+    const qs = block ? `?block=${encodeURIComponent(block)}` : '';
+    return request(`/warden/stats${qs}`);
+  },
+  getWardenRequests: (status, block) => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (block) params.append('block', block);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return request(`/warden/requests${qs}`);
+  },
   approveWardenRequest: (requestId) => request(`/warden/requests/${requestId}/approve`, {
     method: 'POST'
   }),

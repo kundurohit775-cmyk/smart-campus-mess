@@ -12,15 +12,58 @@ const requireWarden = (req, res, next) => {
   next();
 };
 
+// Helper to build accurate block SQL conditions
+const buildBlockFilter = (selectedBlock, fieldPrefix = '', startParamIdx = 1) => {
+  const cleanBlock = selectedBlock.trim();
+  const isLadies = /ladies/i.test(cleanBlock) || /^lh/i.test(cleanBlock);
+  const blockLetterMatch = cleanBlock.match(/(?:Block|LH)[\s-]*([A-Z0-9]+)/i) || cleanBlock.match(/\b([A-D])\b/i);
+  const letter = blockLetterMatch ? blockLetterMatch[1].toLowerCase() : null;
+
+  if (letter && isLadies) {
+    const p1 = `$${startParamIdx}`;
+    const p2 = `$${startParamIdx + 1}`;
+    return {
+      sql: `(LOWER(${fieldPrefix}hostel_name) = LOWER(${p1}) OR (LOWER(${fieldPrefix}hostel_name) LIKE '%ladies%' AND LOWER(${fieldPrefix}hostel_name) LIKE ${p2}))`,
+      params: [cleanBlock, `%${letter}%`]
+    };
+  } else if (letter) {
+    const p1 = `$${startParamIdx}`;
+    const p2 = `$${startParamIdx + 1}`;
+    const p3 = `$${startParamIdx + 2}`;
+    return {
+      sql: `(LOWER(${fieldPrefix}hostel_name) = LOWER(${p1}) OR (LOWER(${fieldPrefix}hostel_name) NOT LIKE '%ladies%' AND (LOWER(${fieldPrefix}hostel_name) LIKE ${p2} OR LOWER(${fieldPrefix}hostel_name) LIKE ${p3})))`,
+      params: [cleanBlock, `%block ${letter}%`, `%block-${letter}%`]
+    };
+  } else {
+    const p1 = `$${startParamIdx}`;
+    return {
+      sql: `LOWER(${fieldPrefix}hostel_name) LIKE ${p1}`,
+      params: [`%${cleanBlock.toLowerCase()}%`]
+    };
+  }
+};
+
 /**
  * GET /api/warden/stats
- * Quick summary stats for the logged-in warden's assigned hostel block
+ * Summary stats for the selected hostel block (or all blocks)
+ * Query: ?block=Men's Hostel Block A or ?block=ALL
  */
 router.get('/stats', authenticateToken, requireWarden, async (req, res, next) => {
   try {
     const wardenId = req.user.id;
-    const warden = await db.get('SELECT assigned_hostel_block, name FROM wardens WHERE warden_id = ?', wardenId);
-    const assignedBlock = warden?.assigned_hostel_block || req.user.assignedHostelBlock || "Men's Hostel Block A";
+    const warden = await db.get('SELECT name FROM wardens WHERE warden_id = ?', wardenId);
+    
+    // Query param block takes precedence over user default
+    const selectedBlock = req.query.block || req.query.hostel_block || req.query.hostelName;
+
+    let whereClause = '';
+    let params = [];
+
+    if (selectedBlock && selectedBlock !== 'ALL' && selectedBlock !== 'all') {
+      const filter = buildBlockFilter(selectedBlock, '', 1);
+      whereClause = `WHERE ${filter.sql}`;
+      params = filter.params;
+    }
 
     const statsRes = await db.query(`
       SELECT 
@@ -29,12 +72,12 @@ router.get('/stats', authenticateToken, requireWarden, async (req, res, next) =>
         COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected_count,
         COUNT(request_id) as total_count
       FROM health_requests
-      WHERE LOWER(hostel_name) = LOWER($1) OR LOWER(hostel_name) LIKE LOWER($2)
-    `, [assignedBlock, `%${assignedBlock.replace(/Hostel|Block/gi, '').trim()}%`]);
+      ${whereClause}
+    `, params);
 
     const row = statsRes.rows[0] || {};
     res.json({
-      assignedBlock,
+      selectedBlock: selectedBlock || 'ALL',
       wardenName: warden?.name || req.user.name,
       pendingCount: parseInt(row.pending_count || 0, 10),
       approvedTodayCount: parseInt(row.approved_today_count || 0, 10),
@@ -48,27 +91,33 @@ router.get('/stats', authenticateToken, requireWarden, async (req, res, next) =>
 
 /**
  * GET /api/warden/requests
- * Block-scoped sick leave requests for the logged-in warden
+ * Requests for the selected hostel block (or all blocks)
+ * Query: ?block=Men's Hostel Block A&status=pending
  */
 router.get('/requests', authenticateToken, requireWarden, async (req, res, next) => {
   try {
-    const wardenId = req.user.id;
-    const warden = await db.get('SELECT assigned_hostel_block FROM wardens WHERE warden_id = ?', wardenId);
-    const assignedBlock = warden?.assigned_hostel_block || req.user.assignedHostelBlock || "Men's Hostel Block A";
-
+    const selectedBlock = req.query.block || req.query.hostel_block || req.query.hostelName;
     const { status } = req.query; // 'pending' | 'reviewed' | 'approved' | 'rejected' | undefined
     
-    let statusFilter = '';
-    const params = [assignedBlock, `%${assignedBlock.replace(/Hostel|Block/gi, '').trim()}%`];
+    const conditions = [];
+    let params = [];
+
+    if (selectedBlock && selectedBlock !== 'ALL' && selectedBlock !== 'all') {
+      const filter = buildBlockFilter(selectedBlock, 'h.', params.length + 1);
+      conditions.push(filter.sql);
+      params.push(...filter.params);
+    }
 
     if (status === 'pending') {
-      statusFilter = "AND h.status = 'pending'";
+      conditions.push("h.status = 'pending'");
     } else if (status === 'reviewed') {
-      statusFilter = "AND h.status IN ('approved', 'rejected')";
+      conditions.push("h.status IN ('approved', 'rejected')");
     } else if (status === 'approved' || status === 'rejected') {
       params.push(status);
-      statusFilter = `AND h.status = $${params.length}`;
+      conditions.push(`h.status = $${params.length}`);
     }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const query = `
       SELECT 
@@ -89,8 +138,7 @@ router.get('/requests', authenticateToken, requireWarden, async (req, res, next)
         s.phone as student_phone
       FROM health_requests h
       JOIN students s ON h.student_id = s.student_id
-      WHERE (LOWER(h.hostel_name) = LOWER($1) OR LOWER(h.hostel_name) LIKE LOWER($2))
-      ${statusFilter}
+      ${whereClause}
       ORDER BY 
         CASE WHEN h.status = 'pending' THEN 0 ELSE 1 END,
         h.request_id DESC
@@ -98,7 +146,7 @@ router.get('/requests', authenticateToken, requireWarden, async (req, res, next)
 
     const result = await db.query(query, params);
     res.json({
-      assignedBlock,
+      selectedBlock: selectedBlock || 'ALL',
       requests: result.rows
     });
   } catch (err) {

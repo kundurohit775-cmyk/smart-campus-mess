@@ -567,36 +567,9 @@ export function Login() {
             )}
 
             {view === 'warden' && (
-              <div className="space-y-3">
-                <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-xs text-[#D97706] flex items-start gap-2.5">
-                  <Building2 className="w-4 h-4 text-[#D97706] shrink-0 mt-0.5" />
-                  <span>Hostel Warden portal: Review and authorize sick-leave delivery requests for your assigned hostel block.</span>
-                </div>
-
-                <div className="space-y-1.5">
-                  <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider block">
-                    Quick Demo Warden Accounts:
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => { setEmail('warden.blocka@vitstudent.ac.in'); setPassword('password123'); }}
-                      className="p-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-amber-50 hover:border-amber-200 text-left text-xs transition"
-                    >
-                      <span className="font-bold text-[#1E1B16] block">Dr. K. Sharma</span>
-                      <span className="text-[11px] text-[#D97706]">Men's Hostel Block A</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => { setEmail('warden.lha@vitstudent.ac.in'); setPassword('password123'); }}
-                      className="p-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-amber-50 hover:border-amber-200 text-left text-xs transition"
-                    >
-                      <span className="font-bold text-[#1E1B16] block">Dr. Ananya Iyer</span>
-                      <span className="text-[11px] text-[#D97706]">Ladies Hostel Block A</span>
-                    </button>
-                  </div>
-                </div>
+              <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-xs text-[#D97706] flex items-start gap-2.5">
+                <Building2 className="w-4 h-4 text-[#D97706] shrink-0 mt-0.5" />
+                <span>Hostel Warden portal: Authorized login to review and approve sick-leave meal delivery requests.</span>
               </div>
             )}
 
