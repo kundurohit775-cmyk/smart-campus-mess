@@ -126,6 +126,8 @@ export const api = {
     method: 'POST',
     body: JSON.stringify({ reason })
   }),
+  getWardenWastageTrends: (period) => request(period ? `/warden/wastage-trends?period=${period}` : '/warden/wastage-trends'),
+  getWardenWastageSummary: () => request('/warden/wastage-summary'),
   getTransactions: async (studentId) => {
     try {
       const me = JSON.parse(localStorage.getItem('mess_user_session') || '{}');

@@ -1,9 +1,12 @@
 import express from 'express';
 import db from '../db/database.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { creditService } from '../services/creditService.js';
 
 const router = express.Router();
+
+// Middleware: Strictly restrict credits to students and admins (blocks Warden)
+router.use(authenticateToken, requireRole('student', 'admin'));
 
 async function resolveStudent(reqUser, targetParam) {
   if (!reqUser) return null;

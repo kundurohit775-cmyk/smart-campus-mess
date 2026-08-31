@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import db from '../db/database.js';
+import { wastageService } from '../services/wastageService.js';
 
 const router = express.Router();
 
@@ -245,6 +246,33 @@ router.post('/requests/:id/reject', authenticateToken, requireWarden, async (req
       message: `Sick leave delivery request for ${request.student_name} has been rejected.`,
       request: updateRes.rows[0]
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/warden/wastage-trends
+ * Read-only Wastage Trends data for Warden audit view
+ */
+router.get('/wastage-trends', authenticateToken, requireWarden, async (req, res, next) => {
+  try {
+    const period = req.query.period || '7d';
+    const trends = await wastageService.getWastageTrends(period);
+    res.json(trends);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/warden/wastage-summary
+ * Read-only overall wastage summary for Warden audit
+ */
+router.get('/wastage-summary', authenticateToken, requireWarden, async (req, res, next) => {
+  try {
+    const summary = await wastageService.getAdminSummary();
+    res.json(summary);
   } catch (err) {
     next(err);
   }

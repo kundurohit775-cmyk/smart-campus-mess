@@ -39,11 +39,25 @@ export function App() {
   // Auto-set default activeTab when user logs in based on role
   useEffect(() => {
     if (user) {
-      if (user.role === 'student' || user.isStudent) setActiveTab('menu');
-      else if (user.role === 'chef' || user.isChef) setActiveTab('dashboard');
-      else if (user.role === 'admin' || user.isAdmin) setActiveTab('dashboard');
+      if (user.role === 'student' || user.isStudent) {
+        if (activeTab !== 'menu' && activeTab !== 'orders' && activeTab !== 'transactions' && activeTab !== 'impact') {
+          setActiveTab('menu');
+        }
+      } else if (user.role === 'chef' || user.isChef) {
+        if (activeTab !== 'dashboard' && activeTab !== 'inventory' && activeTab !== 'impact') {
+          setActiveTab('dashboard');
+        }
+      } else if (user.role === 'warden' || user.isWarden) {
+        if (activeTab !== 'sick-leave' && activeTab !== 'wastage' && activeTab !== 'impact') {
+          setActiveTab('sick-leave');
+        }
+      } else if (user.role === 'admin' || user.isAdmin) {
+        if (activeTab !== 'dashboard' && activeTab !== 'menu-mgr' && activeTab !== 'students' && activeTab !== 'audit' && activeTab !== 'impact') {
+          setActiveTab('dashboard');
+        }
+      }
     }
-  }, [user?.role, user?.isChef, user?.isAdmin, user?.isStudent]);
+  }, [user?.role, user?.isChef, user?.isAdmin, user?.isStudent, user?.isWarden]);
 
   // Background check for Student ready orders
   useEffect(() => {
@@ -68,16 +82,20 @@ export function App() {
   if (isPublicImpactPath) {
     return (
       <SustainabilityImpact 
-        onNavigateHome={() => {
-          window.history.pushState({}, '', '/');
-          if (user) {
-            setActiveTab(user.role === 'student' || user.isStudent ? 'menu' : 'dashboard');
-          } else {
-            window.location.href = '/';
+        onBack={() => {
+          if (typeof window !== 'undefined') {
+            window.history.pushState({}, '', '/');
+            window.location.hash = '';
           }
+          setActiveTab(isStudent ? 'menu' : isWarden ? 'sick-leave' : 'dashboard');
         }} 
       />
     );
+  }
+
+  // 2. UNAUTHENTICATED STATE
+  if (!user && !loading) {
+    return <Login onLoginSuccess={() => {}} />;
   }
 
   if (loading) {
@@ -89,35 +107,24 @@ export function App() {
     );
   }
 
-  if (!user) {
-    return <Login />;
-  }
-
   const isStudent = user.role === 'student' || user.isStudent;
   const isChef = user.role === 'chef' || user.isChef;
   const isWarden = user.role === 'warden' || user.isWarden;
   const isAdmin = user.role === 'admin' || user.isAdmin;
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] text-[#1E1B16] flex flex-col selection:bg-[#FF6B35] selection:text-white">
-      {/* Role Navigation Bar */}
+    <div className="min-h-screen bg-[#FFF7F0] text-[#1E1B16] font-sans flex flex-col selection:bg-[#FF6B35] selection:text-white">
+      
+      {/* Global White-Orange Navbar */}
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Global Notifications for Student */}
-      {isStudent && (
-        <NotificationBanner
-          readyOrders={readyOrders}
-          onTrackOrder={() => setActiveTab('orders')}
-        />
-      )}
-
-      {/* Main Page Area */}
-      <main className="flex-1 pb-16">
+      {/* Main Role Content View Container */}
+      <main className="flex-1 w-full pb-16">
         
-        {/* Global Impact Tab View (When user clicks Impact in navbar or dashboard) */}
+        {/* Full-screen sustainability impact tab */}
         {activeTab === 'impact' && (
           <SustainabilityImpact 
-            onNavigateHome={() => setActiveTab(isStudent ? 'menu' : 'dashboard')} 
+            onNavigateHome={() => setActiveTab(isStudent ? 'menu' : isWarden ? 'sick-leave' : 'dashboard')} 
           />
         )}
 
@@ -151,9 +158,9 @@ export function App() {
           </>
         )}
 
-        {/* Warden View */}
+        {/* Warden View: Strictly Restricted to Sick Leave Requests & Wastage Overview */}
         {isWarden && activeTab !== 'impact' && (
-          <WardenDashboard />
+          <WardenDashboard activeTab={activeTab} onNavigate={setActiveTab} />
         )}
 
         {/* Admin View */}

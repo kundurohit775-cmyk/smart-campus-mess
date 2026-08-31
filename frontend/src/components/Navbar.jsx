@@ -12,7 +12,9 @@ import {
   Sparkles, 
   Layers, 
   Bell,
-  Leaf 
+  Leaf,
+  HeartPulse,
+  TrendingDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TopupModal } from './TopupModal';
@@ -172,10 +174,31 @@ export function Navbar({ activeTab, setActiveTab }) {
               )}
 
               {isWarden && (
-                <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] text-xs whitespace-nowrap bg-[#FFFFFF] text-[#D97706] shadow-soft-sm font-bold border border-amber-200">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Hostel Warden Portal</span>
-                </div>
+                <>
+                  <button
+                    onClick={() => setActiveTab('sick-leave')}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] text-xs font-semibold whitespace-nowrap transition-all duration-180 ${
+                      activeTab === 'sick-leave' || activeTab === 'dashboard'
+                        ? 'bg-[#FFFFFF] text-[#D97706] shadow-soft-sm font-bold border border-amber-200'
+                        : 'text-[#6B6560] hover:text-[#1E1B16]'
+                    }`}
+                  >
+                    <HeartPulse className="w-3.5 h-3.5" />
+                    <span>Sick Leave Requests</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('wastage')}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] text-xs font-semibold whitespace-nowrap transition-all duration-180 ${
+                      activeTab === 'wastage'
+                        ? 'bg-[#FFFFFF] text-[#D97706] shadow-soft-sm font-bold border border-amber-200'
+                        : 'text-[#6B6560] hover:text-[#1E1B16]'
+                    }`}
+                  >
+                    <TrendingDown className="w-3.5 h-3.5" />
+                    <span>Wastage Overview</span>
+                  </button>
+                </>
               )}
 
               {/* Public Impact Hub Link */}

@@ -5,6 +5,9 @@ import { orderService } from '../services/orderService.js';
 
 const router = express.Router();
 
+// Middleware: Strictly restrict orders to students, chefs, and admins (blocks Warden)
+router.use(authenticateToken, requireRole('student', 'chef', 'admin'));
+
 async function resolveStudentId(user) {
   if (!user) return null;
   let student = await db.get('SELECT student_id FROM students WHERE student_id = ? OR email = ?', user.id, user.email);
