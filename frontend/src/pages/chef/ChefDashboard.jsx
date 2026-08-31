@@ -925,6 +925,17 @@ export function ChefDashboard({ onNavigateToInventory }) {
                           +{dishFc.safety_margin ?? dishFc.safetyMargin ?? 3} portions
                         </span>
                       </div>
+                      <div className="flex justify-between text-[#6B6560] text-[11px]">
+                        <span>Forecast vs Baseline:</span>
+                        <span className={`font-bold tabular-nums ${
+                          (dishFc.forecast_change_pct || dishFc.forecastChangePct || 0) < -40
+                            ? 'text-amber-600'
+                            : 'text-stone-700'
+                        }`}>
+                          {(dishFc.forecast_change_pct || dishFc.forecastChangePct || 0) > 0 ? '+' : ''}
+                          {dishFc.forecast_change_pct ?? dishFc.forecastChangePct ?? -15}%
+                        </span>
+                      </div>
                       <div className="flex justify-between text-[#EA580C] pt-1 border-t border-orange-200 font-bold">
                         <span>AI Recommended:</span>
                         <span className="tabular-nums">
@@ -934,9 +945,16 @@ export function ChefDashboard({ onNavigateToInventory }) {
                     </div>
 
                     {/* Reasoning Footer */}
-                    <p className="text-[11px] text-[#6B6560] bg-stone-50 p-2.5 rounded-xl border border-stone-200/60 leading-relaxed">
-                      💡 {dishFc.reasoning}
-                    </p>
+                    <div className="space-y-1.5">
+                      {dishFc.significant_decrease && (
+                        <div className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold flex items-center gap-1.5">
+                          <span>⚠️ Significant demand decrease vs baseline</span>
+                        </div>
+                      )}
+                      <p className="text-[11px] text-[#6B6560] bg-stone-50 p-2.5 rounded-xl border border-stone-200/60 leading-relaxed">
+                        💡 {dishFc.reasoning}
+                      </p>
+                    </div>
                   </div>
                 );
               })}

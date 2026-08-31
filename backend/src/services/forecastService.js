@@ -5,31 +5,26 @@ import db from '../db/database.js';
  * AI-ASSISTED DEMAND FORECASTING ENGINE
  * =========================================================================================
  * 
- * METHODOLOGY & SIGNAL FLOW:
- * --------------------------
- * 1. Historical Dataset (Unified Feedback Loop):
- *    Aggregates completed daily demand across:
- *    - Actual completed student orders (order_items)
- *    - Production records (pre-orders + on-spot total demand / collected)
- *    - Chef-logged wastage actual sales
+ * CORE ARCHITECTURAL PRINCIPLES:
+ * ------------------------------
+ * 1. Historical Baseline:
+ *    The estimated quantity that would historically have been prepared without SmartMess demand optimization
+ *    (e.g., standard menu catalog prep batch).
  * 
- * 2. Stage 1: Recency-Weighted Moving Average (Exponential Smoothing / WMA)
- *    w_i = (1 - alpha)^(n - 1 - i)   where alpha = 0.35
- *    WMA = SUM(w_i * Q_i) / SUM(w_i)
+ * 2. AI Forecast / Expected Demand:
+ *    Current expected student demand computed by the demand forecasting engine from historical WMA and
+ *    day-of-week seasonality, bounded by verified historical momentum and catalog priors.
  * 
- * 3. Stage 2: Day-of-Week Seasonality Adjustment Factor (S_dow)
- *    S_dow = Mean_dow / Mean_all (clamped to [0.70, 1.40])
- *    Historical_Forecast = MAX(1, ROUND( WMA * S_dow ))
+ * 3. AI Recommended:
+ *    Expected Demand + Safety Margin, strictly respecting confirmed advance pre-orders:
+ *      known_demand = confirmed_pre_orders
+ *      expected_demand = MAX(forecast_demand, known_demand)
+ *      safety_margin = MAX(2, ROUND(expected_demand * 0.08))
+ *      recommended_quantity = expected_demand + safety_margin
  * 
- * 4. Stage 3: Known Advance Demand & Safety Buffer Integration
- *    Known_Demand = Confirmed_Pre_Orders for Target Date
- *    Expected_Demand = MAX(Historical_Forecast, Known_Demand)
- *    Safety_Margin = MAX(2, ROUND(Expected_Demand * 0.08))
- *    Recommended_Prep = Expected_Demand + Safety_Margin
- * 
- * Guarantee:
- *   Recommended_Prep >= Confirmed_Pre_Orders + Safety_Margin
- * A recommendation is NEVER lower than confirmed advance pre-orders.
+ * 4. Feedback Loop:
+ *    On-spot orders are real-time demand. They increase total demand during service, and after the day
+ *    completes, they are persisted into the historical dataset to improve future forecasts.
  * =========================================================================================
  */
 
@@ -41,7 +36,7 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 
 export const forecastService = {
   /**
-   * Pure calculation helper for predictable testing and core forecasting logic
+   * Pure calculation helper for predictable testing and core mathematical verification
    */
   calculateRecommended(forecastDemand, preOrderQuantity = 0, safetyMarginPct = DEFAULT_SAFETY_MARGIN_PCT) {
     const forecast = Math.max(0, parseInt(forecastDemand, 10) || 0);
@@ -58,6 +53,74 @@ export const forecastService = {
       safetyMargin,
       safetyMarginPct,
       recommendedQuantity
+    };
+  },
+
+  /**
+   * Pure historical array forecast calculation helper
+   */
+  calculateForecastFromHistory(historyArray = [], preOrders = 0, targetDayOfWeek = 1, baselineQty = 48) {
+    const n = historyArray.length;
+    if (n === 0) {
+      const priorDemand = Math.round(baselineQty / OVERPREPARATION_BASELINE_FACTOR);
+      const expectedDemand = Math.max(priorDemand, preOrders);
+      const safetyMargin = Math.max(2, Math.round(expectedDemand * DEFAULT_SAFETY_MARGIN_PCT));
+      return {
+        wma: priorDemand,
+        mean: priorDemand,
+        seasonalityFactor: 1.0,
+        historicalForecast: priorDemand,
+        preOrders,
+        expectedDemand,
+        safetyMargin,
+        recommendedQuantity: expectedDemand + safetyMargin,
+        confidence: 'Low Confidence'
+      };
+    }
+
+    let weightSum = 0;
+    let weightedQtySum = 0;
+    let flatSum = 0;
+
+    historyArray.forEach((qty, index) => {
+      flatSum += qty;
+      const weight = Math.pow(1 - SMOOTHING_ALPHA, n - 1 - index);
+      weightedQtySum += qty * weight;
+      weightSum += weight;
+    });
+
+    const wma = weightSum > 0 ? (weightedQtySum / weightSum) : (flatSum / n);
+    const overallMean = flatSum / n;
+
+    let seasonalityFactor = 1.0;
+    const rawForecast = Math.round(wma * seasonalityFactor);
+
+    // Sanity check: if n < 4 and rawForecast < 0.5 * baselineQty, blend with prior to avoid extreme swings
+    let finalForecast = rawForecast;
+    let confidence = 'High Confidence';
+    if (n < 4) {
+      confidence = 'Medium Confidence';
+      if (rawForecast < 0.5 * baselineQty && baselineQty > 20) {
+        const priorDemand = Math.round(baselineQty / OVERPREPARATION_BASELINE_FACTOR);
+        finalForecast = Math.round(wma * 0.4 + priorDemand * 0.6);
+        confidence = 'Low Confidence';
+      }
+    }
+
+    const expectedDemand = Math.max(finalForecast, preOrders);
+    const safetyMargin = Math.max(2, Math.round(expectedDemand * DEFAULT_SAFETY_MARGIN_PCT));
+    const recommendedQuantity = expectedDemand + safetyMargin;
+
+    return {
+      wma: Math.round(wma * 10) / 10,
+      mean: Math.round(overallMean * 10) / 10,
+      seasonalityFactor,
+      historicalForecast: finalForecast,
+      preOrders,
+      expectedDemand,
+      safetyMargin,
+      recommendedQuantity,
+      confidence
     };
   },
 
@@ -158,13 +221,13 @@ export const forecastService = {
     const menuBatchAvailable = parseInt(dish.available_quantity || 35, 10);
     const baselineQty = Math.max(25, menuBatchAvailable);
 
-    // 4. If no historical data or very sparse sample size (< 2 data points)
-    // Use the menu catalog batch as the historical demand prior
+    // 4. Sparse historical sample size handling (N < 2 data points)
     if (rawHistory.length < 2) {
       const priorDemand = Math.round(baselineQty / OVERPREPARATION_BASELINE_FACTOR);
       const expectedDemand = Math.max(priorDemand, knownDemand);
       const safetyMargin = Math.max(2, Math.round(expectedDemand * DEFAULT_SAFETY_MARGIN_PCT));
       const recommendedQuantity = expectedDemand + safetyMargin;
+      const forecastChangePct = Math.round(((expectedDemand - baselineQty) / baselineQty) * 100);
 
       return {
         dish_id: dish.item_id,
@@ -186,12 +249,15 @@ export const forecastService = {
         baselineQuantity: baselineQty,
         historical_wma: priorDemand,
         historicalWMA: priorDemand,
-        historical_mean: priorDemand,
+        historical_30_day_mean: priorDemand,
         historicalMean: priorDemand,
+        same_weekday_average: priorDemand,
+        sameWeekdayMean: priorDemand,
         seasonality_factor: 1.0,
         seasonalityFactor: 1.0,
         same_weekday_matches: 0,
         sameWeekdayPoints: 0,
+        forecast_demand: priorDemand,
         historical_forecast: priorDemand,
         historicalForecast: priorDemand,
         pre_order_quantity: preOrderQuantity,
@@ -206,23 +272,29 @@ export const forecastService = {
         recommendedQuantity,
         forecasted_quantity: recommendedQuantity,
         forecastedQuantity: recommendedQuantity,
-        confidence: knownDemand > 0 ? 'Medium Confidence' : 'Catalog Prior Baseline',
-        confidence_score: knownDemand > 0 ? 65 : 45,
-        confidenceScore: knownDemand > 0 ? 65 : 45,
+        forecast_vs_baseline_ratio: Math.round((expectedDemand / baselineQty) * 100) / 100,
+        forecast_change_pct: forecastChangePct,
+        forecastChangePct,
+        significant_decrease: false,
+        confidence: knownDemand > 0 ? 'Medium Confidence' : 'Low Confidence',
+        confidence_score: knownDemand > 0 ? 65 : 40,
+        confidenceScore: knownDemand > 0 ? 65 : 40,
         reasoning: knownDemand > 0 
-          ? `Demand anchored by ${knownDemand} confirmed advance pre-orders with ${safetyMargin} buffer.`
-          : `Sparse historical orders. AI initialized from menu catalog baseline (${baselineQty} batch target).`,
+          ? `Demand anchored by ${knownDemand} confirmed advance pre-orders (+${safetyMargin} buffer).`
+          : `Insufficient historical demand data. AI initialized from menu catalog baseline (${baselineQty} batch target).`,
         metrics: {
           totalDataPoints: rawHistory.length,
           sameWeekdayPoints: 0,
           historicalBaseline: baselineQty,
           historicalWMA: priorDemand,
           historicalMean: priorDemand,
+          sameWeekdayAverage: priorDemand,
           seasonalityFactor: 1.0,
           historicalForecast: priorDemand,
           preOrders: preOrderQuantity,
           expectedDemand,
-          safetyMargin
+          safetyMargin,
+          forecastChangePct
         },
         historicalData: rawHistory
       };
@@ -260,15 +332,23 @@ export const forecastService = {
       }
     }
 
-    // 7. Stage 3: Historical Forecast Computation
+    // 7. Stage 3: Historical Forecast Computation & Sanity Check
     const rawForecast = wma * seasonalityFactor;
-    const historicalForecastQty = Math.max(1, Math.round(rawForecast));
+    let historicalForecastQty = Math.max(1, Math.round(rawForecast));
+
+    // Sanity Check: If n < 4 and rawForecast < 0.5 * baselineQty, apply conservative prior blending
+    if (n < 4 && historicalForecastQty < 0.5 * baselineQty && baselineQty > 20) {
+      const priorDemand = Math.round(baselineQty / OVERPREPARATION_BASELINE_FACTOR);
+      historicalForecastQty = Math.round(wma * 0.4 + priorDemand * 0.6);
+    }
 
     // 8. Stage 4: Expected Demand & Recommended Preparation
-    // expected_demand = MAX(historical_forecast, known_advance_pre_orders)
     const expectedDemand = Math.max(historicalForecastQty, knownDemand);
     const safetyMargin = Math.max(2, Math.round(expectedDemand * DEFAULT_SAFETY_MARGIN_PCT));
     const recommendedQuantity = expectedDemand + safetyMargin;
+
+    const forecastChangePct = Math.round(((expectedDemand - baselineQty) / baselineQty) * 100);
+    const isSignificantDecrease = (expectedDemand / baselineQty) < 0.50;
 
     // 9. Stage 5: Confidence Assessment
     let confidence = 'Low Confidence';
@@ -294,7 +374,9 @@ export const forecastService = {
     } else {
       confidence = 'Low Confidence';
       confidenceScore = 45;
-      reasoning = `Preliminary dataset (${n} days). WMA trend applied with ${safetyMargin}-portion safety buffer.`;
+      reasoning = isSignificantDecrease
+        ? `⚠️ Preliminary data shows potential demand decrease (${forecastChangePct}% vs baseline). Conservative buffer applied.`
+        : `Preliminary dataset (${n} days). WMA trend applied with ${safetyMargin}-portion safety buffer.`;
     }
 
     return {
@@ -317,12 +399,15 @@ export const forecastService = {
       baselineQuantity: baselineQty,
       historical_wma: Math.round(wma * 10) / 10,
       historicalWMA: Math.round(wma * 10) / 10,
-      historical_mean: Math.round(overallMean * 10) / 10,
+      historical_30_day_mean: Math.round(overallMean * 10) / 10,
       historicalMean: Math.round(overallMean * 10) / 10,
+      same_weekday_average: Math.round(sameWeekdayMean * 10) / 10,
+      sameWeekdayMean: Math.round(sameWeekdayMean * 10) / 10,
       seasonality_factor: Math.round(seasonalityFactor * 100) / 100,
       seasonalityFactor: Math.round(seasonalityFactor * 100) / 100,
       same_weekday_matches: sameWeekdayPoints.length,
       sameWeekdayPoints: sameWeekdayPoints.length,
+      forecast_demand: historicalForecastQty,
       historical_forecast: historicalForecastQty,
       historicalForecast: historicalForecastQty,
       pre_order_quantity: preOrderQuantity,
@@ -337,6 +422,10 @@ export const forecastService = {
       recommendedQuantity,
       forecasted_quantity: recommendedQuantity,
       forecastedQuantity: recommendedQuantity,
+      forecast_vs_baseline_ratio: Math.round((expectedDemand / baselineQty) * 100) / 100,
+      forecast_change_pct: forecastChangePct,
+      forecastChangePct,
+      significant_decrease: isSignificantDecrease,
       confidence,
       confidence_score: confidenceScore,
       confidenceScore,
@@ -347,12 +436,14 @@ export const forecastService = {
         historicalBaseline: baselineQty,
         historicalWMA: Math.round(wma * 10) / 10,
         historicalMean: Math.round(overallMean * 10) / 10,
+        sameWeekdayAverage: Math.round(sameWeekdayMean * 10) / 10,
         seasonalityFactor: Math.round(seasonalityFactor * 100) / 100,
         sameWeekdayMean: Math.round(sameWeekdayMean * 10) / 10,
         historicalForecast: historicalForecastQty,
         preOrders: preOrderQuantity,
         expectedDemand,
-        safetyMargin
+        safetyMargin,
+        forecastChangePct
       },
       historicalData: rawHistory.slice(-14)
     };
