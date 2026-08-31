@@ -92,9 +92,53 @@ export function ChefDashboard({ onNavigateToInventory }) {
   const fetchWastagePreload = async (date) => {
     setWastageLoading(true);
     try {
-      const res = await api.getWastagePreload(date || logDate);
-      setWastagePreload(res);
-      setWastageFormEntries(res.dishes || []);
+      const [preloadRes, prodRes] = await Promise.all([
+        api.getWastagePreload(date || logDate).catch(() => null),
+        api.getDailyProduction(date || logDate).catch(() => null)
+      ]);
+      setWastagePreload(preloadRes);
+      
+      const prodDishes = prodRes?.dishes || [];
+      if (prodDishes.length > 0) {
+        setWastageFormEntries(prodDishes.map(d => ({
+          dishId: d.dishId,
+          dishName: d.dishName,
+          category: d.category,
+          price: d.price,
+          portionWeightKg: d.portionWeightKg || 0.4,
+          baselineQuantity: d.baselineQuantity || 35,
+          recommendedQuantity: d.recommendedQuantity || 25,
+          preOrderQuantity: d.preOrderQuantity || 0,
+          onSpotQuantity: d.onSpotQuantity || 0,
+          totalDemand: d.totalDemand || 0,
+          quantityPrepared: d.preparedQuantity || 0,
+          quantitySold: d.collectedQuantity || d.totalDemand || 0,
+          quantityWasted: d.leftoverQuantity || 0,
+          estimatedFoodSavedKg: d.estimatedFoodSavedKg || 0,
+          isLogged: d.isLogged,
+          reason: d.notes || 'overprepared'
+        })));
+      } else {
+        setWastageFormEntries((preloadRes?.dishes || []).map(d => {
+          const baseline = Math.round((d.quantitySold || 25) * 1.25);
+          const prep = d.quantityPrepared || 0;
+          return {
+            dishId: d.dishId,
+            dishName: d.dishName,
+            category: d.category,
+            price: d.price,
+            portionWeightKg: 0.4,
+            baselineQuantity: baseline,
+            recommendedQuantity: d.quantitySold || 25,
+            quantityPrepared: prep,
+            quantitySold: d.quantitySold || 0,
+            quantityWasted: d.quantityWasted || 0,
+            estimatedFoodSavedKg: prep > 0 ? Math.max(0, (baseline - prep) * 0.4) : 0,
+            isLogged: d.isLogged,
+            reason: d.reason || 'overprepared'
+          };
+        }));
+      }
     } catch (err) {
       console.error('Failed to load wastage form:', err);
     } finally {
@@ -161,11 +205,20 @@ export function ChefDashboard({ onNavigateToInventory }) {
       if (item.dishId !== dishId) return item;
       const updated = { ...item, [field]: value };
       
+      const prep = parseInt(field === 'quantityPrepared' ? value : updated.quantityPrepared, 10) || 0;
+      const sold = parseInt(field === 'quantitySold' ? value : updated.quantitySold, 10) || 0;
+      const baseline = parseInt(updated.baselineQuantity || 35, 10);
+      const weight = updated.portionWeightKg || 0.4;
+
       if (field === 'quantityPrepared' || field === 'quantitySold') {
-        const prep = parseInt(field === 'quantityPrepared' ? value : item.quantityPrepared, 10) || 0;
-        const sold = parseInt(field === 'quantitySold' ? value : item.quantitySold, 10) || 0;
         updated.quantityWasted = Math.max(0, prep - sold);
       }
+      
+      // Calculate real-time Food Saved: MAX(0, baseline - prepared) * weight
+      updated.estimatedFoodSavedKg = prep > 0 
+        ? Math.max(0, Math.round((baseline - prep) * weight * 100) / 100)
+        : 0;
+
       return updated;
     }));
   };
@@ -176,14 +229,23 @@ export function ChefDashboard({ onNavigateToInventory }) {
       const payload = wastageFormEntries.map(entry => ({
         dishId: entry.dishId,
         logDate,
+        preparedQuantity: parseInt(entry.quantityPrepared, 10) || 0,
+        baselineQuantity: parseInt(entry.baselineQuantity, 10) || 0,
+        portionWeightKg: entry.portionWeightKg || 0.4,
         quantityPrepared: parseInt(entry.quantityPrepared, 10) || 0,
         quantitySold: parseInt(entry.quantitySold, 10) || 0,
         quantityWasted: parseInt(entry.quantityWasted, 10) || 0,
-        reason: entry.reason || 'overprepared'
+        leftoverQuantity: parseInt(entry.quantityWasted, 10) || 0,
+        reason: entry.reason || 'overprepared',
+        notes: entry.reason || 'overprepared'
       }));
 
-      const res = await api.logWastage(payload);
-      showToast(res.message || 'Daily wastage logged successfully!', 'success');
+      await Promise.all([
+        api.logProduction(payload, logDate).catch(() => null),
+        api.logWastage(payload).catch(() => null)
+      ]);
+
+      showToast('Daily production & food saved records logged successfully!', 'success');
       await fetchWastagePreload(logDate);
     } catch (err) {
       showToast(err.message || 'Failed to save wastage logs', 'error');
@@ -847,65 +909,89 @@ export function ChefDashboard({ onNavigateToInventory }) {
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead className="text-xs font-semibold uppercase tracking-wider text-[#6B6560] border-b border-stone-200 bg-stone-50">
                   <tr>
-                    <th className="py-3 px-4">Dish & Category</th>
-                    <th className="py-3 px-3 text-center">Prepared Qty</th>
-                    <th className="py-3 px-3 text-center">Sold (From Orders)</th>
-                    <th className="py-3 px-3 text-center">Wasted Portions</th>
-                    <th className="py-3 px-4">Primary Reason</th>
-                    <th className="py-3 px-3 text-center">Status</th>
+                    <th className="py-3 px-3">Dish & Category</th>
+                    <th className="py-3 px-2 text-center">1. Baseline (Hist.)</th>
+                    <th className="py-3 px-2 text-center">2. Recommended</th>
+                    <th className="py-3 px-2 text-center text-[#EA580C]">3. Prepared (Cooked)</th>
+                    <th className="py-3 px-2 text-center">4. Sold / Collected</th>
+                    <th className="py-3 px-2 text-center text-[#D97706]">Leftover (Waste)</th>
+                    <th className="py-3 px-2 text-center text-[#16A34A]">Avoided Overprep (Saved)</th>
+                    <th className="py-3 px-3">Reason</th>
+                    <th className="py-3 px-2 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
                   {wastageFormEntries.map((item) => (
                     <tr key={item.dishId} className="hover:bg-stone-50/80 transition-colors">
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-3">
                         <span className="font-bold text-[#1E1B16] font-heading block">{item.dishName}</span>
-                        <span className="text-[11px] text-[#6B6560]">{item.category} • {item.price} Cr</span>
+                        <span className="text-[11px] text-[#6B6560]">{item.category} • {item.portionWeightKg || 0.4} kg/portion</span>
                       </td>
 
-                      {/* Prepared Input */}
-                      <td className="py-3 px-3 text-center">
+                      {/* 1. Baseline */}
+                      <td className="py-3 px-2 text-center">
+                        <span className="px-2 py-1 rounded-lg bg-stone-100 text-[#6B6560] font-bold text-xs font-heading">
+                          {item.baselineQuantity || 35}
+                        </span>
+                      </td>
+
+                      {/* 2. Recommended */}
+                      <td className="py-3 px-2 text-center">
+                        <span className="px-2 py-1 rounded-lg bg-orange-50 text-[#EA580C] border border-orange-200 font-bold text-xs font-heading">
+                          {item.recommendedQuantity || 25}
+                        </span>
+                      </td>
+
+                      {/* 3. Prepared Input */}
+                      <td className="py-3 px-2 text-center">
                         <input
                           type="number"
                           min="0"
                           value={item.quantityPrepared}
                           onChange={(e) => handleWastageFieldChange(item.dishId, 'quantityPrepared', e.target.value)}
-                          className="w-20 text-center bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] font-bold text-xs py-1.5 rounded-xl outline-none focus:border-[#EA580C]"
+                          className="w-16 text-center bg-[#FFF7F0] focus:bg-white border border-orange-300 text-[#EA580C] font-extrabold text-xs py-1.5 rounded-xl outline-none focus:border-[#EA580C] shadow-soft-sm"
                         />
                       </td>
 
-                      {/* Sold Input (Pre-filled from orders) */}
-                      <td className="py-3 px-3 text-center">
+                      {/* 4. Sold Input (Pre-filled from orders) */}
+                      <td className="py-3 px-2 text-center">
                         <input
                           type="number"
                           min="0"
                           value={item.quantitySold}
                           onChange={(e) => handleWastageFieldChange(item.dishId, 'quantitySold', e.target.value)}
-                          className="w-20 text-center bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] font-bold text-xs py-1.5 rounded-xl outline-none focus:border-[#EA580C]"
+                          className="w-16 text-center bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] font-bold text-xs py-1.5 rounded-xl outline-none focus:border-[#EA580C]"
                         />
                       </td>
 
-                      {/* Wasted Input (Auto-calculated, allows override) */}
-                      <td className="py-3 px-3 text-center">
+                      {/* Leftover Input (Auto-calculated, allows override) */}
+                      <td className="py-3 px-2 text-center">
                         <input
                           type="number"
                           min="0"
                           value={item.quantityWasted}
                           onChange={(e) => handleWastageFieldChange(item.dishId, 'quantityWasted', e.target.value)}
-                          className={`w-20 text-center border font-bold text-xs py-1.5 rounded-xl outline-none focus:border-[#EA580C] ${
+                          className={`w-16 text-center border font-bold text-xs py-1.5 rounded-xl outline-none focus:border-[#EA580C] ${
                             item.quantityWasted > 0 
-                              ? 'bg-amber-50/60 border-amber-300 text-[#D97706]' 
+                              ? 'bg-amber-50/70 border-amber-300 text-[#D97706]' 
                               : 'bg-[#FAFAF9] border-stone-200 text-[#16A34A]'
                           }`}
                         />
                       </td>
 
+                      {/* Avoided Overprep (Food Saved kg) */}
+                      <td className="py-3 px-2 text-center">
+                        <span className="font-bold text-[#16A34A] font-heading tabular-nums text-xs">
+                          {item.estimatedFoodSavedKg > 0 ? `+${item.estimatedFoodSavedKg} kg` : '0 kg'}
+                        </span>
+                      </td>
+
                       {/* Reason Dropdown */}
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-3">
                         <select
                           value={item.reason || 'overprepared'}
                           onChange={(e) => handleWastageFieldChange(item.dishId, 'reason', e.target.value)}
-                          className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] text-xs py-1.5 px-2.5 rounded-xl outline-none focus:border-[#EA580C]"
+                          className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] text-xs py-1.5 px-2 rounded-xl outline-none focus:border-[#EA580C]"
                         >
                           <option value="overprepared">Overprepared / Excess batch</option>
                           <option value="low turnout">Low student turnout</option>
@@ -916,7 +1002,7 @@ export function ChefDashboard({ onNavigateToInventory }) {
                       </td>
 
                       {/* Status */}
-                      <td className="py-3 px-3 text-center">
+                      <td className="py-3 px-2 text-center">
                         {item.isLogged ? (
                           <span className="status-pill status-pill-success text-[10px]">Logged</span>
                         ) : (

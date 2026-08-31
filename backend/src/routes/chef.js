@@ -2,11 +2,43 @@ import express from 'express';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { forecastService } from '../services/forecastService.js';
 import { wastageService } from '../services/wastageService.js';
+import { productionService } from '../services/productionService.js';
 
 const router = express.Router();
 
 // Middleware: All routes in /api/chef require chef or admin role
 router.use(authenticateToken, requireRole('chef', 'admin'));
+
+/**
+ * GET /api/chef/production/today
+ * Daily production records with Baseline, Recommended, Pre-orders, On-spot, Prepared, Leftover, and Food Saved kg
+ */
+router.get('/production/today', async (req, res, next) => {
+  try {
+    const targetDate = req.query.date;
+    const overview = await productionService.getDailyProductionOverview(targetDate);
+    res.json(overview);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/chef/production/log
+ * Chef logs daily prepared_quantity, confirms leftover_quantity, and computes Food Saved
+ */
+router.post('/production/log', async (req, res, next) => {
+  try {
+    const chefId = req.user.id || req.user.admin_id;
+    const entries = Array.isArray(req.body) ? req.body : req.body.entries ? req.body.entries : [req.body];
+    const targetDate = req.body.date || req.query.date;
+
+    const result = await productionService.logProduction(chefId, entries, targetDate);
+    res.status(201).json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Failed to log daily production.' });
+  }
+});
 
 /**
  * GET /api/chef/forecast/today

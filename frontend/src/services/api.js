@@ -155,9 +155,14 @@ export const api = {
   }),
   cancelOrder: (orderId) => request(`/orders/${orderId}/cancel`, { method: 'PATCH' }),
 
-  // Demand Forecasting & Wastage Logging (Chef)
+  // Demand Forecasting, Feedback Loop & Production Records (Chef)
   getTodayForecast: (date) => request(date ? `/chef/forecast/today?date=${date}` : '/chef/forecast/today'),
   getDishForecast: (dishId, date) => request(date ? `/chef/forecast/${dishId}?date=${date}` : `/chef/forecast/${dishId}`),
+  getDailyProduction: (date) => request(date ? `/chef/production/today?date=${date}` : '/chef/production/today'),
+  logProduction: (entries, date) => request('/chef/production/log', {
+    method: 'POST',
+    body: JSON.stringify(Array.isArray(entries) ? { entries, date } : entries)
+  }),
   getWastagePreload: (date) => request(date ? `/chef/wastage/preload?date=${date}` : '/chef/wastage/preload'),
   logWastage: (entries) => request('/chef/wastage', {
     method: 'POST',
