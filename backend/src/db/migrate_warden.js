@@ -48,20 +48,15 @@ export async function migrateWardens() {
     console.log('✅ Checked/Updated "health_requests" columns (reviewed_by, reviewed_at, rejection_reason)');
 
     // 3. Seed Default Wardens
-    const defaultPassword = 'password123';
-    const passwordHash = await bcrypt.hash(defaultPassword, 10);
-
     const initialWardens = [
-      { name: "Dr. K. Sharma", email: "warden.blocka@vitstudent.ac.in", block: "Men's Hostel Block A", phone: "9876500001" },
-      { name: "Prof. R. Venkat", email: "warden.blockb@vitstudent.ac.in", block: "Men's Hostel Block B", phone: "9876500002" },
-      { name: "Dr. S. Reddy", email: "warden.blockc@vitstudent.ac.in", block: "Men's Hostel Block C", phone: "9876500003" },
-      { name: "Prof. M. Patel", email: "warden.blockd@vitstudent.ac.in", block: "Men's Hostel Block D", phone: "9876500004" },
-      { name: "Dr. Ananya Iyer", email: "warden.lha@vitstudent.ac.in", block: "Ladies Hostel Block A", phone: "9876500005" },
-      { name: "Prof. P. Lakshmi", email: "warden.lhb@vitstudent.ac.in", block: "Ladies Hostel Block B", phone: "9876500006" },
-      { name: "Dr. S. Nambiar", email: "warden.lhc@vitstudent.ac.in", block: "Ladies Hostel Block C", phone: "9876500007" }
+      { name: "Warden Block A", email: "warden.blocka@vitstudent.ac.in", password: "WardenA@2026!", block: "Block A", phone: "9876500001" },
+      { name: "Warden Block B", email: "warden.blockb@vitstudent.ac.in", password: "WardenB@2026!", block: "Block B", phone: "9876500002" },
+      { name: "Warden Block C", email: "warden.blockc@vitstudent.ac.in", password: "WardenC@2026!", block: "Block C", phone: "9876500003" },
+      { name: "Warden Block D", email: "warden.blockd@vitstudent.ac.in", password: "WardenD@2026!", block: "Block D", phone: "9876500004" }
     ];
 
     for (const w of initialWardens) {
+      const passwordHash = await bcrypt.hash(w.password, 10);
       await db.query(`
         INSERT INTO wardens (name, email, password_hash, phone, assigned_hostel_block)
         VALUES ($1, $2, $3, $4, $5)
@@ -72,7 +67,7 @@ export async function migrateWardens() {
           password_hash = EXCLUDED.password_hash
       `, [w.name, w.email.toLowerCase(), passwordHash, w.phone, w.block]);
     }
-    console.log(`✅ Seeded ${initialWardens.length} default block wardens with password "${defaultPassword}"`);
+    console.log(`✅ Seeded ${initialWardens.length} block wardens`);
 
     // 4. Create indices
     await db.query(`
