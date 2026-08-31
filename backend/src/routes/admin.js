@@ -14,16 +14,29 @@ router.use(authenticateToken, requireRole('admin', 'chef'));
  * GET /api/admin/analytics
  * Summary statistics & insights for dashboard
  */
-router.get('/analytics', async (req, res, next) => {
+router.get(['/analytics', '/stats'], async (req, res, next) => {
   try {
     const totalStudentsRow = await db.get("SELECT COUNT(*) as count FROM students WHERE status = 'active'");
     const totalStudents = totalStudentsRow ? parseInt(totalStudentsRow.count, 10) : 0;
+
+    const totalMenuRow = await db.get("SELECT COUNT(*) as count FROM menu_items");
+    const totalMenuItems = totalMenuRow ? parseInt(totalMenuRow.count, 10) : 0;
+
+    const allOrdersRow = await db.get(`
+      SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total_credits
+      FROM orders 
+      WHERE order_status != 'Cancelled'
+    `);
+    const totalOrders = allOrdersRow ? parseInt(allOrdersRow.count, 10) : 0;
+    const totalCreditsUsed = allOrdersRow ? parseInt(allOrdersRow.total_credits, 10) : 0;
 
     const ordersTodayRow = await db.get(`
       SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total_credits
       FROM orders 
       WHERE DATE(order_time) = CURRENT_DATE AND order_status != 'Cancelled'
     `);
+    const ordersToday = ordersTodayRow ? parseInt(ordersTodayRow.count, 10) : 0;
+    const creditsUsedToday = ordersTodayRow ? parseInt(ordersTodayRow.total_credits, 10) : 0;
 
     const pendingOrdersRow = await db.get(`
       SELECT COUNT(*) as count 
@@ -41,36 +54,57 @@ router.get('/analytics', async (req, res, next) => {
 
     // Top ordered dishes
     const topItems = await db.all(`
-      SELECT m.item_name, m.category, SUM(oi.quantity) as total_sold, SUM(oi.subtotal) as total_revenue
+      SELECT m.item_id, m.item_name, m.category, m.price as credits_price, 
+             COALESCE(SUM(oi.quantity), 0) as order_count, 
+             COALESCE(SUM(oi.quantity), 0) as total_sold, 
+             COALESCE(SUM(oi.subtotal), 0) as total_revenue
       FROM order_items oi
       JOIN menu_items m ON oi.item_id = m.item_id
       JOIN orders o ON oi.order_id = o.order_id
       WHERE o.order_status != 'Cancelled'
-      GROUP BY m.item_id, m.item_name, m.category
+      GROUP BY m.item_id, m.item_name, m.category, m.price
       ORDER BY total_sold DESC
       LIMIT 5
     `);
 
-    // Low credit students count
-    const lowCreditRow = await db.get(`
-      SELECT COUNT(*) as count 
+    // Low credit students
+    const lowCreditRows = await db.all(`
+      SELECT s.student_id, s.name, s.email, s.room_number, COALESCE(c.remaining_credits, 9000) as remaining_credits
       FROM credits c
       JOIN students s ON c.student_id = s.student_id
       WHERE c.remaining_credits < 500 AND s.status = 'active'
+      ORDER BY c.remaining_credits ASC
+      LIMIT 5
     `);
-    const lowCreditStudents = lowCreditRow ? parseInt(lowCreditRow.count, 10) : 0;
 
-    res.json({
+    const payload = {
+      total_students: totalStudents,
+      total_menu_items: totalMenuItems,
+      total_orders: totalOrders,
+      total_credits_used: totalCreditsUsed,
+      orders_today: ordersToday,
+      credits_used_today: creditsUsedToday,
+      pending_orders: pendingOrdersCount,
+      completed_orders: completedOrdersCount,
+      low_credit_students: lowCreditRows.length,
+      top_items: topItems,
+      low_balance_students: lowCreditRows,
       analytics: {
         totalStudents,
-        ordersToday: ordersTodayRow ? parseInt(ordersTodayRow.count, 10) : 0,
-        creditsUsedToday: ordersTodayRow ? parseInt(ordersTodayRow.total_credits, 10) : 0,
+        totalMenuItems,
+        totalOrders,
+        totalCreditsUsed,
+        ordersToday,
+        creditsUsedToday,
         pendingOrders: pendingOrdersCount,
         completedOrders: completedOrdersCount,
-        lowCreditStudents,
-        topItems
+        lowCreditStudents: lowCreditRows.length,
+        topItems,
+        lowBalanceStudents: lowCreditRows
       }
-    });
+    };
+
+    res.json(payload);
   } catch (err) {
     next(err);
   }

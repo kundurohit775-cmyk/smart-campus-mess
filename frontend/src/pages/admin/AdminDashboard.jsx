@@ -24,8 +24,11 @@ export function AdminDashboard({ onNavigate }) {
   const [recentOrders, setRecentOrders] = useState([]);
   const [wastageSummary, setWastageSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const fetchStats = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const [statsRes, ordersRes, wasteRes] = await Promise.all([
         api.getAdminStats(),
@@ -37,6 +40,7 @@ export function AdminDashboard({ onNavigate }) {
       setWastageSummary(wasteRes);
     } catch (err) {
       console.error('Failed to load admin stats:', err);
+      setError(err.message || 'Failed to connect to campus admin services. Please verify credentials.');
     } finally {
       setLoading(false);
     }
@@ -46,14 +50,39 @@ export function AdminDashboard({ onNavigate }) {
     fetchStats();
   }, []);
 
-  const topItems = Array.isArray(stats?.top_items) ? stats.top_items : [];
-  const lowBalanceStudents = Array.isArray(stats?.low_balance_students) ? stats.low_balance_students : [];
+  const topItems = Array.isArray(stats?.top_items) 
+    ? stats.top_items 
+    : Array.isArray(stats?.analytics?.topItems) 
+    ? stats.analytics.topItems 
+    : [];
+
+  const lowBalanceStudents = Array.isArray(stats?.low_balance_students) 
+    ? stats.low_balance_students 
+    : Array.isArray(stats?.analytics?.lowBalanceStudents) 
+    ? stats.analytics.lowBalanceStudents 
+    : [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
       
       {/* 1. WELCOME STRIP */}
       <WelcomeStrip subtitle="Campus Dining Governance • Student credit allotments & financial audit" />
+
+      {/* Error Alert Banner if fetch fails */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between gap-4 text-xs text-[#DC2626]">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 shrink-0 text-[#DC2626]" />
+            <span><strong>Data Load Warning:</strong> {error}</span>
+          </div>
+          <button
+            onClick={fetchStats}
+            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shrink-0 transition"
+          >
+            Retry Fetch
+          </button>
+        </div>
+      )}
 
       {/* 2. HERO STAT ROW (Admin Dominant: #C2410C) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">

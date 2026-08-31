@@ -124,18 +124,16 @@ export function App() {
         {/* Student View */}
         {isStudent && activeTab !== 'impact' && (
           <>
-            {activeTab === 'menu' && (
+            {activeTab === 'orders' ? (
+              <OrderTracking onBrowseMenu={() => setActiveTab('menu')} />
+            ) : activeTab === 'transactions' ? (
+              <Transactions />
+            ) : (
               <StudentDashboard 
                 onNavigateToOrders={() => setActiveTab('orders')} 
                 onNavigateToTransactions={() => setActiveTab('transactions')}
                 onNavigateToImpact={() => setActiveTab('impact')}
               />
-            )}
-            {activeTab === 'orders' && (
-              <OrderTracking onBrowseMenu={() => setActiveTab('menu')} />
-            )}
-            {activeTab === 'transactions' && (
-              <Transactions />
             )}
           </>
         )}
@@ -143,12 +141,13 @@ export function App() {
         {/* Chef View */}
         {isChef && activeTab !== 'impact' && (
           <>
-            {activeTab === 'dashboard' && (
+            {activeTab === 'inventory' ? (
+              <ChefInventory />
+            ) : (
               <ChefDashboard 
                 onNavigateToInventory={() => setActiveTab('inventory')}
               />
             )}
-            {activeTab === 'inventory' && <ChefInventory />}
           </>
         )}
 
@@ -160,10 +159,15 @@ export function App() {
         {/* Admin View */}
         {isAdmin && activeTab !== 'impact' && (
           <>
-            {activeTab === 'dashboard' && <AdminDashboard onNavigate={setActiveTab} />}
-            {activeTab === 'menu-mgr' && <MenuManager />}
-            {activeTab === 'students' && <StudentManager />}
-            {activeTab === 'audit' && <AuditLogs />}
+            {activeTab === 'menu-mgr' ? (
+              <MenuManager />
+            ) : activeTab === 'students' ? (
+              <StudentManager />
+            ) : activeTab === 'audit' ? (
+              <AuditLogs />
+            ) : (
+              <AdminDashboard onNavigate={setActiveTab} />
+            )}
           </>
         )}
       </main>

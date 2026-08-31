@@ -495,14 +495,15 @@ router.get('/me', authenticateToken, async (req, res, next) => {
 
       return res.json({
         user: {
-          id: student.student_id,
-          name: student.name,
-          email: student.email,
-          phone: student.phone,
-          roomNumber: student.room_number,
+          id: student?.student_id || req.user.id,
+          name: student?.name || req.user.name,
+          email: student?.email || req.user.email,
+          phone: student?.phone || '',
+          roomNumber: student?.room_number || 'Hostel',
           role: 'student',
           isChef: false,
           isAdmin: false,
+          isWarden: false,
           isStudent: true,
           credits: {
             remaining: credits.remaining_credits,
@@ -512,6 +513,8 @@ router.get('/me', authenticateToken, async (req, res, next) => {
           }
         }
       });
+    }
+
     if (req.user.role === 'warden') {
       const warden = await db.get('SELECT warden_id, name, email, phone, assigned_hostel_block FROM wardens WHERE warden_id = ?', req.user.id);
       if (warden) {
@@ -536,9 +539,9 @@ router.get('/me', authenticateToken, async (req, res, next) => {
     const effectiveRole = req.user?.role || admin?.role || 'admin';
     return res.json({
       user: {
-        id: admin?.admin_id,
-        name: admin?.name,
-        email: admin?.email,
+        id: admin?.admin_id || req.user.id,
+        name: admin?.name || req.user.name || 'Campus Administrator',
+        email: admin?.email || req.user.email,
         role: effectiveRole,
         isChef: effectiveRole === 'chef',
         isAdmin: effectiveRole === 'admin',
