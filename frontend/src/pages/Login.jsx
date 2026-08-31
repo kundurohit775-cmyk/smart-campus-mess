@@ -516,9 +516,9 @@ export function Login() {
       </div>
 
       {/* =================================================================== */}
-      {/* LOGIN CARD (Student, Chef, Admin) — CLEAN WHITE CARD                */}
+      {/* LOGIN CARD (Student, Chef, Admin, Warden) — CLEAN WHITE CARD        */}
       {/* =================================================================== */}
-      {(view === 'student' || view === 'chef' || view === 'admin') && (
+      {(view === 'student' || view === 'chef' || view === 'admin' || view === 'warden') && (
         <div className="max-w-[460px] w-full my-auto space-y-4 relative z-10 animate-fade-in">
           
           {/* Back to Role Selection Link */}
@@ -656,7 +656,7 @@ export function Login() {
                     <input
                       type="email"
                       required
-                      placeholder={view === 'student' ? 'student@vitstudent.ac.in' : `${view}@campus.internal`}
+                      placeholder={view === 'student' ? 'student@vitstudent.ac.in' : view === 'warden' ? 'warden.blocka@vitstudent.ac.in' : `${view}@campus.internal`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className={`w-full bg-[#FAFAF9] focus:bg-[#FFFFFF] border border-stone-200 text-[#1E1B16] placeholder-[#9B9590] pl-10 pr-3.5 py-2.5 rounded-xl text-sm outline-none transition ${roleInputFocus}`}

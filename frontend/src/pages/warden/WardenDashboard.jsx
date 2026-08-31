@@ -34,6 +34,7 @@ export function WardenDashboard() {
   const [stats, setStats] = useState(null);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [processingId, setProcessingId] = useState(null);
 
   // Reject Modal state
@@ -45,15 +46,17 @@ export function WardenDashboard() {
   const assignedBlock = user?.assignedHostelBlock || "Men's Hostel Block A";
 
   const fetchWardenData = async () => {
+    setError(null);
     try {
       const [statsRes, requestsRes] = await Promise.all([
-        api.getWardenStats().catch(() => null),
-        api.getWardenRequests().catch(() => ({ requests: [] }))
+        api.getWardenStats(),
+        api.getWardenRequests()
       ]);
       setStats(statsRes);
       setRequests(requestsRes?.requests || []);
     } catch (err) {
       console.error('Failed to load warden data:', err);
+      setError(err.message || 'Failed to connect to warden dispatch service.');
     } finally {
       setLoading(false);
     }
@@ -116,6 +119,22 @@ export function WardenDashboard() {
       
       {/* 1. WELCOME STRIP */}
       <WelcomeStrip subtitle={`Hostel Warden Dispatch • Assigned to ${assignedBlock}`} />
+
+      {/* Error Alert Banner if fetch fails */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between gap-4 text-xs text-[#DC2626]">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 shrink-0 text-[#DC2626]" />
+            <span><strong>Data Sync Warning:</strong> {error}</span>
+          </div>
+          <button
+            onClick={fetchWardenData}
+            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shrink-0 transition"
+          >
+            Retry Sync
+          </button>
+        </div>
+      )}
 
       {/* 2. HERO STAT ROW */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
