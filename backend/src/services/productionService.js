@@ -174,8 +174,12 @@ export const productionService = {
         ]);
       } else {
         const preparedQty = parseInt(existingRow.prepared_quantity || 0, 10);
-        const leftoverQty = Math.max(0, preparedQty > 0 ? preparedQty - collectedQty : 0);
         const baselineQty = parseInt(existingRow.baseline_quantity || defaultAvail, 10);
+        
+        // Preserve chef-confirmed collected_quantity if already logged or explicitly confirmed
+        const isLogged = preparedQty > 0 || (existingRow.collected_quantity !== null && existingRow.collected_quantity !== undefined && parseInt(existingRow.collected_quantity, 10) > 0);
+        const finalCollectedQty = isLogged ? parseInt(existingRow.collected_quantity || 0, 10) : collectedQty;
+        const leftoverQty = Math.max(0, preparedQty > 0 ? preparedQty - finalCollectedQty : 0);
 
         const foodSavedKg = preparedQty > 0 
           ? Math.max(0, (baselineQty - preparedQty) * portionWeightKg)
@@ -194,7 +198,7 @@ export const productionService = {
             actual_waste_kg = $7,
             updated_at = NOW()
           WHERE record_id = $8
-        `, [preOrderQty, onSpotQty, totalDemand, collectedQty, leftoverQty, foodSavedKg, wasteKg, existingRow.record_id]);
+        `, [preOrderQty, onSpotQty, totalDemand, finalCollectedQty, leftoverQty, foodSavedKg, wasteKg, existingRow.record_id]);
       }
     }
   },
@@ -324,21 +328,31 @@ export const productionService = {
         baselineQty = await this.calculateBaseline(dishId, targetDateStr);
       }
 
-      // 2. Fetch real-time collected portions
-      const salesRes = await db.query(`
-        SELECT 
-          COUNT(oi.item_id) as orders_count,
-          COALESCE(SUM(oi.quantity), 0) as total_sold
-        FROM order_items oi
-        JOIN orders o ON oi.order_id = o.order_id
-        WHERE oi.item_id = $1 AND DATE(o.order_time) = $2 AND o.order_status != 'Cancelled'
-      `, [dishId, targetDateStr]);
-      const collectedQty = parseInt(salesRes.rows[0]?.total_sold || 0, 10);
+      // 2. Fetch or accept chef-confirmed collected portions
+      let collectedQty;
+      const rawCollected = entry.collectedQuantity ?? entry.collected_quantity ?? entry.quantitySold ?? entry.quantity_sold;
+      if (rawCollected !== undefined && rawCollected !== null && !isNaN(parseInt(rawCollected, 10))) {
+        collectedQty = Math.max(0, parseInt(rawCollected, 10));
+      } else {
+        // Fallback: auto-pull from actual student order records
+        const salesRes = await db.query(`
+          SELECT 
+            COUNT(oi.item_id) as orders_count,
+            COALESCE(SUM(oi.quantity), 0) as total_sold
+          FROM order_items oi
+          JOIN orders o ON oi.order_id = o.order_id
+          WHERE oi.item_id = $1 AND DATE(o.order_time) = $2 AND o.order_status != 'Cancelled'
+        `, [dishId, targetDateStr]);
+        collectedQty = parseInt(salesRes.rows[0]?.total_sold || 0, 10);
+      }
 
-      // 3. Leftover portions: chef entered, or default to MAX(0, prepared - collected)
-      let leftoverQty = parseInt(entry.leftoverQuantity ?? entry.leftover_quantity, 10);
-      if (isNaN(leftoverQty)) {
-        leftoverQty = Math.max(0, preparedQty - collectedQty);
+      // 3. Leftover portions: strictly MAX(0, prepared_quantity - collected_quantity)
+      let leftoverQty = Math.max(0, preparedQty - collectedQty);
+      if (entry.leftoverQuantity !== undefined && entry.leftoverQuantity !== null && !isNaN(parseInt(entry.leftoverQuantity, 10))) {
+        // If explicitly supplied and prepared == 0, honor supplied leftover (floored at 0)
+        if (preparedQty === 0) {
+          leftoverQty = Math.max(0, parseInt(entry.leftoverQuantity, 10));
+        }
       }
 
       // 4. Calculate Food Saved: MAX(0, (baseline_quantity - prepared_quantity)) * portion_weight_kg
@@ -359,9 +373,9 @@ export const productionService = {
         ON CONFLICT (dish_id, record_date)
         DO UPDATE SET
           prepared_quantity = EXCLUDED.prepared_quantity,
+          collected_quantity = EXCLUDED.collected_quantity,
           leftover_quantity = EXCLUDED.leftover_quantity,
           baseline_quantity = EXCLUDED.baseline_quantity,
-          collected_quantity = EXCLUDED.collected_quantity,
           estimated_food_saved_kg = EXCLUDED.estimated_food_saved_kg,
           actual_waste_kg = EXCLUDED.actual_waste_kg,
           notes = EXCLUDED.notes,

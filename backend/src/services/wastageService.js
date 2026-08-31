@@ -83,7 +83,7 @@ export const wastageService = {
       const logDate = entry.logDate ? String(entry.logDate).split('T')[0] : new Date().toISOString().split('T')[0];
       const quantityPrepared = Math.max(0, parseInt(entry.quantityPrepared ?? entry.quantity_prepared ?? 0, 10));
       
-      let quantitySold = parseInt(entry.quantitySold ?? entry.quantity_sold, 10);
+      let quantitySold = parseInt(entry.quantitySold ?? entry.quantity_sold ?? entry.collectedQuantity ?? entry.collected_quantity, 10);
       if (isNaN(quantitySold)) {
         // Auto-pull from actual order data for that date
         const salesRes = await db.query(`
@@ -95,9 +95,9 @@ export const wastageService = {
         quantitySold = parseInt(salesRes.rows[0]?.actual_sold || 0, 10);
       }
 
-      let quantityWasted = parseInt(entry.quantityWasted ?? entry.quantity_wasted, 10);
-      if (isNaN(quantityWasted)) {
-        quantityWasted = Math.max(0, quantityPrepared - quantitySold);
+      let quantityWasted = Math.max(0, quantityPrepared - quantitySold);
+      if (entry.quantityWasted !== undefined && !isNaN(parseInt(entry.quantityWasted, 10)) && quantityPrepared === 0) {
+        quantityWasted = Math.max(0, parseInt(entry.quantityWasted, 10));
       }
 
       const reason = (entry.reason || 'overprepared').trim();

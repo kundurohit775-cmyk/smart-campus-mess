@@ -100,28 +100,40 @@ export function ChefDashboard({ onNavigateToInventory }) {
       
       const prodDishes = prodRes?.dishes || [];
       if (prodDishes.length > 0) {
-        setWastageFormEntries(prodDishes.map(d => ({
-          dishId: d.dishId,
-          dishName: d.dishName,
-          category: d.category,
-          price: d.price,
-          portionWeightKg: d.portionWeightKg || 0.4,
-          baselineQuantity: d.baselineQuantity || 35,
-          recommendedQuantity: d.recommendedQuantity || 25,
-          preOrderQuantity: d.preOrderQuantity || 0,
-          onSpotQuantity: d.onSpotQuantity || 0,
-          totalDemand: d.totalDemand || 0,
-          quantityPrepared: d.preparedQuantity || 0,
-          quantitySold: d.collectedQuantity || d.totalDemand || 0,
-          quantityWasted: d.leftoverQuantity || 0,
-          estimatedFoodSavedKg: d.estimatedFoodSavedKg || 0,
-          isLogged: d.isLogged,
-          reason: d.notes || 'overprepared'
-        })));
+        setWastageFormEntries(prodDishes.map(d => {
+          const prep = d.preparedQuantity || 0;
+          const collected = d.collectedQuantity !== undefined && d.collectedQuantity !== null
+            ? d.collectedQuantity
+            : (d.totalDemand || 0);
+          const leftover = d.leftoverQuantity !== undefined && d.leftoverQuantity !== null
+            ? d.leftoverQuantity
+            : Math.max(0, prep - collected);
+
+          return {
+            dishId: d.dishId,
+            dishName: d.dishName,
+            category: d.category,
+            price: d.price,
+            portionWeightKg: d.portionWeightKg || 0.4,
+            baselineQuantity: d.baselineQuantity || 35,
+            recommendedQuantity: d.recommendedQuantity || 25,
+            preOrderQuantity: d.preOrderQuantity || 0,
+            onSpotQuantity: d.onSpotQuantity || 0,
+            totalDemand: d.totalDemand || 0,
+            quantityPrepared: prep,
+            quantitySold: collected,
+            quantityWasted: leftover,
+            estimatedFoodSavedKg: d.estimatedFoodSavedKg || 0,
+            isLogged: d.isLogged,
+            reason: d.notes || 'overprepared'
+          };
+        }));
       } else {
         setWastageFormEntries((preloadRes?.dishes || []).map(d => {
           const baseline = Math.round((d.quantitySold || 25) * 1.25);
           const prep = d.quantityPrepared || 0;
+          const sold = d.quantitySold || 0;
+          const leftover = Math.max(0, prep - sold);
           return {
             dishId: d.dishId,
             dishName: d.dishName,
@@ -131,8 +143,8 @@ export function ChefDashboard({ onNavigateToInventory }) {
             baselineQuantity: baseline,
             recommendedQuantity: d.quantitySold || 25,
             quantityPrepared: prep,
-            quantitySold: d.quantitySold || 0,
-            quantityWasted: d.quantityWasted || 0,
+            quantitySold: sold,
+            quantityWasted: leftover,
             estimatedFoodSavedKg: prep > 0 ? Math.max(0, (baseline - prep) * 0.4) : 0,
             isLogged: d.isLogged,
             reason: d.reason || 'overprepared'
@@ -226,19 +238,43 @@ export function ChefDashboard({ onNavigateToInventory }) {
   const handleSaveWastage = async () => {
     setSavingWastage(true);
     try {
-      const payload = wastageFormEntries.map(entry => ({
-        dishId: entry.dishId,
-        logDate,
-        preparedQuantity: parseInt(entry.quantityPrepared, 10) || 0,
-        baselineQuantity: parseInt(entry.baselineQuantity, 10) || 0,
-        portionWeightKg: entry.portionWeightKg || 0.4,
-        quantityPrepared: parseInt(entry.quantityPrepared, 10) || 0,
-        quantitySold: parseInt(entry.quantitySold, 10) || 0,
-        quantityWasted: parseInt(entry.quantityWasted, 10) || 0,
-        leftoverQuantity: parseInt(entry.quantityWasted, 10) || 0,
-        reason: entry.reason || 'overprepared',
-        notes: entry.reason || 'overprepared'
-      }));
+      const payload = wastageFormEntries.map(entry => {
+        const prep = parseInt(entry.quantityPrepared, 10) || 0;
+        const sold = parseInt(entry.quantitySold, 10) || 0;
+        const leftover = Math.max(0, prep - sold);
+        const baseline = parseInt(entry.baselineQuantity, 10) || 0;
+        const weight = entry.portionWeightKg || 0.4;
+        const saved = prep > 0 ? Math.max(0, (baseline - prep) * weight) : 0;
+
+        return {
+          dishId: entry.dishId,
+          dish_id: entry.dishId,
+          logDate,
+          log_date: logDate,
+          preparedQuantity: prep,
+          prepared_quantity: prep,
+          quantityPrepared: prep,
+          quantity_prepared: prep,
+          collectedQuantity: sold,
+          collected_quantity: sold,
+          quantitySold: sold,
+          quantity_sold: sold,
+          leftoverQuantity: leftover,
+          leftover_quantity: leftover,
+          quantityWasted: leftover,
+          quantity_wasted: leftover,
+          baselineQuantity: baseline,
+          baseline_quantity: baseline,
+          portionWeightKg: weight,
+          portion_weight_kg: weight,
+          estimatedFoodSavedKg: saved,
+          estimated_food_saved_kg: saved,
+          actualWasteKg: leftover * weight,
+          actual_waste_kg: leftover * weight,
+          reason: entry.reason || 'overprepared',
+          notes: entry.reason || 'overprepared'
+        };
+      });
 
       await Promise.all([
         api.logProduction(payload, logDate).catch(() => null),
