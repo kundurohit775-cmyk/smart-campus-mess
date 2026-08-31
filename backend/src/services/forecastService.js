@@ -2,33 +2,38 @@ import db from '../db/database.js';
 
 /**
  * =========================================================================================
- * DEMAND FORECASTING ENGINE (With Advance Pre-Order Demand Signals)
+ * AI-ASSISTED DEMAND FORECASTING ENGINE
  * =========================================================================================
  * 
- * MATHEMATICAL FORMULATION & ALGORITHM DESIGN:
- * --------------------------------------------
- * 1. Stage 1: Recency-Weighted Moving Average (Exponential Smoothing / WMA)
- *    w_i = (1 - alpha)^(n - i)    where alpha = 0.35
+ * METHODOLOGY & SIGNAL FLOW:
+ * --------------------------
+ * 1. Historical Dataset (Unified Feedback Loop):
+ *    Aggregates completed daily demand across:
+ *    - Actual completed student orders (order_items)
+ *    - Production records (pre-orders + on-spot total demand / collected)
+ *    - Chef-logged wastage actual sales
+ * 
+ * 2. Stage 1: Recency-Weighted Moving Average (Exponential Smoothing / WMA)
+ *    w_i = (1 - alpha)^(n - 1 - i)   where alpha = 0.35
  *    WMA = SUM(w_i * Q_i) / SUM(w_i)
  * 
- * 2. Stage 2: Day-of-Week Seasonality Adjustment Factor (S_dow)
- *    S_dow = Mean_dow / Mean_all (clamped to [0.65, 1.50])
+ * 3. Stage 2: Day-of-Week Seasonality Adjustment Factor (S_dow)
+ *    S_dow = Mean_dow / Mean_all (clamped to [0.70, 1.40])
  *    Historical_Forecast = MAX(1, ROUND( WMA * S_dow ))
  * 
- * 3. Stage 3: Known Advance Demand & Recommended Preparation
+ * 4. Stage 3: Known Advance Demand & Safety Buffer Integration
  *    Known_Demand = Confirmed_Pre_Orders for Target Date
  *    Expected_Demand = MAX(Historical_Forecast, Known_Demand)
  *    Safety_Margin = MAX(2, ROUND(Expected_Demand * 0.08))
  *    Recommended_Prep = Expected_Demand + Safety_Margin
  * 
- * This guarantees:
+ * Guarantee:
  *   Recommended_Prep >= Confirmed_Pre_Orders + Safety_Margin
- * A kitchen is NEVER recommended fewer portions than confirmed pre-orders.
+ * A recommendation is NEVER lower than confirmed advance pre-orders.
  * =========================================================================================
  */
 
 const SMOOTHING_ALPHA = 0.35;
-const DEFAULT_BATCH_FALLBACK = 25;
 const DEFAULT_SAFETY_MARGIN_PCT = 0.08;
 const OVERPREPARATION_BASELINE_FACTOR = 1.25;
 
@@ -36,7 +41,28 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 
 export const forecastService = {
   /**
-   * Forecast demand for a specific dish on a target date (default today/tomorrow)
+   * Pure calculation helper for predictable testing and core forecasting logic
+   */
+  calculateRecommended(forecastDemand, preOrderQuantity = 0, safetyMarginPct = DEFAULT_SAFETY_MARGIN_PCT) {
+    const forecast = Math.max(0, parseInt(forecastDemand, 10) || 0);
+    const knownDemand = Math.max(0, parseInt(preOrderQuantity, 10) || 0);
+    const expectedDemand = Math.max(forecast, knownDemand);
+    const safetyMargin = Math.max(2, Math.round(expectedDemand * safetyMarginPct));
+    const recommendedQuantity = expectedDemand + safetyMargin;
+
+    return {
+      forecastDemand: forecast,
+      preOrderQuantity: knownDemand,
+      knownDemand,
+      expectedDemand,
+      safetyMargin,
+      safetyMarginPct,
+      recommendedQuantity
+    };
+  },
+
+  /**
+   * Forecast demand for a specific dish on a target date
    */
   async getDishForecast(dishId, targetDate = null) {
     const numDishId = parseInt(dishId, 10);
@@ -52,7 +78,6 @@ export const forecastService = {
     }
     const dish = dishRes.rows[0];
 
-    // Determine target date and target day of week (0-6)
     const targetObj = targetDate ? new Date(targetDate) : new Date();
     const targetDateStr = targetObj.toISOString().split('T')[0];
     const targetDayOfWeek = targetObj.getDay();
@@ -67,20 +92,54 @@ export const forecastService = {
     const preOrderQuantity = parseInt(preOrderRes.rows[0]?.pre_order_count || 0, 10);
     const knownDemand = preOrderQuantity;
 
-    // 3. Fetch last 30 days of actual order sales history for this dish
+    // 3. Unified historical demand query across order_items, production_records, and wastage_logs
     const historyRes = await db.query(`
       SELECT 
-        DATE(o.order_time) as sale_date,
-        SUM(oi.quantity) as quantity_sold,
-        COUNT(DISTINCT o.order_id) as order_count
-      FROM order_items oi
-      JOIN orders o ON oi.order_id = o.order_id
-      WHERE oi.item_id = $1 
-        AND o.order_status != 'Cancelled'
-        AND o.order_time >= CURRENT_DATE - INTERVAL '30 days'
-        AND DATE(o.order_time) < $2
-      GROUP BY DATE(o.order_time)
-      ORDER BY sale_date ASC
+        d.sale_date,
+        MAX(d.quantity_sold) as quantity_sold,
+        COUNT(DISTINCT d.source_id) as order_count
+      FROM (
+        -- Source A: Completed / confirmed online student orders
+        SELECT 
+          DATE(o.order_time) as sale_date,
+          SUM(oi.quantity) as quantity_sold,
+          o.order_id as source_id
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.order_id
+        WHERE oi.item_id = $1 
+          AND o.order_status != 'Cancelled'
+          AND o.order_time >= CURRENT_DATE - INTERVAL '30 days'
+          AND DATE(o.order_time) < $2
+        GROUP BY DATE(o.order_time), o.order_id
+
+        UNION ALL
+
+        -- Source B: Production records (total demand / collected)
+        SELECT 
+          record_date as sale_date,
+          GREATEST(total_demand, collected_quantity) as quantity_sold,
+          record_id as source_id
+        FROM production_records
+        WHERE dish_id = $1 
+          AND record_date >= CURRENT_DATE - INTERVAL '30 days'
+          AND record_date < $2
+          AND (total_demand > 0 OR collected_quantity > 0)
+
+        UNION ALL
+
+        -- Source C: Chef logged wastage sales
+        SELECT 
+          log_date as sale_date,
+          quantity_sold,
+          log_id as source_id
+        FROM wastage_logs
+        WHERE dish_id = $1 
+          AND log_date >= CURRENT_DATE - INTERVAL '30 days'
+          AND log_date < $2
+          AND quantity_sold > 0
+      ) d
+      GROUP BY d.sale_date
+      ORDER BY d.sale_date ASC
     `, [numDishId, targetDateStr]);
 
     const rawHistory = historyRes.rows.map(row => {
@@ -96,24 +155,16 @@ export const forecastService = {
       };
     });
 
-    // 4. Check for wastage history to refine estimates
-    const wastageRes = await db.query(`
-      SELECT 
-        AVG(quantity_wasted) as avg_wasted,
-        AVG(quantity_prepared) as avg_prepared
-      FROM wastage_logs
-      WHERE dish_id = $1 AND log_date >= CURRENT_DATE - INTERVAL '30 days'
-    `, [numDishId]);
+    const menuBatchAvailable = parseInt(dish.available_quantity || 35, 10);
+    const baselineQty = Math.max(25, menuBatchAvailable);
 
-    const avgHistoricalWaste = parseFloat(wastageRes.rows[0]?.avg_wasted || 0);
-
-    // If no past order history, compute with baseline batch + pre-orders
-    if (rawHistory.length === 0) {
-      const fallbackQty = dish.available_quantity > 0 ? dish.available_quantity : DEFAULT_BATCH_FALLBACK;
-      const expectedDemand = Math.max(fallbackQty, knownDemand);
+    // 4. If no historical data or very sparse sample size (< 2 data points)
+    // Use the menu catalog batch as the historical demand prior
+    if (rawHistory.length < 2) {
+      const priorDemand = Math.round(baselineQty / OVERPREPARATION_BASELINE_FACTOR);
+      const expectedDemand = Math.max(priorDemand, knownDemand);
       const safetyMargin = Math.max(2, Math.round(expectedDemand * DEFAULT_SAFETY_MARGIN_PCT));
       const recommendedQuantity = expectedDemand + safetyMargin;
-      const baselineQty = Math.max(25, Math.round(expectedDemand * OVERPREPARATION_BASELINE_FACTOR));
 
       return {
         dish_id: dish.item_id,
@@ -129,8 +180,20 @@ export const forecastService = {
         targetDate: targetDateStr,
         target_day_name: targetDayName,
         targetDayName,
-        historical_forecast: fallbackQty,
-        historicalForecast: fallbackQty,
+        historical_baseline: baselineQty,
+        historicalBaseline: baselineQty,
+        baseline_quantity: baselineQty,
+        baselineQuantity: baselineQty,
+        historical_wma: priorDemand,
+        historicalWMA: priorDemand,
+        historical_mean: priorDemand,
+        historicalMean: priorDemand,
+        seasonality_factor: 1.0,
+        seasonalityFactor: 1.0,
+        same_weekday_matches: 0,
+        sameWeekdayPoints: 0,
+        historical_forecast: priorDemand,
+        historicalForecast: priorDemand,
         pre_order_quantity: preOrderQuantity,
         preOrderQuantity,
         known_demand: knownDemand,
@@ -143,41 +206,31 @@ export const forecastService = {
         recommendedQuantity,
         forecasted_quantity: recommendedQuantity,
         forecastedQuantity: recommendedQuantity,
-        baseline_quantity: baselineQty,
-        baselineQuantity: baselineQty,
-        confidence: knownDemand > 0 ? 'Medium Confidence' : 'Low Confidence',
-        confidence_score: knownDemand > 0 ? 60 : 20,
-        confidenceScore: knownDemand > 0 ? 60 : 20,
-        seasonality_factor: 1.0,
-        seasonalityFactor: 1.0,
-        weighted_average: fallbackQty,
-        weightedRecencyAverage: fallbackQty,
-        historical_mean: fallbackQty,
-        historicalMean: fallbackQty,
-        same_weekday_matches: 0,
-        sameWeekdayPoints: 0,
+        confidence: knownDemand > 0 ? 'Medium Confidence' : 'Catalog Prior Baseline',
+        confidence_score: knownDemand > 0 ? 65 : 45,
+        confidenceScore: knownDemand > 0 ? 65 : 45,
         reasoning: knownDemand > 0 
-          ? `Recommended ${recommendedQuantity} portions based on ${knownDemand} confirmed advance pre-orders (+${safetyMargin} buffer).`
-          : 'No historical order data available within past 30 days. Baseline menu batch allocated.',
+          ? `Demand anchored by ${knownDemand} confirmed advance pre-orders with ${safetyMargin} buffer.`
+          : `Sparse historical orders. AI initialized from menu catalog baseline (${baselineQty} batch target).`,
         metrics: {
-          totalDataPoints: 0,
+          totalDataPoints: rawHistory.length,
           sameWeekdayPoints: 0,
-          historicalForecast: fallbackQty,
+          historicalBaseline: baselineQty,
+          historicalWMA: priorDemand,
+          historicalMean: priorDemand,
+          seasonalityFactor: 1.0,
+          historicalForecast: priorDemand,
           preOrders: preOrderQuantity,
           expectedDemand,
-          safetyMargin,
-          weightedRecencyAverage: fallbackQty,
-          seasonalityFactor: 1.0,
-          historicalMean: fallbackQty,
-          avgHistoricalWaste: 0
+          safetyMargin
         },
-        historicalData: []
+        historicalData: rawHistory
       };
     }
 
     const n = rawHistory.length;
 
-    // 5. Stage 1: Exponential Weighted Moving Average (WMA)
+    // 5. Stage 1: Recency-Weighted Moving Average (WMA)
     let weightSum = 0;
     let weightedQtySum = 0;
     let flatSum = 0;
@@ -203,21 +256,21 @@ export const forecastService = {
 
       if (overallMean > 0) {
         const rawRatio = sameWeekdayMean / overallMean;
-        seasonalityFactor = Math.min(1.50, Math.max(0.65, rawRatio));
+        seasonalityFactor = Math.min(1.40, Math.max(0.70, rawRatio));
       }
     }
 
-    // 7. Stage 3: Historical Forecast vs Advance Pre-Orders Demand Integration
+    // 7. Stage 3: Historical Forecast Computation
     const rawForecast = wma * seasonalityFactor;
     const historicalForecastQty = Math.max(1, Math.round(rawForecast));
 
-    // The key rule: expected_demand = MAX(historical_forecast, known_advance_pre_orders)
+    // 8. Stage 4: Expected Demand & Recommended Preparation
+    // expected_demand = MAX(historical_forecast, known_advance_pre_orders)
     const expectedDemand = Math.max(historicalForecastQty, knownDemand);
     const safetyMargin = Math.max(2, Math.round(expectedDemand * DEFAULT_SAFETY_MARGIN_PCT));
     const recommendedQuantity = expectedDemand + safetyMargin;
-    const baselineQty = Math.max(25, Math.round(expectedDemand * OVERPREPARATION_BASELINE_FACTOR));
 
-    // 8. Stage 4: Confidence Assessment
+    // 9. Stage 5: Confidence Assessment
     let confidence = 'Low Confidence';
     let confidenceScore = 35;
     let reasoning = '';
@@ -225,7 +278,7 @@ export const forecastService = {
     if (knownDemand >= 20) {
       confidence = 'High Confidence';
       confidenceScore = 95;
-      reasoning = `Direct demand signal: ${knownDemand} confirmed advance pre-orders lock in production target (+${safetyMargin} buffer).`;
+      reasoning = `High advance certainty: ${knownDemand} confirmed pre-orders lock in prep target (+${safetyMargin} buffer).`;
     } else if (sameWeekdayPoints.length >= 4 && n >= 14) {
       confidence = 'High Confidence';
       confidenceScore = 90;
@@ -240,8 +293,8 @@ export const forecastService = {
         : `Moderate data (${n} days, ${sameWeekdayPoints.length} matching ${targetDayName}s). WMA trend applied.`;
     } else {
       confidence = 'Low Confidence';
-      confidenceScore = 40;
-      reasoning = `Limited sample size (${n} days of orders). Weighted moving average applied with safety buffer.`;
+      confidenceScore = 45;
+      reasoning = `Preliminary dataset (${n} days). WMA trend applied with ${safetyMargin}-portion safety buffer.`;
     }
 
     return {
@@ -258,6 +311,18 @@ export const forecastService = {
       targetDate: targetDateStr,
       target_day_name: targetDayName,
       targetDayName,
+      historical_baseline: baselineQty,
+      historicalBaseline: baselineQty,
+      baseline_quantity: baselineQty,
+      baselineQuantity: baselineQty,
+      historical_wma: Math.round(wma * 10) / 10,
+      historicalWMA: Math.round(wma * 10) / 10,
+      historical_mean: Math.round(overallMean * 10) / 10,
+      historicalMean: Math.round(overallMean * 10) / 10,
+      seasonality_factor: Math.round(seasonalityFactor * 100) / 100,
+      seasonalityFactor: Math.round(seasonalityFactor * 100) / 100,
+      same_weekday_matches: sameWeekdayPoints.length,
+      sameWeekdayPoints: sameWeekdayPoints.length,
       historical_forecast: historicalForecastQty,
       historicalForecast: historicalForecastQty,
       pre_order_quantity: preOrderQuantity,
@@ -272,39 +337,29 @@ export const forecastService = {
       recommendedQuantity,
       forecasted_quantity: recommendedQuantity,
       forecastedQuantity: recommendedQuantity,
-      baseline_quantity: baselineQty,
-      baselineQuantity: baselineQty,
       confidence,
       confidence_score: confidenceScore,
       confidenceScore,
-      seasonality_factor: Math.round(seasonalityFactor * 100) / 100,
-      seasonalityFactor: Math.round(seasonalityFactor * 100) / 100,
-      weighted_average: Math.round(wma * 10) / 10,
-      weightedRecencyAverage: Math.round(wma * 10) / 10,
-      historical_mean: Math.round(overallMean * 10) / 10,
-      historicalMean: Math.round(overallMean * 10) / 10,
-      same_weekday_matches: sameWeekdayPoints.length,
-      sameWeekdayPoints: sameWeekdayPoints.length,
       reasoning,
       metrics: {
         totalDataPoints: n,
         sameWeekdayPoints: sameWeekdayPoints.length,
+        historicalBaseline: baselineQty,
+        historicalWMA: Math.round(wma * 10) / 10,
+        historicalMean: Math.round(overallMean * 10) / 10,
+        seasonalityFactor: Math.round(seasonalityFactor * 100) / 100,
+        sameWeekdayMean: Math.round(sameWeekdayMean * 10) / 10,
         historicalForecast: historicalForecastQty,
         preOrders: preOrderQuantity,
         expectedDemand,
-        safetyMargin,
-        weightedRecencyAverage: Math.round(wma * 10) / 10,
-        seasonalityFactor: Math.round(seasonalityFactor * 100) / 100,
-        historicalMean: Math.round(overallMean * 10) / 10,
-        sameWeekdayMean: Math.round(sameWeekdayMean * 10) / 10,
-        avgHistoricalWaste: Math.round(avgHistoricalWaste * 10) / 10
+        safetyMargin
       },
       historicalData: rawHistory.slice(-14)
     };
   },
 
   /**
-   * Forecast demand in bulk for all active menu items for today/tomorrow
+   * Bulk forecast for all active menu items
    */
   async getTodayForecast(targetDate = null) {
     const targetObj = targetDate ? new Date(targetDate) : new Date();
@@ -312,7 +367,6 @@ export const forecastService = {
     const targetDayOfWeek = targetObj.getDay();
     const targetDayName = DAY_NAMES[targetDayOfWeek];
 
-    // Fetch all active menu items
     const itemsRes = await db.query(`
       SELECT item_id, item_name, category, price, available_quantity, image_url, is_special
       FROM menu_items
@@ -320,7 +374,6 @@ export const forecastService = {
       ORDER BY category ASC, item_name ASC
     `);
 
-    // Execute in parallel for fast response
     const forecasts = await Promise.all(
       itemsRes.rows.map(item => this.getDishForecast(item.item_id, targetDateStr))
     );

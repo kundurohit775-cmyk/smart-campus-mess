@@ -15,6 +15,9 @@ export const productionService = {
     const targetObj = targetDate ? new Date(targetDate) : new Date();
     const targetDateStr = targetObj.toISOString().split('T')[0];
 
+    const dishRes = await db.query('SELECT available_quantity FROM menu_items WHERE item_id = $1', [numDishId]);
+    const defaultBatch = dishRes.rows[0]?.available_quantity || 35;
+
     // Look back at past occurrences of total demand for this dish on comparable days
     const historyRes = await db.query(`
       SELECT 
@@ -31,10 +34,7 @@ export const productionService = {
       LIMIT 10
     `, [numDishId, targetDateStr]);
 
-    let baselineQty;
-
-    if (historyRes.rows.length >= 2) {
-      // Calculate weighted historical demand
+    if (historyRes.rows.length >= 3) {
       let weightedSum = 0;
       let totalWeights = 0;
       historyRes.rows.forEach((row, idx) => {
@@ -44,16 +44,10 @@ export const productionService = {
         totalWeights += weight;
       });
       const historicalMeanDemand = Math.round(weightedSum / totalWeights);
-      // Baseline = what kitchen historically prepared without advance signals (demand + 25% guess buffer)
-      baselineQty = Math.max(15, Math.round(historicalMeanDemand * OVERPREPARATION_BASELINE_FACTOR));
-    } else {
-      // Fallback: check menu catalog default
-      const dishRes = await db.query('SELECT available_quantity FROM menu_items WHERE item_id = $1', [numDishId]);
-      const defaultQty = dishRes.rows[0]?.available_quantity || 35;
-      baselineQty = Math.max(25, defaultQty);
+      return Math.max(25, Math.round(historicalMeanDemand * OVERPREPARATION_BASELINE_FACTOR));
     }
 
-    return baselineQty;
+    return Math.max(25, defaultBatch);
   },
 
   /**
@@ -69,44 +63,18 @@ export const productionService = {
     const targetObj = targetDate ? new Date(targetDate) : new Date();
     const targetDateStr = targetObj.toISOString().split('T')[0];
 
-    // 1. Fetch confirmed advance pre-orders for that date (Known Advance Demand)
-    const preOrderRes = await db.query(`
-      SELECT COALESCE(SUM(quantity), 0) as pre_order_count
-      FROM pre_orders
-      WHERE item_id = $1 AND scheduled_date = $2 AND status IN ('confirmed', 'fulfilled')
-    `, [numDishId, targetDateStr]);
-    const knownDemand = parseInt(preOrderRes.rows[0]?.pre_order_count || 0, 10);
-
-    // 2. Fetch forecast from forecastService
-    let forecastDemand = 25;
-    let confidence = 'Low Confidence';
-    let targetDayName = targetObj.toLocaleDateString([], { weekday: 'long' });
-
-    try {
-      const forecast = await forecastService.getDishForecast(numDishId, targetDateStr);
-      forecastDemand = forecast.historicalForecast || forecast.forecastedQuantity || 25;
-      confidence = forecast.confidence || 'Low Confidence';
-      targetDayName = forecast.targetDayName || targetDayName;
-    } catch {
-      const baseline = await this.calculateBaseline(numDishId, targetDateStr);
-      forecastDemand = Math.round(baseline / OVERPREPARATION_BASELINE_FACTOR);
-    }
-
-    // 3. Expected demand is MAX(historical forecast, confirmed advance pre-orders)
-    const expectedDemand = Math.max(forecastDemand, knownDemand);
-    const safetyMargin = Math.max(2, Math.round(expectedDemand * safetyMarginPct));
-    const recommendedQty = expectedDemand + safetyMargin;
-
+    const forecast = await forecastService.getDishForecast(numDishId, targetDateStr);
     return {
-      forecastDemand,
-      knownDemand,
-      preOrderQuantity: knownDemand,
-      expectedDemand,
-      safetyMargin,
+      forecastDemand: forecast.historicalForecast,
+      knownDemand: forecast.knownDemand,
+      preOrderQuantity: forecast.preOrderQuantity,
+      expectedDemand: forecast.expectedDemand,
+      safetyMargin: forecast.safetyMargin,
       safetyMarginPct,
-      recommendedQuantity: recommendedQty,
-      confidence,
-      targetDayName
+      recommendedQuantity: forecast.recommendedQuantity,
+      baselineQuantity: forecast.baselineQuantity,
+      confidence: forecast.confidence,
+      targetDayName: forecast.targetDayName
     };
   },
 
@@ -169,16 +137,16 @@ export const productionService = {
       const totalDemand = preOrderQty + onSpotQty;
       const autoCollectedQty = collectedMap.get(dishId) || 0;
       const portionWeightKg = parseFloat(dish.portion_weight_kg) || DEFAULT_PORTION_WEIGHT_KG;
-      const defaultAvail = parseInt(dish.available_quantity || 35, 10);
 
       const existingRow = existingMap.get(dishId);
 
       if (!existingRow) {
-        // Calculate pre-prep baseline and recommendation
-        const baselineQty = Math.max(25, Math.round(Math.max(defaultAvail, preOrderQty) * OVERPREPARATION_BASELINE_FACTOR));
-        const expectedDemand = Math.max(defaultAvail, preOrderQty);
-        const safetyMargin = Math.max(2, Math.round(expectedDemand * DEFAULT_SAFETY_MARGIN_PCT));
-        const recommendedQty = expectedDemand + safetyMargin;
+        // Calculate pre-prep baseline and recommendation using forecastService
+        const fc = await forecastService.getDishForecast(dishId, targetDateStr);
+        const baselineQty = fc.baselineQuantity;
+        const expectedDemand = fc.expectedDemand;
+        const safetyMargin = fc.safetyMargin;
+        const recommendedQty = fc.recommendedQuantity;
 
         await db.query(`
           INSERT INTO production_records (
@@ -197,6 +165,7 @@ export const productionService = {
         ]);
       } else {
         const preparedQty = parseInt(existingRow.prepared_quantity || 0, 10);
+        const defaultAvail = parseInt(dish.available_quantity || 35, 10);
         const baselineQty = parseInt(existingRow.baseline_quantity || defaultAvail, 10);
         const recommendedQty = parseInt(existingRow.recommended_quantity || 0, 10);
         

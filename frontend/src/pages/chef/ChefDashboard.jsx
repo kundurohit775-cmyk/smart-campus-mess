@@ -881,16 +881,34 @@ export function ChefDashboard({ onNavigateToInventory }) {
                       </div>
                     </div>
 
-                    {/* Demand Signals Breakdown */}
-                    <div className="p-3 rounded-xl bg-stone-50/90 border border-stone-200/80 space-y-1.5 text-xs">
+                    {/* Transparent AI Forecasting Signals Table */}
+                    <div className="p-3.5 rounded-xl bg-stone-50/90 border border-stone-200/80 space-y-1.5 text-xs">
                       <div className="flex justify-between text-[#6B6560]">
-                        <span>Historical Forecast:</span>
+                        <span>Historical Baseline:</span>
                         <span className="font-bold text-[#1E1B16] tabular-nums">
-                          {dishFc.historical_forecast ?? dishFc.historicalForecast ?? dishFc.metrics?.historicalForecast ?? 25} portions
+                          {dishFc.historical_baseline ?? dishFc.historicalBaseline ?? dishFc.baselineQuantity ?? 48} portions
                         </span>
                       </div>
                       <div className="flex justify-between text-[#6B6560]">
-                        <span className="text-[#EA580C] font-semibold">Confirmed Pre-Orders:</span>
+                        <span>Historical WMA:</span>
+                        <span className="font-bold text-[#1E1B16] tabular-nums">
+                          {dishFc.metrics?.historicalWMA ?? dishFc.historical_wma ?? dishFc.metrics?.weightedRecencyAverage ?? 38} portions
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[#6B6560]">
+                        <span>Historical 30d Mean:</span>
+                        <span className="font-bold text-[#1E1B16] tabular-nums">
+                          {dishFc.metrics?.historicalMean ?? dishFc.historical_mean ?? 38} portions
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[#6B6560]">
+                        <span>{dishFc.target_day_name || dishFc.targetDayName || 'Weekday'} Factor:</span>
+                        <span className="font-bold text-[#1E1B16] tabular-nums">
+                          {dishFc.metrics?.seasonalityFactor ?? dishFc.seasonality_factor ?? 1.0}x
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[#6B6560]">
+                        <span className="text-[#EA580C] font-semibold">Advance Pre-Orders:</span>
                         <span className="font-bold text-[#EA580C] tabular-nums">
                           {dishFc.pre_order_quantity ?? dishFc.preOrderQuantity ?? dishFc.metrics?.preOrders ?? 0} portions
                         </span>
@@ -898,35 +916,19 @@ export function ChefDashboard({ onNavigateToInventory }) {
                       <div className="flex justify-between text-[#6B6560] pt-1 border-t border-stone-200">
                         <span>Expected Demand:</span>
                         <span className="font-bold text-[#1E1B16] tabular-nums">
-                          {dishFc.expected_demand ?? dishFc.expectedDemand ?? 25} portions
+                          {dishFc.expected_demand ?? dishFc.expectedDemand ?? 38} portions
                         </span>
                       </div>
                       <div className="flex justify-between text-[#6B6560]">
-                        <span>Safety Buffer (+8%):</span>
+                        <span>Safety Margin (+8%):</span>
                         <span className="font-bold text-emerald-700 tabular-nums">
-                          +{dishFc.safety_margin ?? dishFc.safetyMargin ?? 2} portions
+                          +{dishFc.safety_margin ?? dishFc.safetyMargin ?? 3} portions
                         </span>
                       </div>
-                    </div>
-
-                    {/* Breakdown Details */}
-                    <div className="space-y-1.5 text-xs text-[#6B6560] pt-1">
-                      <div className="flex justify-between">
-                        <span>Recency Weighted Avg (WMA):</span>
-                        <span className="font-bold text-[#1E1B16] tabular-nums">
-                          {dishFc.metrics?.weightedRecencyAverage ?? dishFc.weighted_average ?? 30}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Historical 30d Mean:</span>
-                        <span className="font-bold text-[#1E1B16] tabular-nums">
-                          {dishFc.metrics?.historicalMean ?? dishFc.historical_mean ?? 30}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Same Weekday Matches:</span>
-                        <span className="font-bold text-[#1E1B16] tabular-nums">
-                          {dishFc.metrics?.sameWeekdayPoints ?? dishFc.same_weekday_matches ?? 0} {dishFc.target_day_name || dishFc.targetDayName || 'Day'}s
+                      <div className="flex justify-between text-[#EA580C] pt-1 border-t border-orange-200 font-bold">
+                        <span>AI Recommended:</span>
+                        <span className="tabular-nums">
+                          {dishFc.recommended_quantity ?? dishFc.recommendedQuantity ?? 41} portions
                         </span>
                       </div>
                     </div>
