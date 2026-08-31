@@ -21,6 +21,7 @@ import paymentsRoutes from './routes/payments.js';
 import sickLeaveRoutes from './routes/sickLeave.js';
 import chefRoutes from './routes/chef.js';
 import publicRoutes from './routes/public.js';
+import wardenRoutes from './routes/warden.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -179,8 +180,9 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/sick-leave', sickLeaveRoutes);
 app.use('/api/chef', chefRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/warden', wardenRoutes);
 
-// Static frontend serving and SPA fallback for /login/student, /login/chef, /login/admin
+// Static frontend serving and SPA fallback for /login/student, /login/chef, /login/admin, /login/warden
 const distPath = path.join(__dirname, '../../frontend/dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));

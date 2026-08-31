@@ -107,8 +107,8 @@ export function SickLeaveModal({ isOpen, onClose, onStatusChange }) {
         
         {/* Intro context */}
         <p className="text-xs text-[#6B6560] leading-relaxed">
-          Unwell and unable to walk to the mess? Submit a sick leave request to your Hostel Warden. 
-          Once approved via email, hostel room delivery is automatically unlocked for today's orders.
+          Unwell and unable to walk to the mess? Submit a sick leave request to your assigned Hostel Warden. 
+          Once approved in their Warden Portal, hostel room delivery is automatically unlocked for today's orders.
         </p>
 
         {/* Live Active Status Card */}
@@ -143,7 +143,7 @@ export function SickLeaveModal({ isOpen, onClose, onStatusChange }) {
                     {isApproved 
                       ? 'Warden Approval Granted' 
                       : isPending 
-                      ? 'Awaiting Warden Response' 
+                      ? 'Awaiting Warden Review' 
                       : 'Request Not Approved'}
                   </span>
                   <span className={`status-pill text-[10px] font-heading ${
@@ -155,11 +155,11 @@ export function SickLeaveModal({ isOpen, onClose, onStatusChange }) {
 
                 <p className="text-[#6B6560]">
                   {isApproved ? (
-                    <>Room delivery is <strong>active</strong> for <strong>{activeRequest.hostelName}, {activeRequest.roomNumber}</strong>. You can now choose "Hostel Delivery" at checkout.</>
+                    <>Room delivery is <strong>active</strong> for <strong>{activeRequest.hostelName}, {activeRequest.roomNumber}</strong>. You can now select "Hostel Delivery" at checkout.</>
                   ) : isPending ? (
-                    <>Approval email sent to <strong>{activeRequest.wardenName || 'Hostel Warden'}</strong>. Once they click Approve, your room delivery will unlock automatically.</>
+                    <>Request submitted to <strong>{activeRequest.wardenName || 'Hostel Warden'}</strong>. Once reviewed in their Warden Portal, your room delivery will unlock automatically.</>
                   ) : (
-                    <>Warden declined this sick leave request. Counter pickup is available.</>
+                    <>Declined by Warden. <strong>Reason:</strong> {activeRequest.rejectionReason || 'Please visit the dispensary or contact your hostel warden.'}</>
                   )}
                 </p>
 
@@ -168,7 +168,7 @@ export function SickLeaveModal({ isOpen, onClose, onStatusChange }) {
                   {activeRequest.respondedAt && (
                     <>
                       <span>•</span>
-                      <span>Responded: {new Date(activeRequest.respondedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>Reviewed: {new Date(activeRequest.respondedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </>
                   )}
                 </div>

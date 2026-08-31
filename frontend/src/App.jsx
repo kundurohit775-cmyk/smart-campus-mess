@@ -18,6 +18,9 @@ import { Transactions } from './pages/student/Transactions';
 import { ChefDashboard } from './pages/chef/ChefDashboard';
 import { ChefInventory } from './pages/chef/ChefInventory';
 
+// Warden Pages
+import { WardenDashboard } from './pages/warden/WardenDashboard';
+
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { MenuManager } from './pages/admin/MenuManager';
@@ -92,6 +95,7 @@ export function App() {
 
   const isStudent = user.role === 'student' || user.isStudent;
   const isChef = user.role === 'chef' || user.isChef;
+  const isWarden = user.role === 'warden' || user.isWarden;
   const isAdmin = user.role === 'admin' || user.isAdmin;
 
   return (
@@ -146,6 +150,11 @@ export function App() {
             )}
             {activeTab === 'inventory' && <ChefInventory />}
           </>
+        )}
+
+        {/* Warden View */}
+        {isWarden && activeTab !== 'impact' && (
+          <WardenDashboard />
         )}
 
         {/* Admin View */}

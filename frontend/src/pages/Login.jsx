@@ -16,7 +16,9 @@ import {
   CheckCircle, 
   Smartphone, 
   RotateCw, 
-  Sparkles 
+  Sparkles,
+  Building2,
+  HeartPulse
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -26,12 +28,13 @@ export function Login() {
   const { login, register, sendLoginOtp, loginWithOtp } = useAuth();
   const { showToast } = useToast();
 
-  // View state: 'role_select' | 'student' | 'chef' | 'admin' | 'register'
+  // View state: 'role_select' | 'student' | 'chef' | 'admin' | 'warden' | 'register'
   const getViewFromPath = () => {
     const path = window.location.pathname.toLowerCase();
     if (path.includes('/register')) return 'register';
     if (path.includes('/login/chef')) return 'chef';
     if (path.includes('/login/admin')) return 'admin';
+    if (path.includes('/login/warden')) return 'warden';
     if (path.includes('/login/student') || path === '/login') return 'student';
     return 'role_select'; // default for '/'
   };
@@ -245,27 +248,34 @@ export function Login() {
   // Role Accent Configurations for White & Orange Theme
   const isStudentView = view === 'student' || view === 'register';
   const isChefView = view === 'chef';
+  const isWardenView = view === 'warden';
   const isAdminView = view === 'admin';
 
-  const roleAccentColor = isStudentView ? '#FF6B35' : isChefView ? '#EA580C' : '#C2410C';
-  const roleHoverBorder = isStudentView ? 'hover:border-[#FF6B35]/40' : isChefView ? 'hover:border-[#EA580C]/40' : 'hover:border-[#C2410C]/40';
+  const roleAccentColor = isStudentView ? '#FF6B35' : isChefView ? '#EA580C' : isWardenView ? '#D97706' : '#C2410C';
+  const roleHoverBorder = isStudentView ? 'hover:border-[#FF6B35]/40' : isChefView ? 'hover:border-[#EA580C]/40' : isWardenView ? 'hover:border-[#D97706]/40' : 'hover:border-[#C2410C]/40';
 
   const roleBadgeStyle = isStudentView
     ? 'bg-[#FFF7F0] text-[#FF6B35] border border-orange-200'
     : isChefView
     ? 'bg-orange-50 text-[#EA580C] border border-orange-200'
+    : isWardenView
+    ? 'bg-amber-50 text-[#D97706] border border-amber-200'
     : 'bg-orange-50 text-[#C2410C] border border-orange-200';
 
   const rolePrimaryButton = isStudentView
     ? 'bg-gradient-to-r from-[#FF6B35] to-[#F7931E] hover:from-[#E85A2A] hover:to-[#EA580C] text-white shadow-[0_2px_10px_rgba(255,107,53,0.25)] hover:shadow-[0_4px_16px_rgba(255,107,53,0.35)]'
     : isChefView
     ? 'bg-gradient-to-r from-[#EA580C] to-[#C2410C] hover:from-[#C2410C] hover:to-[#9A3412] text-white shadow-[0_2px_10px_rgba(234,88,12,0.25)] hover:shadow-[0_4px_16px_rgba(234,88,12,0.35)]'
+    : isWardenView
+    ? 'bg-gradient-to-r from-[#D97706] to-[#B45309] hover:from-[#B45309] hover:to-[#92400E] text-white shadow-[0_2px_10px_rgba(217,119,6,0.25)] hover:shadow-[0_4px_16px_rgba(217,119,6,0.35)]'
     : 'bg-gradient-to-r from-[#C2410C] to-[#9A3412] hover:from-[#9A3412] hover:to-[#7C2D12] text-white shadow-[0_2px_10px_rgba(194,65,12,0.25)] hover:shadow-[0_4px_16px_rgba(194,65,12,0.35)]';
 
   const roleInputFocus = isStudentView
     ? 'focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/15'
     : isChefView
     ? 'focus:border-[#EA580C] focus:ring-2 focus:ring-[#EA580C]/15'
+    : isWardenView
+    ? 'focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/15'
     : 'focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/15';
 
   // =========================================================================
@@ -353,13 +363,13 @@ export function Login() {
               </p>
             </div>
 
-            {/* Three Clean White Role Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto w-full">
+            {/* Four Clean White Role Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto w-full">
               
               {/* Card 1: Student (#FF6B35) */}
               <div
                 onClick={() => navigateTo('student', '/login/student')}
-                className="group cursor-pointer bg-[#FFFFFF] border border-stone-200 hover:border-[#FF6B35]/40 rounded-2xl p-6 sm:p-7 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between space-y-6"
+                className="group cursor-pointer bg-[#FFFFFF] border border-stone-200 hover:border-[#FF6B35]/40 rounded-2xl p-6 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between space-y-6"
               >
                 <div className="space-y-4">
                   <div className="w-12 h-12 rounded-xl bg-[#FFF7F0] text-[#FF6B35] border border-orange-100 flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -377,7 +387,7 @@ export function Login() {
 
                 <div className="pt-3 flex items-center justify-between border-t border-stone-100">
                   <span className="text-xs font-semibold text-[#FF6B35] group-hover:text-[#E85A2A] transition-colors">
-                    Enter Student Portal
+                    Student Portal
                   </span>
                   <div className="w-7 h-7 rounded-full bg-[#FFF7F0] border border-orange-100 group-hover:bg-[#FF6B35] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#FF6B35]">
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -388,7 +398,7 @@ export function Login() {
               {/* Card 2: Chef (#EA580C) */}
               <div
                 onClick={() => navigateTo('chef', '/login/chef')}
-                className="group cursor-pointer bg-[#FFFFFF] border border-stone-200 hover:border-[#EA580C]/40 rounded-2xl p-6 sm:p-7 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between space-y-6"
+                className="group cursor-pointer bg-[#FFFFFF] border border-stone-200 hover:border-[#EA580C]/40 rounded-2xl p-6 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between space-y-6"
               >
                 <div className="space-y-4">
                   <div className="w-12 h-12 rounded-xl bg-orange-50 text-[#EA580C] border border-orange-100 flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -399,14 +409,14 @@ export function Login() {
                       Chef
                     </h3>
                     <p className="text-xs text-[#6B6560] mt-1.5 leading-relaxed">
-                      Manage active meal prep, advance cooking stages, and control portion stock.
+                      Manage live orders, demand forecasts, and daily food wastage logs.
                     </p>
                   </div>
                 </div>
 
                 <div className="pt-3 flex items-center justify-between border-t border-stone-100">
                   <span className="text-xs font-semibold text-[#EA580C] group-hover:text-[#C2410C] transition-colors">
-                    Enter Kitchen
+                    Kitchen Queue
                   </span>
                   <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-100 group-hover:bg-[#EA580C] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#EA580C]">
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -414,10 +424,39 @@ export function Login() {
                 </div>
               </div>
 
-              {/* Card 3: Admin (#C2410C) */}
+              {/* Card 3: Hostel Warden (#D97706) */}
+              <div
+                onClick={() => navigateTo('warden', '/login/warden')}
+                className="group cursor-pointer bg-[#FFFFFF] border border-stone-200 hover:border-[#D97706]/40 rounded-2xl p-6 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between space-y-6"
+              >
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-amber-50 text-[#D97706] border border-amber-200/80 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Building2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-[#1E1B16] font-heading group-hover:text-[#D97706] transition-colors">
+                      Warden
+                    </h3>
+                    <p className="text-xs text-[#6B6560] mt-1.5 leading-relaxed">
+                      Approve student sick-leave delivery requests for your assigned hostel block.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-3 flex items-center justify-between border-t border-stone-100">
+                  <span className="text-xs font-semibold text-[#D97706] group-hover:text-[#B45309] transition-colors">
+                    Warden Portal
+                  </span>
+                  <div className="w-7 h-7 rounded-full bg-amber-50 border border-amber-200 group-hover:bg-[#D97706] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#D97706]">
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Admin (#C2410C) */}
               <div
                 onClick={() => navigateTo('admin', '/login/admin')}
-                className="group cursor-pointer bg-[#FFFFFF] border border-stone-200 hover:border-[#C2410C]/40 rounded-2xl p-6 sm:p-7 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between space-y-6"
+                className="group cursor-pointer bg-[#FFFFFF] border border-stone-200 hover:border-[#C2410C]/40 rounded-2xl p-6 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between space-y-6"
               >
                 <div className="space-y-4">
                   <div className="w-12 h-12 rounded-xl bg-orange-50 text-[#C2410C] border border-orange-100 flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -435,7 +474,7 @@ export function Login() {
 
                 <div className="pt-3 flex items-center justify-between border-t border-stone-100">
                   <span className="text-xs font-semibold text-[#C2410C] group-hover:text-[#9A3412] transition-colors">
-                    Enter Console
+                    Admin Console
                   </span>
                   <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-100 group-hover:bg-[#C2410C] group-hover:text-white flex items-center justify-center transition-all duration-200 text-[#C2410C]">
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -502,7 +541,7 @@ export function Login() {
                   className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full"
                   style={{ backgroundColor: '#FFF7F0', color: roleAccentColor }}
                 >
-                  {view === 'student' ? 'Student Portal' : view === 'chef' ? 'Chef Station' : 'Admin Console'}
+                  {view === 'student' ? 'Student Portal' : view === 'chef' ? 'Chef Station' : view === 'warden' ? 'Warden Portal' : 'Admin Console'}
                 </span>
               </div>
               <h2 className="text-xl font-bold text-[#1E1B16] font-heading">
@@ -513,15 +552,51 @@ export function Login() {
                   ? 'Access your daily meal tray, live queue tokens, and dining credits'
                   : view === 'chef'
                   ? 'Enter kitchen credentials to dispatch and advance cooking orders'
+                  : view === 'warden'
+                  ? 'Sign in to review and authorize sick-leave delivery requests for your hostel block'
                   : 'Enter campus administrator credentials to access governance console'}
               </p>
             </div>
 
-            {/* Chef / Admin Security Notice Banners */}
+            {/* Chef / Admin / Warden Security Notice Banners */}
             {view === 'chef' && (
               <div className="p-3 bg-orange-50 border border-orange-100 rounded-xl text-xs text-[#EA580C] flex items-start gap-2.5">
                 <ChefHat className="w-4 h-4 text-[#EA580C] shrink-0 mt-0.5" />
                 <span>Single-account authorized portal for campus kitchen culinary staff.</span>
+              </div>
+            )}
+
+            {view === 'warden' && (
+              <div className="space-y-3">
+                <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-xs text-[#D97706] flex items-start gap-2.5">
+                  <Building2 className="w-4 h-4 text-[#D97706] shrink-0 mt-0.5" />
+                  <span>Hostel Warden portal: Review and authorize sick-leave delivery requests for your assigned hostel block.</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider block">
+                    Quick Demo Warden Accounts:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('warden.blocka@vitstudent.ac.in'); setPassword('password123'); }}
+                      className="p-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-amber-50 hover:border-amber-200 text-left text-xs transition"
+                    >
+                      <span className="font-bold text-[#1E1B16] block">Dr. K. Sharma</span>
+                      <span className="text-[11px] text-[#D97706]">Men's Hostel Block A</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('warden.lha@vitstudent.ac.in'); setPassword('password123'); }}
+                      className="p-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-amber-50 hover:border-amber-200 text-left text-xs transition"
+                    >
+                      <span className="font-bold text-[#1E1B16] block">Dr. Ananya Iyer</span>
+                      <span className="text-[11px] text-[#D97706]">Ladies Hostel Block A</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

@@ -67,7 +67,9 @@ export function AuthProvider({ children }) {
             role: sessionUser.role || 'student',
             isChef: sessionUser.role === 'chef',
             isAdmin: sessionUser.role === 'admin',
-            isStudent: sessionUser.role === 'student' || !sessionUser.role,
+            isWarden: sessionUser.role === 'warden',
+            isStudent: sessionUser.role === 'student' || (!sessionUser.role && sessionUser.role !== 'chef' && sessionUser.role !== 'admin' && sessionUser.role !== 'warden'),
+            assignedHostelBlock: sessionUser.assignedHostelBlock || sessionUser.assigned_hostel_block || "Men's Hostel Block A",
             roomNumber: sessionUser.roomNumber || 'Hostel',
             phone: sessionUser.phone || '',
             credits: creditInfo

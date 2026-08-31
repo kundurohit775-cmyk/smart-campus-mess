@@ -106,6 +106,17 @@ export const api = {
   },
   getHostelDirectory: () => request('/sick-leave/hostels'),
   getAdminSickLeaveRequests: () => request('/sick-leave/admin/all'),
+
+  // Warden In-App Approval Portal
+  getWardenStats: () => request('/warden/stats'),
+  getWardenRequests: (status) => request(status ? `/warden/requests?status=${status}` : '/warden/requests'),
+  approveWardenRequest: (requestId) => request(`/warden/requests/${requestId}/approve`, {
+    method: 'POST'
+  }),
+  rejectWardenRequest: (requestId, reason) => request(`/warden/requests/${requestId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ reason })
+  }),
   getTransactions: async (studentId) => {
     try {
       const me = JSON.parse(localStorage.getItem('mess_user_session') || '{}');

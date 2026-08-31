@@ -219,6 +219,7 @@ export const sickLeaveService = {
       requestedDate: req.requested_date,
       wardenName: req.warden_name,
       wardenEmail: req.warden_email,
+      rejectionReason: req.rejection_reason,
       createdAt: req.created_at,
       respondedAt: req.responded_at
     };

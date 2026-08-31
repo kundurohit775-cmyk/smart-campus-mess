@@ -25,13 +25,14 @@ export function Navbar({ activeTab, setActiveTab }) {
 
   const isStudent = user.role === 'student' || user.isStudent;
   const isChef = user.role === 'chef' || user.isChef;
+  const isWarden = user.role === 'warden' || user.isWarden;
   const isAdmin = user.role === 'admin' || user.isAdmin;
 
   const remaining = user?.credits?.remaining ?? 9000;
   const isLow = remaining < 500;
 
   // Role Accent Colors
-  const roleAccent = isStudent ? '#FF6B35' : isChef ? '#EA580C' : '#C2410C';
+  const roleAccent = isStudent ? '#FF6B35' : isChef ? '#EA580C' : isWarden ? '#D97706' : '#C2410C';
 
   return (
     <>
@@ -168,6 +169,13 @@ export function Navbar({ activeTab, setActiveTab }) {
                     <span>Audit Logs</span>
                   </button>
                 </>
+              )}
+
+              {isWarden && (
+                <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] text-xs whitespace-nowrap bg-[#FFFFFF] text-[#D97706] shadow-soft-sm font-bold border border-amber-200">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>{user.assignedHostelBlock || "Hostel Warden"}</span>
+                </div>
               )}
 
               {/* Public Impact Hub Link */}

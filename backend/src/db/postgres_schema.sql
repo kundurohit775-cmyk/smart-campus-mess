@@ -58,6 +58,16 @@ CREATE TABLE IF NOT EXISTS pre_orders (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS wardens (
+    warden_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    assigned_hostel_block VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS health_requests (
     request_id SERIAL PRIMARY KEY,
     student_id INT NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
@@ -69,6 +79,9 @@ CREATE TABLE IF NOT EXISTS health_requests (
     warden_email VARCHAR(255) NOT NULL,
     warden_name VARCHAR(255),
     approval_token VARCHAR(128) UNIQUE,
+    reviewed_by INT REFERENCES wardens(warden_id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    rejection_reason TEXT DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     responded_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
 );

@@ -228,19 +228,59 @@ router.post('/login', async (req, res, next) => {
           role: effectiveRole,
           isChef: effectiveRole === 'chef',
           isAdmin: effectiveRole === 'admin',
+          isWarden: false,
           isStudent: effectiveRole === 'student'
         }
       });
     }
 
-    // 2. STRICT VIT STUDENT EMAIL LOGIN RESTRICTION
+    // 2. Check in Wardens (Hostel Wardens)
+    const warden = await db.get('SELECT * FROM wardens WHERE LOWER(email) = ?', cleanEmail);
+    if (warden) {
+      const match = await bcrypt.compare(password, warden.password_hash);
+      if (!match) {
+        return res.status(401).json({ error: 'Invalid email or password.' });
+      }
+
+      const token = jwt.sign(
+        { 
+          id: warden.warden_id, 
+          email: warden.email, 
+          role: 'warden', 
+          name: warden.name,
+          phone: warden.phone,
+          assignedHostelBlock: warden.assigned_hostel_block
+        },
+        config.jwtSecret,
+        { expiresIn: config.jwtExpiresIn }
+      );
+
+      return res.json({
+        message: 'Login successful',
+        token,
+        user: {
+          id: warden.warden_id,
+          name: warden.name,
+          email: warden.email,
+          phone: warden.phone,
+          role: 'warden',
+          assignedHostelBlock: warden.assigned_hostel_block,
+          isWarden: true,
+          isChef: false,
+          isAdmin: false,
+          isStudent: false
+        }
+      });
+    }
+
+    // 3. STRICT VIT STUDENT EMAIL LOGIN RESTRICTION
     if (!cleanEmail.endsWith('@vitstudent.ac.in')) {
       return res.status(403).json({
         error: 'Only VIT student email addresses (@vitstudent.ac.in) are allowed to sign in.'
       });
     }
 
-    // 3. Check in Students
+    // 4. Check in Students
     const student = await db.get('SELECT * FROM students WHERE LOWER(email) = ?', cleanEmail);
     if (student) {
       if (student.status !== 'active') {
@@ -472,18 +512,37 @@ router.get('/me', authenticateToken, async (req, res, next) => {
           }
         }
       });
+    if (req.user.role === 'warden') {
+      const warden = await db.get('SELECT warden_id, name, email, phone, assigned_hostel_block FROM wardens WHERE warden_id = ?', req.user.id);
+      if (warden) {
+        return res.json({
+          user: {
+            id: warden.warden_id,
+            name: warden.name,
+            email: warden.email,
+            phone: warden.phone,
+            role: 'warden',
+            assignedHostelBlock: warden.assigned_hostel_block,
+            isWarden: true,
+            isChef: false,
+            isAdmin: false,
+            isStudent: false
+          }
+        });
+      }
     }
 
     const admin = await db.get('SELECT admin_id, name, email, role FROM admins WHERE admin_id = ?', req.user.id);
-    const effectiveRole = req.user.role;
+    const effectiveRole = req.user?.role || admin?.role || 'admin';
     return res.json({
       user: {
-        id: admin.admin_id,
-        name: admin.name,
-        email: admin.email,
+        id: admin?.admin_id,
+        name: admin?.name,
+        email: admin?.email,
         role: effectiveRole,
         isChef: effectiveRole === 'chef',
         isAdmin: effectiveRole === 'admin',
+        isWarden: effectiveRole === 'warden',
         isStudent: effectiveRole === 'student'
       }
     });
