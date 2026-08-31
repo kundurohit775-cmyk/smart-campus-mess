@@ -14,11 +14,15 @@ export async function migrateProductionRecords() {
         pre_order_quantity INT DEFAULT 0,
         on_spot_quantity INT DEFAULT 0,
         total_demand INT DEFAULT 0,
+        forecast_demand INT DEFAULT 0,
+        safety_margin INT DEFAULT 0,
         recommended_quantity INT DEFAULT 0,
         baseline_quantity INT DEFAULT 0,
         prepared_quantity INT DEFAULT 0,
         collected_quantity INT DEFAULT 0,
         leftover_quantity INT DEFAULT 0,
+        recommendation_variance_quantity INT DEFAULT 0,
+        recommendation_adherence_status VARCHAR(50) DEFAULT 'AT_RECOMMENDATION',
         portion_weight_kg NUMERIC(5,3) DEFAULT 0.400,
         estimated_food_saved_kg NUMERIC(8,3) DEFAULT 0.000,
         actual_waste_kg NUMERIC(8,3) DEFAULT 0.000,
@@ -30,19 +34,28 @@ export async function migrateProductionRecords() {
     `);
     console.log('✅ Checked/Created "production_records" table');
 
-    // 2. Ensure portion_weight_kg exists in menu_items
+    // 2. Ensure new adherence & demand columns exist if table was already created
     await db.query(`
       DO $$
       BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.columns 
-          WHERE table_name='menu_items' AND column_name='portion_weight_kg'
-        ) THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='production_records' AND column_name='forecast_demand') THEN
+          ALTER TABLE production_records ADD COLUMN forecast_demand INT DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='production_records' AND column_name='safety_margin') THEN
+          ALTER TABLE production_records ADD COLUMN safety_margin INT DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='production_records' AND column_name='recommendation_variance_quantity') THEN
+          ALTER TABLE production_records ADD COLUMN recommendation_variance_quantity INT DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='production_records' AND column_name='recommendation_adherence_status') THEN
+          ALTER TABLE production_records ADD COLUMN recommendation_adherence_status VARCHAR(50) DEFAULT 'AT_RECOMMENDATION';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='menu_items' AND column_name='portion_weight_kg') THEN
           ALTER TABLE menu_items ADD COLUMN portion_weight_kg NUMERIC(5,3) DEFAULT 0.400;
         END IF;
       END $$;
     `);
-    console.log('✅ Checked "portion_weight_kg" column in "menu_items"');
+    console.log('✅ Checked/Added adherence & variance columns to "production_records"');
 
     // 3. Create indices for fast historical analytics
     await db.query(`

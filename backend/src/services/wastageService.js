@@ -95,6 +95,10 @@ export const wastageService = {
         quantitySold = parseInt(salesRes.rows[0]?.actual_sold || 0, 10);
       }
 
+      if (quantityPrepared > 0 && quantitySold > quantityPrepared) {
+        throw new Error('Collected quantity cannot exceed prepared quantity.');
+      }
+
       let quantityWasted = Math.max(0, quantityPrepared - quantitySold);
       if (entry.quantityWasted !== undefined && !isNaN(parseInt(entry.quantityWasted, 10)) && quantityPrepared === 0) {
         quantityWasted = Math.max(0, parseInt(entry.quantityWasted, 10));

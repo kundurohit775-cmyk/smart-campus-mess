@@ -218,7 +218,7 @@ export function ChefDashboard({ onNavigateToInventory }) {
       const updated = { ...item, [field]: value };
       
       const prep = parseInt(field === 'quantityPrepared' ? value : updated.quantityPrepared, 10) || 0;
-      const sold = parseInt(field === 'quantitySold' ? value : updated.quantitySold, 10) || 0;
+      let sold = parseInt(field === 'quantitySold' ? value : updated.quantitySold, 10) || 0;
       const baseline = parseInt(updated.baselineQuantity || 35, 10);
       const weight = updated.portionWeightKg || 0.4;
 
@@ -238,6 +238,17 @@ export function ChefDashboard({ onNavigateToInventory }) {
   const handleSaveWastage = async () => {
     setSavingWastage(true);
     try {
+      // 1. Validation: Enforce collected_quantity <= prepared_quantity
+      for (const entry of wastageFormEntries) {
+        const prep = parseInt(entry.quantityPrepared, 10) || 0;
+        const sold = parseInt(entry.quantitySold, 10) || 0;
+        if (prep > 0 && sold > prep) {
+          showToast(`Collected quantity (${sold}) cannot exceed prepared quantity (${prep}) for "${entry.dishName}".`, 'error');
+          setSavingWastage(false);
+          return;
+        }
+      }
+
       const payload = wastageFormEntries.map(entry => {
         const prep = parseInt(entry.quantityPrepared, 10) || 0;
         const sold = parseInt(entry.quantitySold, 10) || 0;
@@ -265,6 +276,8 @@ export function ChefDashboard({ onNavigateToInventory }) {
           quantity_wasted: leftover,
           baselineQuantity: baseline,
           baseline_quantity: baseline,
+          recommendedQuantity: entry.recommendedQuantity || 25,
+          recommended_quantity: entry.recommendedQuantity || 25,
           portionWeightKg: weight,
           portion_weight_kg: weight,
           estimatedFoodSavedKg: saved,
@@ -868,6 +881,34 @@ export function ChefDashboard({ onNavigateToInventory }) {
                       </div>
                     </div>
 
+                    {/* Demand Signals Breakdown */}
+                    <div className="p-3 rounded-xl bg-stone-50/90 border border-stone-200/80 space-y-1.5 text-xs">
+                      <div className="flex justify-between text-[#6B6560]">
+                        <span>Historical Forecast:</span>
+                        <span className="font-bold text-[#1E1B16] tabular-nums">
+                          {dishFc.historical_forecast ?? dishFc.historicalForecast ?? dishFc.metrics?.historicalForecast ?? 25} portions
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[#6B6560]">
+                        <span className="text-[#EA580C] font-semibold">Confirmed Pre-Orders:</span>
+                        <span className="font-bold text-[#EA580C] tabular-nums">
+                          {dishFc.pre_order_quantity ?? dishFc.preOrderQuantity ?? dishFc.metrics?.preOrders ?? 0} portions
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[#6B6560] pt-1 border-t border-stone-200">
+                        <span>Expected Demand:</span>
+                        <span className="font-bold text-[#1E1B16] tabular-nums">
+                          {dishFc.expected_demand ?? dishFc.expectedDemand ?? 25} portions
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[#6B6560]">
+                        <span>Safety Buffer (+8%):</span>
+                        <span className="font-bold text-emerald-700 tabular-nums">
+                          +{dishFc.safety_margin ?? dishFc.safetyMargin ?? 2} portions
+                        </span>
+                      </div>
+                    </div>
+
                     {/* Breakdown Details */}
                     <div className="space-y-1.5 text-xs text-[#6B6560] pt-1">
                       <div className="flex justify-between">
@@ -963,106 +1004,129 @@ export function ChefDashboard({ onNavigateToInventory }) {
                   <tr>
                     <th className="py-3 px-3">Dish & Category</th>
                     <th className="py-3 px-2 text-center">1. Baseline (Hist.)</th>
-                    <th className="py-3 px-2 text-center">2. Recommended</th>
+                    <th className="py-3 px-2 text-center">2. AI Recommended</th>
                     <th className="py-3 px-2 text-center text-[#EA580C]">3. Prepared (Cooked)</th>
                     <th className="py-3 px-2 text-center">4. Sold / Collected</th>
-                    <th className="py-3 px-2 text-center text-[#D97706]">Leftover (Waste)</th>
-                    <th className="py-3 px-2 text-center text-[#16A34A]">Avoided Overprep (Saved)</th>
-                    <th className="py-3 px-3">Reason</th>
-                    <th className="py-3 px-2 text-center">Status</th>
+                    <th className="py-3 px-2 text-center text-[#D97706]">5. Leftover (Waste)</th>
+                    <th className="py-3 px-2 text-center text-[#16A34A]">6. Avoided Overprep (Saved)</th>
+                    <th className="py-3 px-3">7. Recommendation Status & Reason</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
-                  {wastageFormEntries.map((item) => (
-                    <tr key={item.dishId} className="hover:bg-stone-50/80 transition-colors">
-                      <td className="py-3 px-3">
-                        <span className="font-bold text-[#1E1B16] font-heading block">{item.dishName}</span>
-                        <span className="text-[11px] text-[#6B6560]">{item.category} • {item.portionWeightKg || 0.4} kg/portion</span>
-                      </td>
+                  {wastageFormEntries.map((item) => {
+                    const prep = parseInt(item.quantityPrepared, 10) || 0;
+                    const rec = parseInt(item.recommendedQuantity, 10) || 25;
+                    const sold = parseInt(item.quantitySold, 10) || 0;
+                    const portionWeight = item.portionWeightKg || 0.4;
+                    const leftoverWasteKg = (item.quantityWasted * portionWeight).toFixed(2);
+                    const isExceedingPrep = prep > 0 && sold > prep;
 
-                      {/* 1. Baseline */}
-                      <td className="py-3 px-2 text-center">
-                        <span className="px-2 py-1 rounded-lg bg-stone-100 text-[#6B6560] font-bold text-xs font-heading">
-                          {item.baselineQuantity || 35}
-                        </span>
-                      </td>
+                    return (
+                      <tr key={item.dishId} className="hover:bg-stone-50/80 transition-colors">
+                        <td className="py-3 px-3">
+                          <span className="font-bold text-[#1E1B16] font-heading block">{item.dishName}</span>
+                          <span className="text-[11px] text-[#6B6560]">{item.category} • {portionWeight} kg/portion</span>
+                        </td>
 
-                      {/* 2. Recommended */}
-                      <td className="py-3 px-2 text-center">
-                        <span className="px-2 py-1 rounded-lg bg-orange-50 text-[#EA580C] border border-orange-200 font-bold text-xs font-heading">
-                          {item.recommendedQuantity || 25}
-                        </span>
-                      </td>
+                        {/* 1. Baseline */}
+                        <td className="py-3 px-2 text-center">
+                          <span className="px-2 py-1 rounded-lg bg-stone-100 text-[#6B6560] font-bold text-xs font-heading">
+                            {item.baselineQuantity || 35}
+                          </span>
+                        </td>
 
-                      {/* 3. Prepared Input */}
-                      <td className="py-3 px-2 text-center">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.quantityPrepared}
-                          onChange={(e) => handleWastageFieldChange(item.dishId, 'quantityPrepared', e.target.value)}
-                          className="w-16 text-center bg-[#FFF7F0] focus:bg-white border border-orange-300 text-[#EA580C] font-extrabold text-xs py-1.5 rounded-xl outline-none focus:border-[#EA580C] shadow-soft-sm"
-                        />
-                      </td>
+                        {/* 2. Recommended */}
+                        <td className="py-3 px-2 text-center">
+                          <span className="px-2 py-1 rounded-lg bg-orange-50 text-[#EA580C] border border-orange-200 font-bold text-xs font-heading">
+                            {rec}
+                          </span>
+                        </td>
 
-                      {/* 4. Sold Input (Pre-filled from orders) */}
-                      <td className="py-3 px-2 text-center">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.quantitySold}
-                          onChange={(e) => handleWastageFieldChange(item.dishId, 'quantitySold', e.target.value)}
-                          className="w-16 text-center bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] font-bold text-xs py-1.5 rounded-xl outline-none focus:border-[#EA580C]"
-                        />
-                      </td>
+                        {/* 3. Prepared Input */}
+                        <td className="py-3 px-2 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.quantityPrepared}
+                            onChange={(e) => handleWastageFieldChange(item.dishId, 'quantityPrepared', e.target.value)}
+                            className="w-16 text-center bg-[#FFF7F0] focus:bg-white border border-orange-300 text-[#EA580C] font-extrabold text-xs py-1.5 rounded-xl outline-none focus:border-[#EA580C] shadow-soft-sm"
+                          />
+                        </td>
 
-                      {/* Leftover Input (Auto-calculated, allows override) */}
-                      <td className="py-3 px-2 text-center">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.quantityWasted}
-                          onChange={(e) => handleWastageFieldChange(item.dishId, 'quantityWasted', e.target.value)}
-                          className={`w-16 text-center border font-bold text-xs py-1.5 rounded-xl outline-none focus:border-[#EA580C] ${
-                            item.quantityWasted > 0 
-                              ? 'bg-amber-50/70 border-amber-300 text-[#D97706]' 
-                              : 'bg-[#FAFAF9] border-stone-200 text-[#16A34A]'
-                          }`}
-                        />
-                      </td>
+                        {/* 4. Sold / Collected Input (Guarded: <= Prepared) */}
+                        <td className="py-3 px-2 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max={prep > 0 ? prep : undefined}
+                            value={item.quantitySold}
+                            onChange={(e) => handleWastageFieldChange(item.dishId, 'quantitySold', e.target.value)}
+                            className={`w-16 text-center focus:bg-white border font-bold text-xs py-1.5 rounded-xl outline-none focus:border-[#EA580C] ${
+                              isExceedingPrep
+                                ? 'bg-red-50 border-red-400 text-red-700'
+                                : 'bg-[#FAFAF9] border-stone-200 text-[#1E1B16]'
+                            }`}
+                            title={isExceedingPrep ? 'Collected quantity cannot exceed prepared quantity' : ''}
+                          />
+                          {isExceedingPrep && (
+                            <span className="block text-[10px] text-red-600 font-semibold mt-0.5">Max {prep}</span>
+                          )}
+                        </td>
 
-                      {/* Avoided Overprep (Food Saved kg) */}
-                      <td className="py-3 px-2 text-center">
-                        <span className="font-bold text-[#16A34A] font-heading tabular-nums text-xs">
-                          {item.estimatedFoodSavedKg > 0 ? `+${item.estimatedFoodSavedKg} kg` : '0 kg'}
-                        </span>
-                      </td>
+                        {/* 5. Leftover (Waste) */}
+                        <td className="py-3 px-2 text-center">
+                          <span className={`font-bold tabular-nums text-xs block ${
+                            item.quantityWasted > 0 ? 'text-[#D97706]' : 'text-stone-500'
+                          }`}>
+                            {item.quantityWasted} portions
+                          </span>
+                          <span className="text-[11px] text-[#6B6560]">({leftoverWasteKg} kg)</span>
+                        </td>
 
-                      {/* Reason Dropdown */}
-                      <td className="py-3 px-3">
-                        <select
-                          value={item.reason || 'overprepared'}
-                          onChange={(e) => handleWastageFieldChange(item.dishId, 'reason', e.target.value)}
-                          className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] text-xs py-1.5 px-2 rounded-xl outline-none focus:border-[#EA580C]"
-                        >
-                          <option value="overprepared">Overprepared / Excess batch</option>
-                          <option value="low turnout">Low student turnout</option>
-                          <option value="ingredient spoilage">Ingredient / shelf spoilage</option>
-                          <option value="presentation defect">Quality / texture defect</option>
-                          <option value="other">Other factor</option>
-                        </select>
-                      </td>
+                        {/* 6. Avoided Overprep (Food Saved kg) */}
+                        <td className="py-3 px-2 text-center">
+                          <span className="font-bold text-[#16A34A] font-heading tabular-nums text-xs">
+                            {item.estimatedFoodSavedKg > 0 ? `+${item.estimatedFoodSavedKg} kg` : '0 kg'}
+                          </span>
+                        </td>
 
-                      {/* Status */}
-                      <td className="py-3 px-2 text-center">
-                        {item.isLogged ? (
-                          <span className="status-pill status-pill-success text-[10px]">Logged</span>
-                        ) : (
-                          <span className="status-pill status-pill-info text-[10px]">New</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        {/* 7. Recommendation Status & Reason */}
+                        <td className="py-3 px-3">
+                          <div className="space-y-1.5">
+                            {prep === 0 ? (
+                              <span className="status-pill status-pill-info text-[10px] block text-center">
+                                Unprepared
+                              </span>
+                            ) : Math.abs(prep - rec) <= 2 ? (
+                              <span className="status-pill status-pill-success text-[10px] block text-center">
+                                ✓ Followed recommendation
+                              </span>
+                            ) : prep > rec ? (
+                              <span className="status-pill status-pill-warning text-[10px] block text-center">
+                                ⚠️ +{prep - rec} above recommendation
+                              </span>
+                            ) : (
+                              <span className="status-pill status-pill-info text-[10px] block text-center">
+                                📉 -{rec - prep} below recommendation
+                              </span>
+                            )}
+
+                            <select
+                              value={item.reason || 'overprepared'}
+                              onChange={(e) => handleWastageFieldChange(item.dishId, 'reason', e.target.value)}
+                              className="w-full bg-[#FAFAF9] focus:bg-white border border-stone-200 text-[#1E1B16] text-[11px] py-1 px-2 rounded-xl outline-none focus:border-[#EA580C]"
+                            >
+                              <option value="overprepared">Overprepared / Excess batch</option>
+                              <option value="low turnout">Low student turnout</option>
+                              <option value="ingredient spoilage">Ingredient / shelf spoilage</option>
+                              <option value="presentation defect">Quality / texture defect</option>
+                              <option value="other">Other factor</option>
+                            </select>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
