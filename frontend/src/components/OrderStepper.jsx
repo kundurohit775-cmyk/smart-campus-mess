@@ -3,7 +3,7 @@ import { Clock, CheckCircle2, Flame, BellRing, PackageCheck, Ban } from 'lucide-
 
 const DISPLAY_STEPS = [
   { key: 'Pending', label: 'Order Placed', desc: 'Awaiting kitchen', icon: Clock },
-  { key: 'Cooking', label: 'Cooking', desc: 'Chef preparing', icon: Flame },
+  { key: 'Preparing', label: 'Cooking', desc: 'Chef preparing', icon: Flame },
   { key: 'Ready', label: 'Ready', desc: 'Counter pickup', icon: BellRing },
   { key: 'Completed', label: 'Collected', desc: 'Order fulfilled', icon: PackageCheck }
 ];

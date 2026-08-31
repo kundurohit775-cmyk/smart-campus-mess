@@ -149,10 +149,13 @@ export const api = {
   getChefOrders: (status) => request(status ? `/orders?status=${status}` : '/orders'),
   getChefInventory: () => request('/admin/menu'),
   getOrderDetails: (orderId) => request(`/orders/${orderId}`),
-  updateOrderStatus: (orderId, status) => request(`/orders/${orderId}/status`, {
-    method: 'PATCH',
-    body: JSON.stringify({ status })
-  }),
+  updateOrderStatus: (orderId, status) => {
+    const backendStatus = status === 'Cooking' ? 'Preparing' : status;
+    return request(`/orders/${orderId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: backendStatus })
+    });
+  },
   cancelOrder: (orderId) => request(`/orders/${orderId}/cancel`, { method: 'PATCH' }),
 
   // Demand Forecasting, Feedback Loop & Production Records (Chef)

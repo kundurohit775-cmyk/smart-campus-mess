@@ -305,7 +305,7 @@ export function ChefDashboard({ onNavigateToInventory }) {
 
   const ordersList = Array.isArray(orders) ? orders : [];
   const pendingCount = ordersList.filter(o => o.order_status === 'Pending').length;
-  const cookingCount = ordersList.filter(o => o.order_status === 'Cooking').length;
+  const cookingCount = ordersList.filter(o => o.order_status === 'Preparing' || o.order_status === 'Cooking').length;
   const readyCount = ordersList.filter(o => o.order_status === 'Ready').length;
   const activeOrdersCount = pendingCount + cookingCount + readyCount;
 
@@ -315,7 +315,7 @@ export function ChefDashboard({ onNavigateToInventory }) {
   const filteredOrders = ordersList.filter(o => {
     if (statusFilter === 'ACTIVE') return o.order_status !== 'Completed' && o.order_status !== 'Cancelled';
     if (statusFilter === 'Pending') return o.order_status === 'Pending';
-    if (statusFilter === 'Cooking') return o.order_status === 'Cooking';
+    if (statusFilter === 'Cooking' || statusFilter === 'Preparing') return o.order_status === 'Preparing' || o.order_status === 'Cooking';
     if (statusFilter === 'Ready') return o.order_status === 'Ready';
     if (statusFilter === 'Completed') return o.order_status === 'Completed';
     return true;
@@ -504,7 +504,7 @@ export function ChefDashboard({ onNavigateToInventory }) {
                 <div className="space-y-4">
                   {filteredOrders.map((order) => {
                     const isPending = order.order_status === 'Pending';
-                    const isCooking = order.order_status === 'Cooking';
+                    const isCooking = order.order_status === 'Preparing' || order.order_status === 'Cooking';
                     const isReady = order.order_status === 'Ready';
 
                     return (
@@ -533,7 +533,7 @@ export function ChefDashboard({ onNavigateToInventory }) {
                                 <span className={`status-pill text-[10px] font-heading ${
                                   isPending ? 'status-pill-warning' : isCooking ? 'status-pill-warning text-[#EA580C]' : isReady ? 'status-pill-success' : 'status-pill-info'
                                 }`}>
-                                  {order.order_status}
+                                  {order.order_status === 'Preparing' ? 'Cooking' : order.order_status}
                                 </span>
                                 {order.delivery_type === 'hostel-delivery' && (
                                   <span className="bg-[#FF6B35] text-white text-[10px] font-bold px-2 py-0.5 rounded-md font-heading flex items-center gap-1 shadow-soft-sm animate-pulse">
@@ -557,7 +557,7 @@ export function ChefDashboard({ onNavigateToInventory }) {
                           <div className="flex items-center gap-2">
                             {isPending && (
                               <button
-                                onClick={() => handleUpdateStatus(order.order_id, 'Cooking')}
+                                onClick={() => handleUpdateStatus(order.order_id, 'Preparing')}
                                 disabled={processingId === order.order_id}
                                 className="btn-primary py-2 px-4 text-xs shadow-soft-sm"
                               >

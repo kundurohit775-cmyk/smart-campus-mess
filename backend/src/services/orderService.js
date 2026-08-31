@@ -270,8 +270,10 @@ export const orderService = {
    * Update Order Status (Chef / Staff)
    */
   async updateOrderStatus(orderId, newStatus) {
+    // Normalize UI status 'Cooking' to canonical backend status 'Preparing'
+    const canonicalStatus = newStatus === 'Cooking' ? 'Preparing' : newStatus;
     const validStatuses = ['Pending', 'Accepted', 'Preparing', 'Ready', 'Completed', 'Cancelled'];
-    if (!validStatuses.includes(newStatus)) {
+    if (!validStatuses.includes(canonicalStatus)) {
       throw new Error(`Invalid status "${newStatus}". Must be one of: ${validStatuses.join(', ')}`);
     }
 
@@ -281,14 +283,14 @@ export const orderService = {
       throw new Error(`Order #${numericOrderId} not found.`);
     }
 
-    const isCompleted = newStatus === 'Completed' || newStatus === 'Cancelled';
+    const isCompleted = canonicalStatus === 'Completed' || canonicalStatus === 'Cancelled';
     const completedTime = isCompleted ? new Date().toISOString() : null;
 
     await db.run(`
       UPDATE orders 
       SET order_status = ?, completed_time = COALESCE(?, completed_time) 
       WHERE order_id = ?
-    `, newStatus, completedTime, numericOrderId);
+    `, canonicalStatus, completedTime, numericOrderId);
 
     return await this.getOrderById(numericOrderId);
   },
