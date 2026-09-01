@@ -17,17 +17,18 @@ export const preOrderService = {
    */
   async getRemainingStock(itemId, scheduledDate, client = db.pool) {
     const itemRes = await client.query(`
-      SELECT item_id, item_name, is_special, special_stock_limit, special_available_date 
+      SELECT item_id, item_name, is_special, special_stock_limit, special_available_date, available_quantity
       FROM menu_items 
       WHERE item_id = $1
     `, [itemId]);
 
     if (!itemRes.rows.length) return 0;
     const item = itemRes.rows[0];
-    if (!item.is_special || item.special_stock_limit == null) return 0;
+    const isSpecial = Boolean(item.is_special === true || item.is_special === 'true' || item.is_special === 1 || item.is_special === '1');
+    if (!isSpecial) return 0;
 
-    const targetDate = scheduledDate || item.special_available_date;
-    if (!targetDate) return 0;
+    const tomorrowDate = this.getTomorrowDate();
+    const targetDate = scheduledDate || (item.special_available_date ? new Date(item.special_available_date).toISOString().split('T')[0] : tomorrowDate);
 
     const bookedRes = await client.query(`
       SELECT COALESCE(SUM(quantity), 0) as booked_qty
@@ -36,7 +37,9 @@ export const preOrderService = {
     `, [itemId, targetDate]);
 
     const bookedQty = parseInt(bookedRes.rows[0].booked_qty, 10);
-    const limit = parseInt(item.special_stock_limit, 10);
+    const limit = (item.special_stock_limit != null && parseInt(item.special_stock_limit, 10) > 0)
+      ? parseInt(item.special_stock_limit, 10)
+      : Math.max(10, parseInt(item.available_quantity, 10) || 25);
     return Math.max(0, limit - bookedQty);
   },
 
@@ -44,22 +47,24 @@ export const preOrderService = {
    * Get all active special items available for pre-order "for tomorrow"
    */
   async getTomorrowSpecials() {
+    const tomorrowStr = this.getTomorrowDate();
     const result = await db.query(`
       SELECT m.item_id, m.item_name, m.category, m.price, m.calories, m.healthy_override,
              m.is_special, m.special_stock_limit, m.special_available_date,
-             m.description, m.image_url, m.available_quantity, m.is_active,
+             m.description, m.image_url, m.fallback_image_url, m.available_quantity, m.is_active,
              COALESCE(SUM(CASE WHEN p.status = 'confirmed' THEN p.quantity ELSE 0 END), 0) as booked_stock
       FROM menu_items m
-      LEFT JOIN pre_orders p ON m.item_id = p.item_id AND p.scheduled_date = m.special_available_date
+      LEFT JOIN pre_orders p ON m.item_id = p.item_id AND p.scheduled_date = $1
       WHERE m.is_active = 1 
-        AND m.is_special = TRUE 
-        AND m.special_available_date = (CURRENT_DATE + INTERVAL '1 day')
+        AND (m.is_special = TRUE OR m.is_special = '1')
       GROUP BY m.item_id
       ORDER BY m.item_name ASC
-    `);
+    `, [tomorrowStr]);
 
     return result.rows.map(item => {
-      const limit = item.special_stock_limit != null ? parseInt(item.special_stock_limit, 10) : 0;
+      const limit = (item.special_stock_limit != null && parseInt(item.special_stock_limit, 10) > 0)
+        ? parseInt(item.special_stock_limit, 10)
+        : Math.max(10, parseInt(item.available_quantity, 10) || 25);
       const booked = parseInt(item.booked_stock, 10);
       const remaining = Math.max(0, limit - booked);
       const isSoldOut = remaining <= 0;
@@ -94,7 +99,7 @@ export const preOrderService = {
 
       // 1. Lock and select special menu item
       const itemRes = await client.query(`
-        SELECT item_id, item_name, price, calories, is_special, special_stock_limit, special_available_date, is_active
+        SELECT item_id, item_name, price, calories, is_special, special_stock_limit, special_available_date, is_active, available_quantity
         FROM menu_items
         WHERE item_id = $1
         FOR UPDATE
@@ -108,14 +113,21 @@ export const preOrderService = {
       if (!item.is_active) {
         throw new Error(`Item "${item.item_name}" is currently inactive.`);
       }
-      if (!item.is_special || !item.special_stock_limit) {
+
+      const isSpecial = Boolean(item.is_special === true || item.is_special === 'true' || item.is_special === 1 || item.is_special === '1');
+      if (!isSpecial) {
         throw new Error(`Item "${item.item_name}" is not marked as a pre-order special.`);
       }
 
-      const scheduledDate = item.special_available_date;
-      if (!scheduledDate) {
-        throw new Error('Special item has no scheduled availability date.');
-      }
+      const tomorrowDate = this.getTomorrowDate();
+      const scheduledDate = item.special_available_date 
+        ? new Date(item.special_available_date).toISOString().split('T')[0] 
+        : tomorrowDate;
+
+      // Special limit defaults to special_stock_limit or available_quantity or 25
+      const limit = (item.special_stock_limit != null && parseInt(item.special_stock_limit, 10) > 0)
+        ? parseInt(item.special_stock_limit, 10)
+        : Math.max(10, parseInt(item.available_quantity, 10) || 25);
 
       // 2. Check live booked quantity and compute remaining stock
       const bookedRes = await client.query(`
@@ -125,7 +137,6 @@ export const preOrderService = {
       `, [numItemId, scheduledDate]);
 
       const bookedQty = parseInt(bookedRes.rows[0].booked_qty, 10);
-      const limit = parseInt(item.special_stock_limit, 10);
       const remainingStock = Math.max(0, limit - bookedQty);
 
       if (remainingStock <= 0) {

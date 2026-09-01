@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../db/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { imageService, GENERIC_FOOD_PLACEHOLDER } from '../services/imageService.js';
+import { preOrderService } from '../services/preOrderService.js';
 
 const router = express.Router();
 
@@ -29,25 +30,28 @@ export function computeIsHealthy(item) {
  */
 router.get('/', async (req, res, next) => {
   try {
+    const tomorrowStr = preOrderService.getTomorrowDate();
     const result = await db.query(`
       SELECT m.item_id, m.item_name, m.category, m.price, m.calories, m.healthy_override,
              m.is_special, m.special_stock_limit, m.special_available_date,
              m.description, m.image_url, m.fallback_image_url, m.available_quantity, m.is_active,
              COALESCE(SUM(CASE WHEN p.status = 'confirmed' THEN p.quantity ELSE 0 END), 0) as booked_stock
       FROM menu_items m
-      LEFT JOIN pre_orders p ON m.item_id = p.item_id AND p.scheduled_date = m.special_available_date
+      LEFT JOIN pre_orders p ON m.item_id = p.item_id AND p.scheduled_date = $1
       WHERE m.is_active = 1
       GROUP BY m.item_id
       ORDER BY m.is_special DESC, m.category ASC, m.item_name ASC
-    `);
+    `, [tomorrowStr]);
 
     const items = result.rows.map(row => {
-      const isSpecial = Boolean(row.is_special);
-      let remainingStock = row.available_quantity;
-      let isSoldOut = row.available_quantity <= 0;
+      const isSpecial = Boolean(row.is_special === true || row.is_special === 'true' || row.is_special === 1 || row.is_special === '1');
+      let remainingStock = parseInt(row.available_quantity, 10) || 0;
+      let isSoldOut = remainingStock <= 0;
 
-      if (isSpecial && row.special_stock_limit != null) {
-        const limit = parseInt(row.special_stock_limit, 10);
+      if (isSpecial) {
+        const limit = (row.special_stock_limit != null && parseInt(row.special_stock_limit, 10) > 0)
+          ? parseInt(row.special_stock_limit, 10)
+          : Math.max(10, parseInt(row.available_quantity, 10) || 25);
         const booked = parseInt(row.booked_stock, 10);
         remainingStock = Math.max(0, limit - booked);
         isSoldOut = remainingStock <= 0;
