@@ -219,7 +219,7 @@ export function OrderTracking({ onBrowseMenu }) {
                   <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
                       <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-base border shadow-soft-sm font-heading ${
+                        <div className={`min-w-[3.25rem] h-12 px-2.5 rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm border shadow-soft-sm font-heading font-mono ${
                           isReady 
                             ? 'bg-[#16A34A] text-white border-emerald-600' 
                             : 'bg-[#FFF7F0] text-[#FF6B35] border-orange-200'

@@ -62,6 +62,26 @@ export function ChefDashboard({ onNavigateToInventory }) {
   const [trendsLoading, setTrendsLoading] = useState(false);
   const [trendsPeriod, setTrendsPeriod] = useState('30d');
 
+  // Room delivery configuration state (Chef portal)
+  const [editingDeliveryOrderId, setEditingDeliveryOrderId] = useState(null);
+  const [roomInput, setRoomInput] = useState('');
+  const [savingDelivery, setSavingDelivery] = useState(false);
+
+  const handleUpdateDelivery = async (orderId, deliveryType, room) => {
+    setSavingDelivery(true);
+    try {
+      const res = await api.updateOrderDelivery(orderId, deliveryType, room);
+      showToast(res.message || 'Delivery destination updated', 'success');
+      setEditingDeliveryOrderId(null);
+      setRoomInput('');
+      await fetchDashboardData();
+    } catch (err) {
+      showToast(err.message || 'Failed to update delivery destination', 'error');
+    } finally {
+      setSavingDelivery(false);
+    }
+  };
+
   const fetchDashboardData = async () => {
     try {
       const [ordersRes, preOrdersRes] = await Promise.all([
@@ -506,6 +526,8 @@ export function ChefDashboard({ onNavigateToInventory }) {
                     const isPending = order.order_status === 'Pending';
                     const isCooking = order.order_status === 'Preparing' || order.order_status === 'Cooking';
                     const isReady = order.order_status === 'Ready';
+                    const isRoomDelivery = order.delivery_type === 'hostel-delivery' || order.pickup_token?.includes('ROOM');
+                    const roomDestination = order.delivery_address || order.room_number || 'Hostel Room';
 
                     return (
                       <div
@@ -522,34 +544,73 @@ export function ChefDashboard({ onNavigateToInventory }) {
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200/60">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-white border border-stone-200 flex items-center justify-center font-bold text-sm font-heading shadow-soft-sm text-[#1E1B16]">
-                              #{order.order_id}
+                            <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold font-heading shadow-soft-sm ${
+                              isRoomDelivery
+                                ? 'bg-gradient-to-br from-[#EA580C] to-[#C2410C] text-white border-2 border-orange-400'
+                                : 'bg-white text-[#1E1B16] border border-stone-200'
+                            }`}>
+                              <span className="text-[11px] leading-tight font-bold">#{order.order_id}</span>
+                              {isRoomDelivery && (
+                                <span className="text-[8px] font-extrabold uppercase tracking-tight bg-black/25 px-1 rounded mt-0.5">ROOM</span>
+                              )}
                             </div>
                             <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-sm text-[#1E1B16] font-heading">
-                                  Token: {order.pickup_token}
-                                </span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {/* Token Number Box */}
+                                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg shadow-sm border ${
+                                  isRoomDelivery
+                                    ? 'bg-stone-900 text-orange-300 border-orange-500'
+                                    : 'bg-stone-900 text-white border-stone-800'
+                                }`}>
+                                  <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Token:</span>
+                                  <span className="text-sm font-extrabold font-mono tracking-wider text-white">
+                                    {order.pickup_token}
+                                  </span>
+                                </div>
+
+                                {/* Prominent Mention in Token Section: FOOD WILL BE DELIVERED TO ROOM */}
+                                {isRoomDelivery ? (
+                                  <span className="inline-flex items-center gap-1.5 bg-[#FFF0E6] text-[#C2410C] border-2 border-[#EA580C] font-extrabold text-xs px-3 py-1 rounded-lg shadow-sm animate-pulse">
+                                    <span className="text-sm">🚪</span>
+                                    <span>FOOD WILL BE DELIVERED TO ROOM: <strong>{roomDestination}</strong></span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] font-semibold text-stone-600 bg-stone-100 border border-stone-200 px-2 py-0.5 rounded-md">
+                                    Counter Pickup
+                                  </span>
+                                )}
+
                                 <span className={`status-pill text-[10px] font-heading ${
                                   isPending ? 'status-pill-warning' : isCooking ? 'status-pill-warning text-[#EA580C]' : isReady ? 'status-pill-success' : 'status-pill-info'
                                 }`}>
                                   {order.order_status === 'Preparing' ? 'Cooking' : order.order_status}
                                 </span>
-                                {order.delivery_type === 'hostel-delivery' && (
-                                  <span className="bg-[#FF6B35] text-white text-[10px] font-bold px-2 py-0.5 rounded-md font-heading flex items-center gap-1 shadow-soft-sm animate-pulse">
-                                    🏠 HOSTEL DELIVERY
-                                  </span>
-                                )}
                               </div>
-                              <div className="text-[11px] text-[#6B6560] flex items-center gap-2 mt-0.5">
+                              <div className="text-[11px] text-[#6B6560] flex items-center gap-2 flex-wrap mt-1">
                                 <span>Student: <strong>{order.student_name || 'Student'}</strong></span>
-                                {order.delivery_type === 'hostel-delivery' ? (
-                                  <span className="text-[#FF6B35] font-bold">
-                                    • Deliver to: {order.delivery_address || order.room_number || 'Hostel Room'}
+                                {isRoomDelivery ? (
+                                  <span className="text-[#EA580C] font-bold">
+                                    • Deliver to: <u>{roomDestination}</u>
                                   </span>
                                 ) : (
                                   <span>({order.room_number || 'Counter Pickup'})</span>
                                 )}
+
+                                {/* Interactive Chef Entry/Edit Button for Room Delivery */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (editingDeliveryOrderId === order.order_id) {
+                                      setEditingDeliveryOrderId(null);
+                                    } else {
+                                      setEditingDeliveryOrderId(order.order_id);
+                                      setRoomInput(order.delivery_address || order.room_number || '');
+                                    }
+                                  }}
+                                  className="ml-2 text-[10px] font-bold text-orange-600 hover:text-orange-700 underline flex items-center gap-0.5 cursor-pointer"
+                                >
+                                  <span>{isRoomDelivery ? '✏️ Edit Room Destination' : '🚪 Mark for Room Delivery'}</span>
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -587,6 +648,54 @@ export function ChefDashboard({ onNavigateToInventory }) {
                             )}
                           </div>
                         </div>
+
+                        {/* Inline Chef Room Delivery Configuration Form */}
+                        {editingDeliveryOrderId === order.order_id && (
+                          <div className="p-3 bg-orange-50 border border-orange-200 rounded-xl space-y-2 animate-fade-in">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-orange-900 font-heading flex items-center gap-1.5">
+                                <span>🚪 Room Delivery Destination</span>
+                              </span>
+                              <span className="text-[10px] text-orange-700 font-medium">
+                                Token will update to mention room delivery (ROOM-TK-XXXX)
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <input
+                                type="text"
+                                placeholder="Enter Room & Block (e.g. Block A - Room 204)"
+                                value={roomInput}
+                                onChange={(e) => setRoomInput(e.target.value)}
+                                className="text-xs px-3 py-1.5 rounded-lg border border-orange-300 bg-white flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-orange-500 font-medium"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateDelivery(order.order_id, 'hostel-delivery', roomInput || order.room_number || 'Hostel Room')}
+                                disabled={savingDelivery}
+                                className="px-3 py-1.5 rounded-lg bg-orange-600 text-white font-bold text-xs hover:bg-orange-700 transition shadow-sm flex items-center gap-1 cursor-pointer"
+                              >
+                                <span>Save Room Delivery</span>
+                              </button>
+                              {isRoomDelivery && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateDelivery(order.order_id, 'self-pickup', null)}
+                                  disabled={savingDelivery}
+                                  className="px-3 py-1.5 rounded-lg bg-stone-200 text-stone-700 font-semibold text-xs hover:bg-stone-300 transition cursor-pointer"
+                                >
+                                  <span>Switch to Counter Pickup</span>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setEditingDeliveryOrderId(null)}
+                                className="px-2.5 py-1.5 rounded-lg bg-white border border-stone-200 text-stone-500 font-semibold text-xs hover:bg-stone-100 transition cursor-pointer"
+                              >
+                                <span>Cancel</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Order Items Table */}
                         <div className="bg-white/80 rounded-xl p-3 border border-stone-200/80">
@@ -699,13 +808,16 @@ export function ChefDashboard({ onNavigateToInventory }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {confirmedPreOrders.map((po) => (
                 <div key={po.pre_order_id} className="p-4 rounded-2xl bg-white border border-stone-200 shadow-soft-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#EA580C] font-heading">Token: #{po.pickup_token}</span>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5 bg-stone-900 text-white px-2.5 py-1 rounded-lg shadow-sm">
+                      <span className="text-[10px] text-stone-400 uppercase tracking-wide">Token:</span>
+                      <span className="text-xs font-extrabold text-[#EA580C] font-mono tracking-wider">{po.pickup_token}</span>
+                    </div>
                     <span className="status-pill status-pill-success text-[10px]">{po.status}</span>
                   </div>
                   <div>
                     <h4 className="font-bold text-sm text-[#1E1B16] font-heading">{po.item_name}</h4>
-                    <p className="text-xs text-[#6B6560]">Student: {po.student_name} ({po.room_number})</p>
+                    <p className="text-xs text-[#6B6560]">Student: <strong>{po.student_name}</strong> {po.room_number ? `(${po.room_number})` : ''}</p>
                     <p className="text-xs text-[#6B6560]">Quantity: <strong>{po.quantity}x</strong></p>
                   </div>
                   <button

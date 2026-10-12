@@ -137,7 +137,9 @@ export const orderService = {
 
     // 6. Generate order token & insert order record (including total_calories)
     const tokenNumber = Math.floor(1000 + Math.random() * 9000);
-    const pickupToken = `TK-${tokenNumber}`;
+    const pickupToken = validatedDeliveryType === 'hostel-delivery'
+      ? `ROOM-TK-${tokenNumber}`
+      : `TK-${tokenNumber}`;
 
     const orderResult = await db.run(`
       INSERT INTO orders (
@@ -291,6 +293,43 @@ export const orderService = {
       SET order_status = ?, completed_time = COALESCE(?, completed_time) 
       WHERE order_id = ?
     `, canonicalStatus, completedTime, numericOrderId);
+
+    return await this.getOrderById(numericOrderId);
+  },
+
+  /**
+   * Update Order Delivery Type and Destination (Chef / Staff)
+   * If food will be delivered to the room, token number explicitly mentions ROOM delivery.
+   */
+  async updateOrderDelivery(orderId, deliveryType, deliveryAddress) {
+    const numericOrderId = parseInt(orderId, 10);
+    const order = await db.get('SELECT * FROM orders WHERE order_id = ?', numericOrderId);
+    if (!order) {
+      throw new Error(`Order #${numericOrderId} not found.`);
+    }
+
+    const isRoomDelivery = deliveryType === 'hostel-delivery';
+    let updatedToken = order.pickup_token || `TK-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    if (isRoomDelivery) {
+      if (!updatedToken.startsWith('ROOM-')) {
+        updatedToken = `ROOM-${updatedToken}`;
+      }
+    } else {
+      if (updatedToken.startsWith('ROOM-')) {
+        updatedToken = updatedToken.replace(/^ROOM-/, '');
+      }
+    }
+
+    const resolvedAddress = isRoomDelivery 
+      ? (deliveryAddress || order.delivery_address || order.room_number || 'Hostel Room')
+      : null;
+
+    await db.run(`
+      UPDATE orders 
+      SET delivery_type = ?, delivery_address = ?, pickup_token = ?
+      WHERE order_id = ?
+    `, deliveryType, resolvedAddress, updatedToken, numericOrderId);
 
     return await this.getOrderById(numericOrderId);
   },

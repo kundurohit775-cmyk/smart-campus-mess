@@ -156,6 +156,10 @@ export const api = {
       body: JSON.stringify({ status: backendStatus })
     });
   },
+  updateOrderDelivery: (orderId, deliveryType, deliveryAddress) => request(`/orders/${orderId}/delivery`, {
+    method: 'PATCH',
+    body: JSON.stringify({ deliveryType, deliveryAddress })
+  }),
   cancelOrder: (orderId) => request(`/orders/${orderId}/cancel`, { method: 'PATCH' }),
 
   // Demand Forecasting, Feedback Loop & Production Records (Chef)

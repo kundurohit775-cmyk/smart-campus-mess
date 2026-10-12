@@ -132,6 +132,33 @@ router.patch('/:orderId/status', authenticateToken, requireRole('chef', 'admin')
 });
 
 /**
+ * PATCH /api/orders/:orderId/delivery
+ * Chef or Admin or Student updates order delivery mode and address.
+ * Mentions that food will be delivered to the room and prefixes token with ROOM-.
+ */
+router.patch('/:orderId/delivery', authenticateToken, async (req, res, next) => {
+  try {
+    const orderId = parseInt(req.params.orderId, 10);
+    const { deliveryType, deliveryAddress } = req.body;
+
+    if (!deliveryType) {
+      return res.status(400).json({ error: 'deliveryType is required (self-pickup or hostel-delivery).' });
+    }
+
+    const updatedOrder = await orderService.updateOrderDelivery(orderId, deliveryType, deliveryAddress);
+
+    res.json({
+      message: deliveryType === 'hostel-delivery'
+        ? `Order #${orderId} updated: Food will be delivered to room (${updatedOrder.delivery_address || 'Hostel Room'}). Token: ${updatedOrder.pickup_token}`
+        : `Order #${orderId} updated: Counter Pickup. Token: ${updatedOrder.pickup_token}`,
+      order: updatedOrder
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/**
  * PATCH /api/orders/:orderId/cancel
  * Cancels an order. STRICTLY allowed only if status is "Pending".
  * Atomically refunds credits and restores inventory.
