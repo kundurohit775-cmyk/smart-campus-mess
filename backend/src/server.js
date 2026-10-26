@@ -65,6 +65,16 @@ app.post('/api/auth/register', express.json(), (req, res, next) => {
   authRoutes(req, res, next);
 });
 
+app.post('/api/auth/forgot-password', express.json(), (req, res, next) => {
+  req.url = '/forgot-password';
+  authRoutes(req, res, next);
+});
+
+app.post('/api/auth/reset-password', express.json(), (req, res, next) => {
+  req.url = '/reset-password';
+  authRoutes(req, res, next);
+});
+
 // Validate VIT student email for student registration before Better Auth processing
 app.post('/api/auth/sign-up/email', express.json(), (req, res, next) => {
   const email = (req.body?.email || '').trim().toLowerCase();

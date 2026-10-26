@@ -34,5 +34,12 @@ export const config = {
   // Resend Email Configuration for Email OTP Verification
   resendApiKey: process.env.RESEND_API_KEY || '',
   emailFrom: process.env.EMAIL_FROM || 'Smart Campus Mess <onboarding@resend.dev>',
-  otpExpiryMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES, 10) || 10
+  otpExpiryMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES, 10) || 10,
+
+  // SMTP Email Configuration (Nodemailer / Gmail)
+  smtpHost: process.env.SMTP_HOST || '',
+  smtpPort: parseInt(process.env.SMTP_PORT, 10) || 587,
+  smtpUser: process.env.SMTP_USER || process.env.GMAIL_USER || '',
+  smtpPass: process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '',
+  smtpSecure: process.env.SMTP_SECURE === 'true'
 };

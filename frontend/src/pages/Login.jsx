@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { ForgotPasswordModal } from '../components/ForgotPasswordModal';
 import confetti from 'canvas-confetti';
 
 export function Login() {
@@ -49,6 +50,7 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
   // Mobile OTP Login Fields
   const [otpPhone, setOtpPhone] = useState('');
@@ -677,7 +679,7 @@ export function Login() {
 
                   <button
                     type="button"
-                    onClick={() => showToast('Please contact your mess administrator for password resets.', 'info')}
+                    onClick={() => setForgotPasswordOpen(true)}
                     className="font-semibold hover:underline"
                     style={{ color: roleAccentColor }}
                   >
@@ -1053,6 +1055,17 @@ export function Login() {
       <div className="mt-8 text-center text-xs text-[#9B9590] relative z-10">
         VIT University Campus Mess Network • Secure 256-bit SSL
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={forgotPasswordOpen}
+        onClose={() => setForgotPasswordOpen(false)}
+        initialEmail={email}
+        onSuccess={(resetEmail, newPass) => {
+          setEmail(resetEmail);
+          setPassword(newPass);
+        }}
+      />
 
     </div>
   );

@@ -6,6 +6,7 @@ import { config } from '../config/config.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { creditService } from '../services/creditService.js';
 import { smsService } from '../services/smsService.js';
+import { passwordResetService } from '../services/passwordResetService.js';
 
 const router = express.Router();
 
@@ -551,6 +552,52 @@ router.get('/me', authenticateToken, async (req, res, next) => {
     });
   } catch (err) {
     next(err);
+  }
+});
+
+/**
+ * =============================================================================
+ * 6. PASSWORD RESET VIA EMAIL (FORGOT PASSWORD)
+ * =============================================================================
+ * POST /api/auth-helpers/forgot-password (and /api/auth/forgot-password)
+ * Body: { email }
+ * Sends a 6-digit verification code to the registered email address.
+ */
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ error: 'Please enter your registered email address.' });
+    }
+
+    const result = await passwordResetService.requestReset(email.trim());
+    return res.json(result);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/auth-helpers/reset-password (and /api/auth/reset-password)
+ * Body: { email, resetCode, newPassword }
+ * Verifies code and updates password in database.
+ */
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { email, resetCode, newPassword } = req.body;
+    if (!email || !resetCode || !newPassword) {
+      return res.status(400).json({ error: 'Email, verification code, and new password are required.' });
+    }
+
+    const result = await passwordResetService.verifyAndResetPassword({
+      email: email.trim(),
+      resetCode: resetCode.toString().trim(),
+      newPassword
+    });
+
+    return res.json(result);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
   }
 });
 

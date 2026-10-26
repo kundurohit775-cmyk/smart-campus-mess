@@ -180,6 +180,8 @@ export function AuthProvider({ children }) {
       register, 
       sendLoginOtp, 
       loginWithOtp, 
+      forgotPassword: api.forgotPassword,
+      resetPassword: api.resetPassword,
       logout, 
       refreshUser 
     }}>

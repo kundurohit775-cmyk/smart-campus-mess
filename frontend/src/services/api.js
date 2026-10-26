@@ -49,6 +49,8 @@ export const api = {
   verifyLoginOtp: (phone, code) => request('/auth-helpers/login/verify-otp', { method: 'POST', body: JSON.stringify({ phone, code }) }),
   sendOtp: (phone) => request('/auth-helpers/login/send-otp', { method: 'POST', body: JSON.stringify({ phone }) }),
   verifyOtp: (phone, otp) => request('/auth-helpers/login/verify-otp', { method: 'POST', body: JSON.stringify({ phone, code: otp }) }),
+  forgotPassword: (email) => request('/auth-helpers/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (email, resetCode, newPassword) => request('/auth-helpers/reset-password', { method: 'POST', body: JSON.stringify({ email, resetCode, newPassword }) }),
   getMe: () => request('/auth-helpers/me'),
 
   // Menu
