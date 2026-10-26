@@ -53,3 +53,10 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Java build outputs & runtime generated logs
+target/
+*.class
+smartmess-java/target/
+smartmess-java/exports/
+smartmess-java/smartmess_audit_log.txt
