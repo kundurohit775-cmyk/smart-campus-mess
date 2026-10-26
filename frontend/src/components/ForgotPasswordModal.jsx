@@ -16,7 +16,6 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '', onSucc
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [devCode, setDevCode] = useState(null);
   const [countdown, setCountdown] = useState(0);
 
   // Sync initialEmail when opened
@@ -29,7 +28,6 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '', onSucc
       setResetCode('');
       setNewPassword('');
       setConfirmPassword('');
-      setDevCode(null);
       setCountdown(0);
     }
   }, [isOpen, initialEmail]);
@@ -57,10 +55,6 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '', onSucc
     try {
       const res = await api.forgotPassword(cleanEmail);
       showToast(res.message || `Password reset code sent to ${cleanEmail}`, 'success');
-
-      if (res.devCode) {
-        setDevCode(res.devCode);
-      }
 
       setStep(2);
       setCountdown(60);
@@ -185,23 +179,6 @@ export function ForgotPasswordModal({ isOpen, onClose, initialEmail = '', onSucc
                 <span>Change</span>
               </button>
             </div>
-
-            {/* Dev Mode Code Helper */}
-            {devCode && (
-              <div className="bg-[#FFF5F0] border border-[#FF6B35]/30 rounded-xl p-3 flex items-center justify-between text-xs animate-fade-in">
-                <div>
-                  <span className="font-bold text-[#FF6B35]">⚡ Dev Mode Code: </span>
-                  <span className="font-mono font-bold text-[#1E1B16]">{devCode}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setResetCode(devCode)}
-                  className="text-xs bg-[#FF6B35] text-white px-2.5 py-1 rounded-lg font-semibold hover:bg-[#E85D2A] transition"
-                >
-                  Auto-fill
-                </button>
-              </div>
-            )}
 
             {/* 6-Digit Verification Code */}
             <div>

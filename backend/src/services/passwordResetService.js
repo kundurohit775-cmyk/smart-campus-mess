@@ -98,7 +98,6 @@ export const passwordResetService = {
       success: true,
       message: emailResult.message || `Password reset code sent to ${cleanEmail}. Please check your inbox.`,
       email: cleanEmail,
-      devCode: emailResult.devCode || null,
       expiresInMinutes: 15
     };
   },

@@ -2,50 +2,53 @@ import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import { config } from '../config/config.js';
 
-let resendClient = null;
-if (config.resendApiKey) {
-  try {
-    resendClient = new Resend(config.resendApiKey);
-    console.log('✅ Resend email client initialized.');
-  } catch (err) {
-    console.warn('⚠️ Resend email client init warning:', err.message);
+/**
+ * Creates or retrieves the active Nodemailer SMTP transporter.
+ * Supports Gmail (service: 'gmail' or smtp.gmail.com) and custom SMTP servers.
+ */
+function getNodemailerTransporter() {
+  const user = process.env.SMTP_USER || process.env.GMAIL_USER || config.smtpUser;
+  const pass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || config.smtpPass;
+  const host = process.env.SMTP_HOST || config.smtpHost || 'smtp.gmail.com';
+  const port = parseInt(process.env.SMTP_PORT || config.smtpPort || 587, 10);
+  const secure = process.env.SMTP_SECURE === 'true' || config.smtpSecure || false;
+
+  if (!user || !pass) {
+    return null;
   }
+
+  const isGmail = user.includes('@gmail.com') || host.includes('gmail');
+  return nodemailer.createTransport(
+    isGmail
+      ? {
+          service: 'gmail',
+          auth: { user, pass }
+        }
+      : {
+          host,
+          port,
+          secure,
+          auth: { user, pass }
+        }
+  );
 }
 
-let nodemailerTransporter = null;
-if (config.smtpUser && config.smtpPass) {
-  try {
-    const isGmail = config.smtpUser.includes('@gmail.com') || (config.smtpHost && config.smtpHost.includes('gmail'));
-    nodemailerTransporter = nodemailer.createTransport(
-      isGmail
-        ? {
-            service: 'gmail',
-            auth: {
-              user: config.smtpUser,
-              pass: config.smtpPass
-            }
-          }
-        : {
-            host: config.smtpHost || 'smtp.gmail.com',
-            port: config.smtpPort || 587,
-            secure: config.smtpSecure || false,
-            auth: {
-              user: config.smtpUser,
-              pass: config.smtpPass
-            }
-          }
-    );
-    console.log('✅ Nodemailer SMTP transporter initialized with user:', config.smtpUser);
-  } catch (err) {
-    console.warn('⚠️ Nodemailer transporter init warning:', err.message);
+/**
+ * Creates or retrieves the Resend client instance.
+ */
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY || config.resendApiKey;
+  if (!apiKey || apiKey.trim() === '') {
+    return null;
   }
+  return new Resend(apiKey.trim());
 }
 
 export const emailService = {
   /**
-   * Sends a password reset email containing a 6-digit verification code.
-   * Dispatches via Nodemailer SMTP or Resend API if configured,
-   * with simulated console fallback for local development.
+   * Sends a real password reset email containing a 6-digit verification code.
+   * Dispatches via Nodemailer SMTP (Gmail / Custom SMTP) or Resend API.
+   * If no credentials are configured, throws a clear configuration error.
    */
   async sendPasswordResetEmail({ toEmail, recipientName, resetCode, resetUrl }) {
     if (!toEmail) {
@@ -130,17 +133,19 @@ export const emailService = {
 </html>
     `;
 
-    // 1. Send via Nodemailer SMTP if configured
-    if (nodemailerTransporter) {
+    // 1. Try Nodemailer SMTP (Gmail / Custom SMTP)
+    const transporter = getNodemailerTransporter();
+    if (transporter) {
       try {
-        const fromAddress = config.smtpUser ? `"Smart Campus Mess" <${config.smtpUser}>` : config.emailFrom;
-        const info = await nodemailerTransporter.sendMail({
+        const user = process.env.SMTP_USER || process.env.GMAIL_USER || config.smtpUser;
+        const fromAddress = user ? `"Smart Campus Mess" <${user}>` : config.emailFrom;
+        const info = await transporter.sendMail({
           from: fromAddress,
           to: cleanEmail,
           subject,
           html: htmlContent
         });
-        console.log(`✉️ [Nodemailer SMTP] Password reset email sent to ${cleanEmail}. Message ID: ${info.messageId}`);
+        console.log(`✉️ [Nodemailer SMTP] Real password reset email delivered to ${cleanEmail}. Message ID: ${info.messageId}`);
         return {
           success: true,
           provider: 'nodemailer',
@@ -149,15 +154,16 @@ export const emailService = {
           message: `Password reset email dispatched to ${cleanEmail}. Please check your inbox.`
         };
       } catch (smtpErr) {
-        console.error('❌ Nodemailer SMTP send error:', smtpErr.message);
-        // Fall through to Resend or Simulation
+        console.error('❌ Nodemailer SMTP delivery error:', smtpErr.message);
+        throw new Error(`Failed to deliver email via SMTP: ${smtpErr.message}`);
       }
     }
 
-    // 2. Send via Resend API if configured
-    if (resendClient && config.resendApiKey) {
+    // 2. Try Resend API
+    const resend = getResendClient();
+    if (resend) {
       try {
-        const result = await resendClient.emails.send({
+        const result = await resend.emails.send({
           from: config.emailFrom || 'Smart Campus Mess <onboarding@resend.dev>',
           to: cleanEmail,
           subject,
@@ -165,38 +171,27 @@ export const emailService = {
         });
 
         if (result.error) {
-          console.warn('⚠️ Resend API returned error:', result.error.message);
-        } else {
-          console.log(`✉️ [Resend API] Password reset email sent to ${cleanEmail}. ID: ${result.data?.id}`);
-          return {
-            success: true,
-            provider: 'resend',
-            id: result.data?.id,
-            to: cleanEmail,
-            message: `Password reset email dispatched to ${cleanEmail}. Please check your inbox.`
-          };
+          console.error('❌ Resend API delivery error:', result.error.message);
+          throw new Error(`Resend email delivery failed: ${result.error.message}`);
         }
+
+        console.log(`✉️ [Resend API] Real password reset email delivered to ${cleanEmail}. ID: ${result.data?.id}`);
+        return {
+          success: true,
+          provider: 'resend',
+          id: result.data?.id,
+          to: cleanEmail,
+          message: `Password reset email dispatched to ${cleanEmail}. Please check your inbox.`
+        };
       } catch (resendErr) {
         console.error('❌ Resend API delivery error:', resendErr.message);
+        throw new Error(`Failed to deliver email via Resend: ${resendErr.message}`);
       }
     }
 
-    // 3. Simulated Dev Mode Fallback
-    console.log('\n======================================================================');
-    console.log('📧 [DEV EMAIL SIMULATOR] PASSWORD RESET CODE');
-    console.log(`   To:         ${cleanEmail} (${name})`);
-    console.log(`   Subject:    ${subject}`);
-    console.log(`   Reset Code: 🔑 ${code}`);
-    if (resetUrl) console.log(`   Reset Link: 🔗 ${resetUrl}`);
-    console.log('   Expires in: 15 minutes');
-    console.log('======================================================================\n');
-
-    return {
-      success: true,
-      provider: 'simulated-dev',
-      to: cleanEmail,
-      devCode: code,
-      message: `Password reset code sent to ${cleanEmail}. Valid for 15 minutes.`
-    };
+    // 3. No email transport configured
+    throw new Error(
+      'Email service is not configured. To send real emails to inboxes, please add your Gmail/SMTP credentials (SMTP_USER & SMTP_PASS) or RESEND_API_KEY in backend/.env.'
+    );
   }
 };
