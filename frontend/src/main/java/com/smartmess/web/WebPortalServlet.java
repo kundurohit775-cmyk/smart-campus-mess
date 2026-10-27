@@ -252,206 +252,355 @@ public class WebPortalServlet extends HttpServlet {
     }
 
     // =========================================================================
-    // 2. COMMON SIGN-IN PAGE (/login?role=<student|chef|warden|admin>)
+    // 2. ROLE-SPECIFIC DISTINCT SIGN-IN PAGES (/login?role=<student|chef|warden|admin>)
     // =========================================================================
 
     private void renderLoginPage(HttpServletRequest req, HttpServletResponse resp, String role, String error, String msg) throws IOException {
         resp.setContentType("text/html");
         resp.setCharacterEncoding("UTF-8");
 
-        String icon = "🎓";
-        String title = "Student Sign In";
-        String accentColor = "#FF6B35";
-
-        if ("chef".equalsIgnoreCase(role)) {
-            icon = "👨‍🍳";
-            title = "Chef Sign In";
-            accentColor = "#EA580C";
-        } else if ("warden".equalsIgnoreCase(role)) {
-            icon = "🏢";
-            title = "Warden Sign In";
-            accentColor = "#D97706";
-        } else if ("admin".equalsIgnoreCase(role)) {
-            icon = "👑";
-            title = "Admin Sign In";
-            accentColor = "#C2410C";
-        }
-
         try (PrintWriter out = resp.getWriter()) {
-            out.println("<!DOCTYPE html>");
-            out.println("<html lang='en'>");
-            out.println("<head>");
-            out.println("  <meta charset='UTF-8'>");
-            out.println("  <meta name='viewport' content='width=device-width, initial-scale=1.0'>");
-            out.println("  <title>" + title + " - SmartMess</title>");
-            out.println(getCommonStyles());
-            out.println("</head>");
-            out.println("<body>");
-
-            out.println("  <header class='site-header'>");
-            out.println("    <div class='logo'>Smart<span class='accent'>Mess</span></div>");
-            out.println("    <a href='/' class='link-back'>← Change role</a>");
-            out.println("  </header>");
-
-            out.println("  <div class='auth-container'>");
-            out.println("    <div class='auth-card'>");
-
-            // Header of Card
-            out.println("      <div class='auth-card-header'>");
-            out.println("        <div class='role-avatar' style='background: #FFF7F0; color:" + accentColor + "; border: 1px solid #FFE4D6;'>" + icon + "</div>");
-            out.println("        <h2 style='font-size:22px; color:#1E1B16; margin:8px 0 4px;'>" + title + "</h2>");
-            out.println("        <a href='/' class='link-back' style='font-size:12px;'>← Change role</a>");
-            out.println("      </div>");
-
-            // Alerts
-            if (error != null && !error.isEmpty()) {
-                out.println("      <div class='alert alert-error'>⚠️ " + escapeHtml(error) + "</div>");
-            }
-            if (msg != null && !msg.isEmpty()) {
-                out.println("      <div class='alert alert-success'>✅ " + escapeHtml(msg) + "</div>");
-            }
-
-            if ("student".equalsIgnoreCase(role)) {
-                // Two Tabs for Student: Email+Password OR Mobile OTP
-                out.println("      <div class='tab-switcher'>");
-                out.println("        <button type='button' id='tabBtnPassword' class='tab-btn active' onclick='switchStudentTab(\"password\")'>Email &amp; Password</button>");
-                out.println("        <button type='button' id='tabBtnOtp' class='tab-btn' onclick='switchStudentTab(\"otp\")'>Mobile OTP</button>");
-                out.println("      </div>");
-
-                // Tab 1: Student Email + Password Form
-                out.println("      <form id='formPassword' method='POST' action='/login' oninput='validatePasswordForm()'>");
-                out.println("        <input type='hidden' name='role' value='student'>");
-                out.println("        <input type='hidden' name='auth_method' value='password'>");
-
-                out.println("        <div class='form-group'>");
-                out.println("          <label>VIT Student Email <span class='req'>*</span></label>");
-                out.println("          <input type='email' id='studentEmail' name='email' placeholder='name.regno@vitstudent.ac.in' required pattern='.+@vitstudent\\.ac\\.in' value='rohit.kundu2022@vitstudent.ac.in'>");
-                out.println("          <div id='emailErr' class='field-error'>Must end with @vitstudent.ac.in</div>");
-                out.println("        </div>");
-
-                out.println("        <div class='form-group'>");
-                out.println("          <div style='display:flex; justify-content:space-between; align-items:center;'>");
-                out.println("            <label>Password <span class='req'>*</span></label>");
-                out.println("            <a href='/forgot-password' class='link-muted' style='font-size:12px;'>Forgot password?</a>");
-                out.println("          </div>");
-                out.println("          <div class='pwd-wrapper'>");
-                out.println("            <input type='password' id='studentPwd' name='password' minlength='8' placeholder='Minimum 8 characters' required value='Student@123'>");
-                out.println("            <button type='button' class='pwd-toggle' onclick='togglePwdVisibility(\"studentPwd\", this)'>👁️</button>");
-                out.println("          </div>");
-                out.println("          <div id='pwdErr' class='field-error'>Password must be at least 8 characters</div>");
-                out.println("        </div>");
-
-                out.println("        <button type='submit' id='pwdSubmitBtn' class='btn btn-orange btn-block'>Sign In as Student</button>");
-
-                out.println("        <div style='text-align:center; margin-top:16px; font-size:13px; color:#6B6560;'>");
-                out.println("          New student? <a href='/register' style='color:#FF6B35; font-weight:600;'>Register here (+9,000 Credits)</a>");
-                out.println("        </div>");
-                out.println("      </form>");
-
-                // Tab 2: Mobile OTP Form
-                out.println("      <form id='formOtp' method='POST' action='/login' style='display:none;' oninput='validateOtpForm()'>");
-                out.println("        <input type='hidden' name='role' value='student'>");
-                out.println("        <input type='hidden' name='auth_method' value='otp'>");
-
-                out.println("        <div class='form-group'>");
-                out.println("          <label>Registered Mobile Number <span class='req'>*</span></label>");
-                out.println("          <div style='display:flex; gap:8px;'>");
-                out.println("            <input type='tel' id='otpPhone' name='phone' placeholder='+91 9876543210' required style='flex:1;' value='+91 9876543210'>");
-                out.println("            <button type='button' id='sendOtpBtn' class='btn btn-white' onclick='triggerSendOtp()'>Send OTP</button>");
-                out.println("          </div>");
-                out.println("          <div id='otpNotice' style='font-size:12px; color:#10b981; margin-top:4px; display:none;'></div>");
-                out.println("        </div>");
-
-                out.println("        <div class='form-group'>");
-                out.println("          <label>6-Digit Verification Code <span class='req'>*</span></label>");
-                out.println("          <input type='text' id='otpCode' name='otp' placeholder='Enter 6-digit code' maxlength='6' pattern='[0-9]{6}' required value='123456'>");
-                out.println("          <div style='font-size:11px; color:#6B6560; margin-top:3px;'>Code expires in 5 minutes. Simulation code: 123456</div>");
-                out.println("        </div>");
-
-                out.println("        <button type='submit' id='otpSubmitBtn' class='btn btn-orange btn-block'>Verify OTP &amp; Sign In</button>");
-                out.println("      </form>");
-
+            if ("chef".equalsIgnoreCase(role)) {
+                renderChefLoginPage(out, error, msg);
+            } else if ("warden".equalsIgnoreCase(role)) {
+                renderWardenLoginPage(out, error, msg);
+            } else if ("admin".equalsIgnoreCase(role)) {
+                renderAdminLoginPage(out, error, msg);
             } else {
-                // Chef, Warden, or Admin Form
-                String defaultEmail = "chef".equalsIgnoreCase(role) ? "chef.campus@vit.ac.in" : "admin".equalsIgnoreCase(role) ? "admin.mess@vit.ac.in" : "warden.blockb@vit.ac.in";
-                String defaultPwd = "chef".equalsIgnoreCase(role) ? "Chef@123" : "admin".equalsIgnoreCase(role) ? "Admin@123" : "Warden@123";
-
-                out.println("      <form method='POST' action='/login' oninput='validateStandardForm()'>");
-                out.println("        <input type='hidden' name='role' value='" + role + "'>");
-
-                out.println("        <div class='form-group'>");
-                out.println("          <label>Authorized " + capitalize(role) + " Email <span class='req'>*</span></label>");
-                out.println("          <input type='email' id='stdEmail' name='email' required value='" + defaultEmail + "'>");
-                if ("chef".equalsIgnoreCase(role)) {
-                    out.println("          <div style='font-size:11px; color:#6B6560; margin-top:3px;'>Restricted to authorized Chef account (" + defaultEmail + ")</div>");
-                } else if ("admin".equalsIgnoreCase(role)) {
-                    out.println("          <div style='font-size:11px; color:#6B6560; margin-top:3px;'>Restricted to Campus Mess Committee Admin (" + defaultEmail + ")</div>");
-                } else if ("warden".equalsIgnoreCase(role)) {
-                    out.println("          <div style='font-size:11px; color:#6B6560; margin-top:3px;'>Accounts from wardens table (e.g. warden.blockb@vit.ac.in)</div>");
-                }
-                out.println("        </div>");
-
-                out.println("        <div class='form-group'>");
-                out.println("          <div style='display:flex; justify-content:space-between; align-items:center;'>");
-                out.println("            <label>Password <span class='req'>*</span></label>");
-                out.println("            <a href='/forgot-password' class='link-muted' style='font-size:12px;'>Forgot password?</a>");
-                out.println("          </div>");
-                out.println("          <div class='pwd-wrapper'>");
-                out.println("            <input type='password' id='stdPwd' name='password' minlength='8' required value='" + defaultPwd + "'>");
-                out.println("            <button type='button' class='pwd-toggle' onclick='togglePwdVisibility(\"stdPwd\", this)'>👁️</button>");
-                out.println("          </div>");
-                out.println("        </div>");
-
-                out.println("        <button type='submit' id='stdSubmitBtn' class='btn btn-orange btn-block' style='background:" + accentColor + ";'>Sign In as " + capitalize(role) + "</button>");
-                out.println("      </form>");
+                renderStudentLoginPage(out, error, msg);
             }
-
-            out.println("    </div>");
-            out.println("  </div>");
-
-            // Inline Client-side scripts for UX (Tab toggling, password peek, client countdown)
-            out.println("  <script>");
-            out.println("    function switchStudentTab(tab) {");
-            out.println("      var formPwd = document.getElementById('formPassword');");
-            out.println("      var formOtp = document.getElementById('formOtp');");
-            out.println("      var btnPwd = document.getElementById('tabBtnPassword');");
-            out.println("      var btnOtp = document.getElementById('tabBtnOtp');");
-            out.println("      if (tab === 'otp') {");
-            out.println("        formPwd.style.display = 'none'; formOtp.style.display = 'block';");
-            out.println("        btnPwd.classList.remove('active'); btnOtp.classList.add('active');");
-            out.println("      } else {");
-            out.println("        formPwd.style.display = 'block'; formOtp.style.display = 'none';");
-            out.println("        btnOtp.classList.remove('active'); btnPwd.classList.add('active');");
-            out.println("      }");
-            out.println("    }");
-            out.println("    function togglePwdVisibility(inputId, btn) {");
-            out.println("      var input = document.getElementById(inputId);");
-            out.println("      if (input.type === 'password') { input.type = 'text'; btn.innerText = '🔒'; }");
-            out.println("      else { input.type = 'password'; btn.innerText = '👁️'; }");
-            out.println("    }");
-            out.println("    function triggerSendOtp() {");
-            out.println("      var phone = document.getElementById('otpPhone').value;");
-            out.println("      var btn = document.getElementById('sendOtpBtn');");
-            out.println("      var notice = document.getElementById('otpNotice');");
-            out.println("      notice.style.display = 'block'; notice.innerText = 'Sending 6-digit OTP...';");
-            out.println("      fetch('/api/java/auth', {");
-            out.println("        method: 'POST', headers: { 'Content-Type': 'application/json' },");
-            out.println("        body: JSON.stringify({ action: 'send_mobile_otp', phone: phone })");
-            out.println("      }).then(r => r.json()).then(data => {");
-            out.println("        notice.innerText = data.message;");
-            out.println("        var sec = data.countdown || 60;");
-            out.println("        btn.disabled = true;");
-            out.println("        var timer = setInterval(function() {");
-            out.println("          sec--; btn.innerText = 'Resend in ' + sec + 's';");
-            out.println("          if (sec <= 0) { clearInterval(timer); btn.disabled = false; btn.innerText = 'Send OTP'; }");
-            out.println("        }, 1000);");
-            out.println("      });");
-            out.println("    }");
-            out.println("  </script>");
-
-            out.println("</body>");
-            out.println("</html>");
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // 2A. STUDENT RESIDENT SIGN-IN PAGE
+    // -------------------------------------------------------------------------
+    private void renderStudentLoginPage(PrintWriter out, String error, String msg) {
+        out.println("<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+        out.println("<title>Student Resident Sign In - SmartMess</title>");
+        out.println(getCommonStyles());
+        out.println("</head><body style='background:#FAF8F5;'>");
+        out.println("  <header class='site-header'>");
+        out.println("    <div class='logo'>Smart<span class='accent'>Mess</span></div>");
+        out.println("    <a href='/' class='link-back'>← Change role</a>");
+        out.println("  </header>");
+
+        out.println("  <div class='auth-container'>");
+        out.println("    <div class='auth-card' style='border: 2px solid #FF6B35; box-shadow: 0 10px 30px rgba(255, 107, 53, 0.15);'>");
+        out.println("      <div class='auth-card-header'>");
+        out.println("        <div class='role-avatar icon-student' style='width:56px; height:56px; font-size:28px;'>🎓</div>");
+        out.println("        <h2 style='font-size:24px; color:#1E1B16; margin:8px 0 4px;'>Student Resident Portal</h2>");
+        out.println("        <p style='color:#6B6560; font-size:13px; margin:0;'>Order meals, track orders via live FIFO stepper, &amp; manage 9,000 monthly credits</p>");
+        out.println("      </div>");
+
+        if (error != null && !error.isEmpty()) out.println("      <div class='alert alert-error'>⚠️ " + escapeHtml(error) + "</div>");
+        if (msg != null && !msg.isEmpty()) out.println("      <div class='alert alert-success'>✅ " + escapeHtml(msg) + "</div>");
+
+        out.println("      <div class='tab-switcher'>");
+        out.println("        <button type='button' id='tabBtnPassword' class='tab-btn active' onclick='switchStudentTab(\"password\")'>VIT Email &amp; Password</button>");
+        out.println("        <button type='button' id='tabBtnOtp' class='tab-btn' onclick='switchStudentTab(\"otp\")'>Mobile OTP Login</button>");
+        out.println("      </div>");
+
+        // Tab 1: Email + Password Form
+        out.println("      <form id='formPassword' method='POST' action='/login'>");
+        out.println("        <input type='hidden' name='role' value='student'>");
+        out.println("        <input type='hidden' name='auth_method' value='password'>");
+        out.println("        <div class='form-group'>");
+        out.println("          <label>VIT Student Email <span class='req'>*</span></label>");
+        out.println("          <input type='email' id='studentEmail' name='email' placeholder='name.regno@vitstudent.ac.in' required pattern='.+@vitstudent\\.ac\\.in' value='rohit.kundu2022@vitstudent.ac.in'>");
+        out.println("          <div style='font-size:11px; color:#6B6560; margin-top:2px;'>Must end with @vitstudent.ac.in</div>");
+        out.println("        </div>");
+        out.println("        <div class='form-group'>");
+        out.println("          <div style='display:flex; justify-content:space-between; align-items:center;'>");
+        out.println("            <label>Password <span class='req'>*</span></label>");
+        out.println("            <a href='/forgot-password' class='link-muted' style='font-size:12px;'>Forgot password?</a>");
+        out.println("          </div>");
+        out.println("          <div class='pwd-wrapper'>");
+        out.println("            <input type='password' id='studentPwd' name='password' minlength='8' required value='Student@123'>");
+        out.println("            <button type='button' class='pwd-toggle' onclick='togglePwdVisibility(\"studentPwd\", this)'>👁️</button>");
+        out.println("          </div>");
+        out.println("        </div>");
+        out.println("        <button type='submit' class='btn btn-orange btn-block'>Sign In as Student</button>");
+        out.println("        <div style='text-align:center; margin-top:16px; font-size:13px; color:#6B6560;'>");
+        out.println("          New student? <a href='/register' style='color:#FF6B35; font-weight:600;'>Register here (+9,000 Credits)</a>");
+        out.println("        </div>");
+        out.println("      </form>");
+
+        // Tab 2: Mobile OTP Form
+        out.println("      <form id='formOtp' method='POST' action='/login' style='display:none;'>");
+        out.println("        <input type='hidden' name='role' value='student'>");
+        out.println("        <input type='hidden' name='auth_method' value='otp'>");
+        out.println("        <div class='form-group'>");
+        out.println("          <label>Registered Mobile Number <span class='req'>*</span></label>");
+        out.println("          <div style='display:flex; gap:8px;'>");
+        out.println("            <input type='tel' id='otpPhone' name='phone' placeholder='+91 9876543210' required style='flex:1;' value='+91 9876543210'>");
+        out.println("            <button type='button' id='sendOtpBtn' class='btn btn-white' onclick='triggerSendOtp()'>Send OTP</button>");
+        out.println("          </div>");
+        out.println("          <div id='otpNotice' style='font-size:12px; color:#10b981; margin-top:4px; display:none;'></div>");
+        out.println("        </div>");
+        out.println("        <div class='form-group'>");
+        out.println("          <label>6-Digit Verification Code <span class='req'>*</span></label>");
+        out.println("          <input type='text' id='otpCode' name='otp' placeholder='Enter 6-digit code' maxlength='6' pattern='[0-9]{6}' required value='123456'>");
+        out.println("          <div style='font-size:11px; color:#6B6560; margin-top:3px;'>Simulated code: 123456 (Expires in 5 minutes)</div>");
+        out.println("        </div>");
+        out.println("        <button type='submit' class='btn btn-orange btn-block'>Verify OTP &amp; Sign In</button>");
+        out.println("      </form>");
+
+        // Demo credentials chip
+        out.println("      <div style='margin-top:20px; padding:10px; background:#FFF7F0; border-radius:8px; border:1px dashed #FFD9C4; text-align:center;'>");
+        out.println("        <span style='font-size:12px; color:#6B6560;'>Quick Demo Fill: </span>");
+        out.println("        <button type='button' onclick='fillStudentDemo()' style='border:none; background:#FF6B35; color:white; font-size:11px; font-weight:bold; padding:4px 10px; border-radius:4px; cursor:pointer;'>Rohit Kundu (Student@123)</button>");
+        out.println("      </div>");
+
+        out.println("    </div></div>");
+        renderAuthScripts(out);
+        out.println("</body></html>");
+    }
+
+    // -------------------------------------------------------------------------
+    // 2B. CHEF / MESS KITCHEN STAFF SIGN-IN PAGE
+    // -------------------------------------------------------------------------
+    private void renderChefLoginPage(PrintWriter out, String error, String msg) {
+        out.println("<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+        out.println("<title>Chef &amp; Kitchen Staff Portal - SmartMess</title>");
+        out.println(getCommonStyles());
+        out.println("</head><body style='background:#0f172a;'>");
+        out.println("  <header class='site-header' style='background:#1e293b; border-color:#334155;'>");
+        out.println("    <div class='logo' style='color:#f8fafc;'>Smart<span style='color:#EA580C;'>Mess</span> <span style='font-size:13px; color:#94a3b8; font-weight:normal;'>| Kitchen Staff</span></div>");
+        out.println("    <a href='/' class='link-back' style='color:#94a3b8;'>← Change role</a>");
+        out.println("  </header>");
+
+        out.println("  <div class='auth-container'>");
+        out.println("    <div class='auth-card' style='background:#1e293b; border: 2px solid #EA580C; box-shadow: 0 10px 30px rgba(234, 88, 12, 0.3); color:#f8fafc;'>");
+        out.println("      <div class='auth-card-header'>");
+        out.println("        <div class='role-avatar' style='background:#2a1508; color:#EA580C; border:1px solid #7c2d12; width:56px; height:56px; font-size:28px;'>👨‍🍳</div>");
+        out.println("        <h2 style='font-size:24px; color:#f8fafc; margin:8px 0 4px;'>Chef &amp; Kitchen Staff Console</h2>");
+        out.println("        <p style='color:#94a3b8; font-size:13px; margin:0;'>Live FIFO cooking queue, menu inventory toggling &amp; daily food waste audit</p>");
+        out.println("      </div>");
+
+        // Kitchen Station Operational Badge
+        out.println("      <div style='background:rgba(234, 88, 12, 0.15); border:1px solid #EA580C; padding:10px 14px; border-radius:8px; margin-bottom:16px; color:#fdba74; font-size:12px;'>");
+        out.println("        🔥 <strong>Kitchen Station:</strong> Central Mess Main Kitchen • Mode: Active Dispatch");
+        out.println("      </div>");
+
+        if (error != null && !error.isEmpty()) out.println("      <div class='alert alert-error'>⚠️ " + escapeHtml(error) + "</div>");
+        if (msg != null && !msg.isEmpty()) out.println("      <div class='alert alert-success'>✅ " + escapeHtml(msg) + "</div>");
+
+        out.println("      <form method='POST' action='/login'>");
+        out.println("        <input type='hidden' name='role' value='chef'>");
+        out.println("        <div class='form-group'>");
+        out.println("          <label style='color:#cbd5e1;'>Authorized Kitchen Staff Email <span class='req'>*</span></label>");
+        out.println("          <input type='email' id='chefEmail' name='email' style='background:#0f172a; color:#f8fafc; border-color:#475569;' required value='chef.campus@vit.ac.in'>");
+        out.println("          <div style='font-size:11px; color:#94a3b8; margin-top:2px;'>Restricted to designated CHEF_EMAIL (chef.campus@vit.ac.in)</div>");
+        out.println("        </div>");
+        out.println("        <div class='form-group'>");
+        out.println("          <div style='display:flex; justify-content:space-between; align-items:center;'>");
+        out.println("            <label style='color:#cbd5e1;'>Kitchen Master Password <span class='req'>*</span></label>");
+        out.println("            <a href='/forgot-password' style='color:#fdba74; font-size:12px;'>Forgot?</a>");
+        out.println("          </div>");
+        out.println("          <div class='pwd-wrapper'>");
+        out.println("            <input type='password' id='chefPwd' name='password' minlength='8' style='background:#0f172a; color:#f8fafc; border-color:#475569;' required value='Chef@123'>");
+        out.println("            <button type='button' class='pwd-toggle' style='color:#94a3b8;' onclick='togglePwdVisibility(\"chefPwd\", this)'>👁️</button>");
+        out.println("          </div>");
+        out.println("        </div>");
+        out.println("        <button type='submit' class='btn btn-orange btn-block' style='background:#EA580C;'>Sign In to Kitchen Queue →</button>");
+        out.println("      </form>");
+
+        // Demo credentials chip
+        out.println("      <div style='margin-top:20px; padding:10px; background:#0f172a; border-radius:8px; border:1px dashed #475569; text-align:center;'>");
+        out.println("        <span style='font-size:12px; color:#94a3b8;'>Quick Demo Fill: </span>");
+        out.println("        <button type='button' onclick='fillChefDemo()' style='border:none; background:#EA580C; color:white; font-size:11px; font-weight:bold; padding:4px 10px; border-radius:4px; cursor:pointer;'>Head Chef Vikram (Chef@123)</button>");
+        out.println("      </div>");
+
+        out.println("    </div></div>");
+        renderAuthScripts(out);
+        out.println("</body></html>");
+    }
+
+    // -------------------------------------------------------------------------
+    // 2C. HOSTEL WARDEN SIGN-IN PAGE
+    // -------------------------------------------------------------------------
+    private void renderWardenLoginPage(PrintWriter out, String error, String msg) {
+        out.println("<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+        out.println("<title>Hostel Warden Administration Portal - SmartMess</title>");
+        out.println(getCommonStyles());
+        out.println("</head><body style='background:#091224;'>");
+        out.println("  <header class='site-header' style='background:#0f172a; border-color:#1e293b;'>");
+        out.println("    <div class='logo' style='color:#f8fafc;'>Smart<span style='color:#0284C7;'>Mess</span> <span style='font-size:13px; color:#94a3b8; font-weight:normal;'>| Hostel Warden Portal</span></div>");
+        out.println("    <a href='/' class='link-back' style='color:#94a3b8;'>← Change role</a>");
+        out.println("  </header>");
+
+        out.println("  <div class='auth-container'>");
+        out.println("    <div class='auth-card' style='background:#0f172a; border: 2px solid #0284C7; box-shadow: 0 10px 30px rgba(2, 132, 199, 0.3); color:#f8fafc;'>");
+        out.println("      <div class='auth-card-header'>");
+        out.println("        <div class='role-avatar' style='background:#0c2338; color:#0284C7; border:1px solid #0369a1; width:56px; height:56px; font-size:28px;'>🏢</div>");
+        out.println("        <h2 style='font-size:24px; color:#f8fafc; margin:8px 0 4px;'>Hostel Warden Portal</h2>");
+        out.println("        <p style='color:#94a3b8; font-size:13px; margin:0;'>Student sick-leave quarantine &amp; in-room meal delivery authorizations</p>");
+        out.println("      </div>");
+
+        // Hostel Directorate Banner
+        out.println("      <div style='background:rgba(2, 132, 199, 0.15); border:1px solid #0284C7; padding:10px 14px; border-radius:8px; margin-bottom:16px; color:#bae6fd; font-size:12px;'>");
+        out.println("        🏥 <strong>Directorate:</strong> Hostel Residential Health Care &amp; Sick Leave Verification");
+        out.println("      </div>");
+
+        if (error != null && !error.isEmpty()) out.println("      <div class='alert alert-error'>⚠️ " + escapeHtml(error) + "</div>");
+        if (msg != null && !msg.isEmpty()) out.println("      <div class='alert alert-success'>✅ " + escapeHtml(msg) + "</div>");
+
+        out.println("      <form method='POST' action='/login'>");
+        out.println("        <input type='hidden' name='role' value='warden'>");
+        out.println("        <div class='form-group'>");
+        out.println("          <label style='color:#cbd5e1;'>Assigned Hostel Block <span class='req'>*</span></label>");
+        out.println("          <select name='hostelBlock' id='wardenBlock' style='width:100%; padding:10px 12px; background:#1e293b; color:#f8fafc; border:1px solid #475569; border-radius:8px;'>");
+        out.println("            <option value='Block B'>Block B (Boys Hostel - Dr. S. Raman)</option>");
+        out.println("            <option value='Block C'>Block C (Boys Hostel - Prof. Priya Nair)</option>");
+        out.println("            <option value='Block A'>Block A (Girls Hostel - Mr. K. Varma)</option>");
+        out.println("          </select>");
+        out.println("          <div style='font-size:11px; color:#94a3b8; margin-top:2px;'>You will strictly inspect room delivery requests for this block</div>");
+        out.println("        </div>");
+        out.println("        <div class='form-group'>");
+        out.println("          <label style='color:#cbd5e1;'>Official Institutional Email <span class='req'>*</span></label>");
+        out.println("          <input type='email' id='wardenEmail' name='email' style='background:#1e293b; color:#f8fafc; border-color:#475569;' required value='warden.blockb@vit.ac.in'>");
+        out.println("        </div>");
+        out.println("        <div class='form-group'>");
+        out.println("          <div style='display:flex; justify-content:space-between; align-items:center;'>");
+        out.println("            <label style='color:#cbd5e1;'>Warden Access Password <span class='req'>*</span></label>");
+        out.println("            <a href='/forgot-password' style='color:#38bdf8; font-size:12px;'>Forgot?</a>");
+        out.println("          </div>");
+        out.println("          <div class='pwd-wrapper'>");
+        out.println("            <input type='password' id='wardenPwd' name='password' minlength='8' style='background:#1e293b; color:#f8fafc; border-color:#475569;' required value='Warden@123'>");
+        out.println("            <button type='button' class='pwd-toggle' style='color:#94a3b8;' onclick='togglePwdVisibility(\"wardenPwd\", this)'>👁️</button>");
+        out.println("          </div>");
+        out.println("        </div>");
+        out.println("        <button type='submit' class='btn btn-orange btn-block' style='background:#0284C7;'>Sign In as Warden →</button>");
+        out.println("      </form>");
+
+        // Demo credentials chip
+        out.println("      <div style='margin-top:20px; padding:10px; background:#1e293b; border-radius:8px; border:1px dashed #475569; text-align:center;'>");
+        out.println("        <span style='font-size:12px; color:#94a3b8;'>Quick Demo Fill: </span>");
+        out.println("        <button type='button' onclick='fillWardenDemo()' style='border:none; background:#0284C7; color:white; font-size:11px; font-weight:bold; padding:4px 10px; border-radius:4px; cursor:pointer;'>Dr. Ramanathan (Block B - Warden@123)</button>");
+        out.println("      </div>");
+
+        out.println("    </div></div>");
+        renderAuthScripts(out);
+        out.println("</body></html>");
+    }
+
+    // -------------------------------------------------------------------------
+    // 2D. CAMPUS MESS EXECUTIVE ADMINISTRATION SIGN-IN PAGE
+    // -------------------------------------------------------------------------
+    private void renderAdminLoginPage(PrintWriter out, String error, String msg) {
+        out.println("<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+        out.println("<title>Campus Mess Executive Administration - SmartMess</title>");
+        out.println(getCommonStyles());
+        out.println("</head><body style='background:#12071f;'>");
+        out.println("  <header class='site-header' style='background:#1e1b4b; border-color:#2e1065;'>");
+        out.println("    <div class='logo' style='color:#f8fafc;'>Smart<span style='color:#C026D3;'>Mess</span> <span style='font-size:13px; color:#c084fc; font-weight:normal;'>| Executive Administration</span></div>");
+        out.println("    <a href='/' class='link-back' style='color:#c084fc;'>← Change role</a>");
+        out.println("  </header>");
+
+        out.println("  <div class='auth-container'>");
+        out.println("    <div class='auth-card' style='background:#1e1b4b; border: 2px solid #9333EA; box-shadow: 0 10px 30px rgba(147, 51, 234, 0.35); color:#f8fafc;'>");
+        out.println("      <div class='auth-card-header'>");
+        out.println("        <div class='role-avatar' style='background:#2e1065; color:#C026D3; border:1px solid #7e22ce; width:56px; height:56px; font-size:28px;'>👑</div>");
+        out.println("        <h2 style='font-size:24px; color:#f8fafc; margin:8px 0 4px;'>Executive Mess Administration</h2>");
+        out.println("        <p style='color:#c084fc; font-size:13px; margin:0;'>Campus telemetry analytics, 1-click 9,000 credit reset &amp; security audit log</p>");
+        out.println("      </div>");
+
+        // Security Clearance Banner
+        out.println("      <div style='background:rgba(147, 51, 234, 0.15); border:1px solid #9333EA; padding:10px 14px; border-radius:8px; margin-bottom:16px; color:#e9d5ff; font-size:12px;'>");
+        out.println("        🛡️ <strong>Clearance:</strong> Level 4 Root Authority • Campus Mess Executive Committee");
+        out.println("      </div>");
+
+        if (error != null && !error.isEmpty()) out.println("      <div class='alert alert-error'>⚠️ " + escapeHtml(error) + "</div>");
+        if (msg != null && !msg.isEmpty()) out.println("      <div class='alert alert-success'>✅ " + escapeHtml(msg) + "</div>");
+
+        out.println("      <form method='POST' action='/login'>");
+        out.println("        <input type='hidden' name='role' value='admin'>");
+        out.println("        <div class='form-group'>");
+        out.println("          <label style='color:#e9d5ff;'>Administrator Master Email <span class='req'>*</span></label>");
+        out.println("          <input type='email' id='adminEmail' name='email' style='background:#0f0926; color:#f8fafc; border-color:#6b21a8;' required value='admin.mess@vit.ac.in'>");
+        out.println("          <div style='font-size:11px; color:#c084fc; margin-top:2px;'>Restricted to designated ADMIN_EMAIL (admin.mess@vit.ac.in)</div>");
+        out.println("        </div>");
+        out.println("        <div class='form-group'>");
+        out.println("          <div style='display:flex; justify-content:space-between; align-items:center;'>");
+        out.println("            <label style='color:#e9d5ff;'>Executive Master Password <span class='req'>*</span></label>");
+        out.println("            <a href='/forgot-password' style='color:#e879f9; font-size:12px;'>Forgot?</a>");
+        out.println("          </div>");
+        out.println("          <div class='pwd-wrapper'>");
+        out.println("            <input type='password' id='adminPwd' name='password' minlength='8' style='background:#0f0926; color:#f8fafc; border-color:#6b21a8;' required value='Admin@123'>");
+        out.println("            <button type='button' class='pwd-toggle' style='color:#c084fc;' onclick='togglePwdVisibility(\"adminPwd\", this)'>👁️</button>");
+        out.println("          </div>");
+        out.println("        </div>");
+        out.println("        <button type='submit' class='btn btn-orange btn-block' style='background:#9333EA;'>Sign In to Executive Console →</button>");
+        out.println("      </form>");
+
+        // Demo credentials chip
+        out.println("      <div style='margin-top:20px; padding:10px; background:#0f0926; border-radius:8px; border:1px dashed #6b21a8; text-align:center;'>");
+        out.println("        <span style='font-size:12px; color:#c084fc;'>Quick Demo Fill: </span>");
+        out.println("        <button type='button' onclick='fillAdminDemo()' style='border:none; background:#9333EA; color:white; font-size:11px; font-weight:bold; padding:4px 10px; border-radius:4px; cursor:pointer;'>Mess Committee Admin (Admin@123)</button>");
+        out.println("      </div>");
+
+        out.println("    </div></div>");
+        renderAuthScripts(out);
+        out.println("</body></html>");
+    }
+
+    private void renderAuthScripts(PrintWriter out) {
+        out.println("  <script>");
+        out.println("    function switchStudentTab(tab) {");
+        out.println("      var formPwd = document.getElementById('formPassword');");
+        out.println("      var formOtp = document.getElementById('formOtp');");
+        out.println("      var btnPwd = document.getElementById('tabBtnPassword');");
+        out.println("      var btnOtp = document.getElementById('tabBtnOtp');");
+        out.println("      if (tab === 'otp') {");
+        out.println("        formPwd.style.display = 'none'; formOtp.style.display = 'block';");
+        out.println("        btnPwd.classList.remove('active'); btnOtp.classList.add('active');");
+        out.println("      } else {");
+        out.println("        formPwd.style.display = 'block'; formOtp.style.display = 'none';");
+        out.println("        btnOtp.classList.remove('active'); btnPwd.classList.add('active');");
+        out.println("      }");
+        out.println("    }");
+        out.println("    function togglePwdVisibility(inputId, btn) {");
+        out.println("      var input = document.getElementById(inputId);");
+        out.println("      if (input.type === 'password') { input.type = 'text'; btn.innerText = '🔒'; }");
+        out.println("      else { input.type = 'password'; btn.innerText = '👁️'; }");
+        out.println("    }");
+        out.println("    function fillStudentDemo() {");
+        out.println("      document.getElementById('studentEmail').value = 'rohit.kundu2022@vitstudent.ac.in';");
+        out.println("      document.getElementById('studentPwd').value = 'Student@123';");
+        out.println("    }");
+        out.println("    function fillChefDemo() {");
+        out.println("      document.getElementById('chefEmail').value = 'chef.campus@vit.ac.in';");
+        out.println("      document.getElementById('chefPwd').value = 'Chef@123';");
+        out.println("    }");
+        out.println("    function fillWardenDemo() {");
+        out.println("      document.getElementById('wardenEmail').value = 'warden.blockb@vit.ac.in';");
+        out.println("      document.getElementById('wardenPwd').value = 'Warden@123';");
+        out.println("      document.getElementById('wardenBlock').value = 'Block B';");
+        out.println("    }");
+        out.println("    function fillAdminDemo() {");
+        out.println("      document.getElementById('adminEmail').value = 'admin.mess@vit.ac.in';");
+        out.println("      document.getElementById('adminPwd').value = 'Admin@123';");
+        out.println("    }");
+        out.println("    function triggerSendOtp() {");
+        out.println("      var phone = document.getElementById('otpPhone').value;");
+        out.println("      var btn = document.getElementById('sendOtpBtn');");
+        out.println("      var notice = document.getElementById('otpNotice');");
+        out.println("      notice.style.display = 'block'; notice.innerText = 'Sending 6-digit OTP...';");
+        out.println("      fetch('/api/java/auth', {");
+        out.println("        method: 'POST', headers: { 'Content-Type': 'application/json' },");
+        out.println("        body: JSON.stringify({ action: 'send_mobile_otp', phone: phone })");
+        out.println("      }).then(r => r.json()).then(data => {");
+        out.println("        notice.innerText = data.message;");
+        out.println("        var sec = data.countdown || 60;");
+        out.println("        btn.disabled = true;");
+        out.println("        var timer = setInterval(function() {");
+        out.println("          sec--; btn.innerText = 'Resend in ' + sec + 's';");
+        out.println("          if (sec <= 0) { clearInterval(timer); btn.disabled = false; btn.innerText = 'Send OTP'; }");
+        out.println("        }, 1000);");
+        out.println("      });");
+        out.println("    }");
+        out.println("  </script>");
     }
 
     // =========================================================================

@@ -8,6 +8,8 @@ import com.smartmess.db.DatabaseConnection;
 import com.smartmess.model.MenuItem;
 import com.smartmess.model.OrderItem;
 import com.smartmess.model.OrderStatus;
+import com.smartmess.model.Student;
+import com.smartmess.auth.SecurityService;
 import com.smartmess.server.EmbeddedServletServer;
 import com.smartmess.service.MessServiceImpl;
 import javafx.application.Application;
@@ -19,6 +21,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -53,6 +56,12 @@ public class SmartMessFXApp extends Application {
     private ServletApiClient apiClient;
     private EmbeddedServletServer autoServer;
 
+    private Stage mainStage;
+    private String activeRole = null;
+    private String activeUserName = "Rohit Kundu";
+    private String activeUserEmail = "rohit.kundu2022@vitstudent.ac.in";
+    private String activeUserExtra = "Block B - Room 304";
+
     // Current Session State
     private int currentStudentId = 22;
     private String currentStudentName = "Rohit Kundu";
@@ -63,9 +72,9 @@ public class SmartMessFXApp extends Application {
     private final int dailyCalorieGoal = 2000;
 
     // Header Badges
-    private Label studentBadgeLabel;
-    private Label creditsValueLabel;
-    private Label serverStatusBadge;
+    private Label studentBadgeLabel = new Label("👤 Rohit Kundu");
+    private Label creditsValueLabel = new Label("9000 Cr");
+    private Label serverStatusBadge = new Label("● SERVLETS READY");
     private TextArea logArea;
 
     // Tab 1: Menu & Tray State
@@ -122,6 +131,7 @@ public class SmartMessFXApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        this.mainStage = primaryStage;
         primaryStage.setTitle("SmartMess - Campus Mess Management System (JavaFX & Java Servlets)");
 
         apiClient = new ServletApiClient("http://localhost:8080");
@@ -129,56 +139,12 @@ public class SmartMessFXApp extends Application {
         // Ensure Java Servlet Container is running
         ensureServerRunning();
 
-        BorderPane root = new BorderPane();
-        root.setStyle("-fx-background-color: #0f172a;");
+        // Show the initial Role Selection Landing Screen
+        showRoleSelectionScreen();
 
-        // Top Header
-        VBox headerBox = createHeader(primaryStage);
-        root.setTop(headerBox);
-
-        // Center Tabs (All 8 Roles & Features)
-        TabPane tabPane = new TabPane();
-        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        tabPane.setStyle("-fx-background-color: #0f172a; -fx-tab-min-width: 130px; -fx-tab-min-height: 36px;");
-
-        Tab menuTab = new Tab("🍽️ Student Menu & Tray", createMenuAndTrayTab());
-        Tab trackerTab = new Tab("📱 Live Stepper & Tracker", createLiveStepperTab());
-        Tab walletTab = new Tab("💳 Wallet & Pre-Orders", createWalletAndPreOrdersTab());
-        Tab kitchenTab = new Tab("👨‍🍳 Chef Kitchen & Wastage", createKitchenQueueTab());
-        Tab adminTab = new Tab("👑 Admin Analytics", createAdminTab());
-        Tab wardenTab = new Tab("🏥 Warden Sick Leave", createWardenTab());
-        Tab sustainabilityTab = new Tab("🌱 Sustainability Hub", createSustainabilityTab());
-        Tab historyTab = new Tab("📜 History & CSV", createOrderHistoryTab());
-        Tab diagnosticsTab = new Tab("⚡ Diagnostics & JDBC", createDiagnosticsTab());
-
-        tabPane.getTabs().addAll(
-                menuTab, trackerTab, walletTab,
-                kitchenTab, adminTab, wardenTab,
-                sustainabilityTab, historyTab, diagnosticsTab
-        );
-        root.setCenter(tabPane);
-
-        // Bottom Status Bar
-        HBox statusBar = createStatusBar();
-        root.setBottom(statusBar);
-
-        Scene scene = new Scene(root, 1260, 840);
-        scene.getStylesheets().add(createInlineStyles());
-
-        primaryStage.setScene(scene);
-        primaryStage.setMinWidth(1100);
-        primaryStage.setMinHeight(760);
+        primaryStage.setMinWidth(1180);
+        primaryStage.setMinHeight(780);
         primaryStage.show();
-
-        // Initial Data Load
-        refreshMenuData("All", false);
-        refreshKitchenQueue();
-        refreshOrderHistory();
-        refreshPreOrders();
-        refreshHealthRequests();
-        refreshSustainabilityMetrics();
-        refreshAdminAnalytics();
-        seedInitialActiveOrders();
     }
 
     @Override
@@ -203,10 +169,825 @@ public class SmartMessFXApp extends Application {
     }
 
     // =========================================================================
-    // HEADER & DUAL AUTH
+    // ROLE SELECTION & AUTHENTICATION SCREENS
     // =========================================================================
 
-    private VBox createHeader(Stage ownerStage) {
+    public void showRoleSelectionScreen() {
+        BorderPane root = new BorderPane();
+        root.setStyle("-fx-background-color: #0b1329;");
+
+        // Top Navigation Header
+        HBox topBar = new HBox(12);
+        topBar.setPadding(new Insets(16, 24, 16, 24));
+        topBar.setAlignment(Pos.CENTER_LEFT);
+        topBar.setStyle("-fx-background-color: #0f172a; -fx-border-color: #1e293b; -fx-border-width: 0 0 1 0;");
+
+        Label logoLabel = new Label("🍽️ SMARTMESS");
+        logoLabel.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 22px; -fx-font-weight: bold;");
+
+        Label taglineLabel = new Label("Smart Campus Mess & Digital Credit Platform");
+        taglineLabel.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 13px;");
+
+        Region sp = new Region();
+        HBox.setHgrow(sp, Priority.ALWAYS);
+
+        Label runtimeBadge = new Label("● PURE JAVA 22 • SERVLETS (PORT 8080)");
+        runtimeBadge.setPadding(new Insets(5, 12, 5, 12));
+        runtimeBadge.setStyle("-fx-background-color: #065f46; -fx-text-fill: #34d399; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 20;");
+
+        topBar.getChildren().addAll(logoLabel, taglineLabel, sp, runtimeBadge);
+        root.setTop(topBar);
+
+        // Center Content
+        VBox centerBox = new VBox(22);
+        centerBox.setAlignment(Pos.CENTER);
+        centerBox.setPadding(new Insets(24, 30, 24, 30));
+
+        VBox titleBox = new VBox(6);
+        titleBox.setAlignment(Pos.CENTER);
+
+        Label welcomeLabel = new Label("Campus Mess Portal Access");
+        welcomeLabel.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 26px; -fx-font-weight: bold;");
+
+        Label instructionLabel = new Label("Choose your role below to open your dedicated sign-in portal & dashboard");
+        instructionLabel.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 14px;");
+
+        titleBox.getChildren().addAll(welcomeLabel, instructionLabel);
+
+        // 4 Distinct Role Cards
+        HBox cardsBox = new HBox(18);
+        cardsBox.setAlignment(Pos.CENTER);
+
+        VBox studentCard = createRoleCard(
+                "🎓", "Student Portal",
+                "Meal token replacement, live order tracking stepper, 9,000 credit wallet, health & calorie tracker, and next-day pre-orders.",
+                "#ff6b35", "#f97316", "Sign In as Student →",
+                () -> showRoleLoginScreen("student")
+        );
+
+        VBox chefCard = createRoleCard(
+                "👨‍🍳", "Chef & Kitchen Staff",
+                "FIFO kitchen order dispatch queue, stock portion control, real-time ticket progression & daily food waste avoidance logging.",
+                "#ea580c", "#d97706", "Sign In as Chef →",
+                () -> showRoleLoginScreen("chef")
+        );
+
+        VBox wardenCard = createRoleCard(
+                "🏢", "Hostel Warden",
+                "Hostel sick-leave room delivery clearance, medical certificate approvals & block residency validation.",
+                "#0284c7", "#06b6d4", "Sign In as Warden →",
+                () -> showRoleLoginScreen("warden")
+        );
+
+        VBox adminCard = createRoleCard(
+                "👑", "Campus Mess Admin",
+                "Campus KPIs, financial analytics, menu pricing & stock, emergency 9,000 credit resets & full audit log.",
+                "#9333ea", "#a855f7", "Sign In as Admin →",
+                () -> showRoleLoginScreen("admin")
+        );
+
+        cardsBox.getChildren().addAll(studentCard, chefCard, wardenCard, adminCard);
+
+        // Demo credentials helper row
+        VBox demoBox = new VBox(8);
+        demoBox.setAlignment(Pos.CENTER);
+        demoBox.setPadding(new Insets(12, 18, 12, 18));
+        demoBox.setStyle("-fx-background-color: #0f172a; -fx-border-color: #334155; -fx-border-width: 1; -fx-background-radius: 8;");
+        demoBox.setMaxWidth(960);
+
+        Label demoTitle = new Label("⚡ Verified Campus Test Accounts (Pre-Seeded & Ready):");
+        demoTitle.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 12px; -fx-font-weight: bold;");
+
+        HBox demoAccountsRow = new HBox(20);
+        demoAccountsRow.setAlignment(Pos.CENTER);
+
+        demoAccountsRow.getChildren().addAll(
+                createDemoAccountChip("🎓 Student", "rohit.kundu2022@vitstudent.ac.in", "Student@123"),
+                createDemoAccountChip("👨‍🍳 Chef", "chef.campus@vit.ac.in", "Chef@123"),
+                createDemoAccountChip("🏢 Warden", "warden.blockb@vit.ac.in", "Warden@123"),
+                createDemoAccountChip("👑 Admin", "admin.mess@vit.ac.in", "Admin@123")
+        );
+        demoBox.getChildren().addAll(demoTitle, demoAccountsRow);
+
+        centerBox.getChildren().addAll(titleBox, cardsBox, demoBox);
+
+        ScrollPane scroll = new ScrollPane(centerBox);
+        scroll.setFitToWidth(true);
+        scroll.setFitToHeight(true);
+        scroll.setStyle("-fx-background: #0b1329; -fx-background-color: #0b1329; -fx-border-color: transparent;");
+
+        root.setCenter(scroll);
+        root.setBottom(createStatusBar());
+
+        Scene scene = new Scene(root, 1260, 840);
+        scene.getStylesheets().add(createInlineStyles());
+        mainStage.setScene(scene);
+    }
+
+    private VBox createRoleCard(String icon, String title, String description, String primaryColor, String accentColor, String buttonText, Runnable onAction) {
+        VBox card = new VBox(14);
+        card.setAlignment(Pos.TOP_CENTER);
+        card.setPadding(new Insets(24, 20, 24, 20));
+        card.setPrefWidth(265);
+        card.setPrefHeight(360);
+        card.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 12; -fx-border-color: #334155; -fx-border-width: 1.5; -fx-border-radius: 12;");
+
+        card.setOnMouseEntered(e -> card.setStyle("-fx-background-color: #243247; -fx-background-radius: 12; -fx-border-color: " + accentColor + "; -fx-border-width: 1.5; -fx-border-radius: 12; -fx-cursor: hand;"));
+        card.setOnMouseExited(e -> card.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 12; -fx-border-color: #334155; -fx-border-width: 1.5; -fx-border-radius: 12;"));
+        card.setOnMouseClicked(e -> onAction.run());
+
+        Label iconLabel = new Label(icon);
+        iconLabel.setStyle("-fx-font-size: 42px;");
+
+        Label titleLabel = new Label(title);
+        titleLabel.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 18px; -fx-font-weight: bold;");
+
+        Label descLabel = new Label(description);
+        descLabel.setWrapText(true);
+        descLabel.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        descLabel.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px; -fx-line-spacing: 2px;");
+        VBox.setVgrow(descLabel, Priority.ALWAYS);
+
+        Button actionBtn = new Button(buttonText);
+        actionBtn.setMaxWidth(Double.MAX_VALUE);
+        actionBtn.setStyle("-fx-background-color: " + primaryColor + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 8 14 8 14;");
+        actionBtn.setOnAction(e -> onAction.run());
+
+        card.getChildren().addAll(iconLabel, titleLabel, descLabel, actionBtn);
+        return card;
+    }
+
+    private VBox createDemoAccountChip(String roleName, String email, String pwd) {
+        VBox box = new VBox(2);
+        box.setAlignment(Pos.CENTER);
+        Label rLabel = new Label(roleName);
+        rLabel.setStyle("-fx-text-fill: #f8fafc; -fx-font-weight: bold; -fx-font-size: 11px;");
+        Label eLabel = new Label(email);
+        eLabel.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 10px;");
+        Label pLabel = new Label("Pass: " + pwd);
+        pLabel.setStyle("-fx-text-fill: #34d399; -fx-font-size: 10px; -fx-font-family: monospace;");
+        box.getChildren().addAll(rLabel, eLabel, pLabel);
+        return box;
+    }
+
+    public void showRoleLoginScreen(String role) {
+        BorderPane root = new BorderPane();
+        root.setStyle("-fx-background-color: #0b1329;");
+
+        // Top Navigation
+        HBox topBar = new HBox(12);
+        topBar.setPadding(new Insets(14, 24, 14, 24));
+        topBar.setAlignment(Pos.CENTER_LEFT);
+        topBar.setStyle("-fx-background-color: #0f172a; -fx-border-color: #1e293b; -fx-border-width: 0 0 1 0;");
+
+        Button backBtn = new Button("← Change Role");
+        backBtn.setStyle("-fx-background-color: #334155; -fx-text-fill: #f8fafc; -fx-font-weight: bold; -fx-font-size: 12px; -fx-cursor: hand; -fx-background-radius: 6;");
+        backBtn.setOnAction(e -> showRoleSelectionScreen());
+
+        Label logoLabel = new Label("SMARTMESS");
+        logoLabel.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 18px; -fx-font-weight: bold;");
+
+        Region sp = new Region();
+        HBox.setHgrow(sp, Priority.ALWAYS);
+
+        Label secBadge = new Label("🔒 SHA-256 SALTED AUTH");
+        secBadge.setStyle("-fx-text-fill: #10b981; -fx-font-size: 11px; -fx-font-weight: bold;");
+
+        topBar.getChildren().addAll(backBtn, logoLabel, sp, secBadge);
+        root.setTop(topBar);
+
+        // Center: Distinct Role Login Card
+        VBox centerContainer = new VBox();
+        centerContainer.setAlignment(Pos.CENTER);
+        centerContainer.setPadding(new Insets(30));
+
+        Node loginCard;
+        if ("chef".equalsIgnoreCase(role)) {
+            loginCard = createChefLoginView();
+        } else if ("warden".equalsIgnoreCase(role)) {
+            loginCard = createWardenLoginView();
+        } else if ("admin".equalsIgnoreCase(role)) {
+            loginCard = createAdminLoginView();
+        } else {
+            loginCard = createStudentLoginView();
+        }
+
+        centerContainer.getChildren().add(loginCard);
+
+        ScrollPane scroll = new ScrollPane(centerContainer);
+        scroll.setFitToWidth(true);
+        scroll.setFitToHeight(true);
+        scroll.setStyle("-fx-background: #0b1329; -fx-background-color: #0b1329; -fx-border-color: transparent;");
+
+        root.setCenter(scroll);
+        root.setBottom(createStatusBar());
+
+        Scene scene = new Scene(root, 1260, 840);
+        scene.getStylesheets().add(createInlineStyles());
+        mainStage.setScene(scene);
+    }
+
+    // -------------------------------------------------------------------------
+    // 1. STUDENT LOGIN VIEW
+    // -------------------------------------------------------------------------
+    private Node createStudentLoginView() {
+        VBox card = new VBox(14);
+        card.setMaxWidth(480);
+        card.setPadding(new Insets(28));
+        card.setStyle("-fx-background-color: #1e293b; -fx-border-color: #f97316; -fx-border-width: 1.5; -fx-border-radius: 12; -fx-background-radius: 12;");
+
+        Label icon = new Label("🎓");
+        icon.setStyle("-fx-font-size: 38px;");
+
+        Label title = new Label("Student Sign In");
+        title.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 22px; -fx-font-weight: bold;");
+
+        Label sub = new Label("Access cafeteria ordering, digital wallet & live order tracking");
+        sub.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+
+        Label vitBadge = new Label("VIT Student Portal • @vitstudent.ac.in Required");
+        vitBadge.setStyle("-fx-background-color: #7c2d12; -fx-text-fill: #fdba74; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3 8 3 8; -fx-background-radius: 4;");
+
+        VBox headerBox = new VBox(6, icon, title, sub, vitBadge);
+        headerBox.setAlignment(Pos.CENTER);
+
+        // Tab Switcher between Email and OTP
+        HBox tabSwitch = new HBox(8);
+        tabSwitch.setAlignment(Pos.CENTER);
+        tabSwitch.setPadding(new Insets(4));
+        tabSwitch.setStyle("-fx-background-color: #0f172a; -fx-background-radius: 8;");
+
+        Button emailTabBtn = new Button("VIT Email & Password");
+        Button otpTabBtn = new Button("Mobile OTP (SMS)");
+
+        emailTabBtn.setStyle("-fx-background-color: #ff6b35; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;");
+        otpTabBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;");
+        HBox.setHgrow(emailTabBtn, Priority.ALWAYS);
+        HBox.setHgrow(otpTabBtn, Priority.ALWAYS);
+        emailTabBtn.setMaxWidth(Double.MAX_VALUE);
+        otpTabBtn.setMaxWidth(Double.MAX_VALUE);
+        tabSwitch.getChildren().addAll(emailTabBtn, otpTabBtn);
+
+        // Email Form
+        VBox emailForm = new VBox(10);
+        Label emailLbl = new Label("VIT Email Address:");
+        emailLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+        TextField emailField = new TextField("rohit.kundu2022@vitstudent.ac.in");
+        emailField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+
+        Label pwdLbl = new Label("Password:");
+        pwdLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+        PasswordField pwdField = new PasswordField();
+        pwdField.setText("Student@123");
+        pwdField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+        HBox.setHgrow(pwdField, Priority.ALWAYS);
+
+        TextField plainPwdField = new TextField("Student@123");
+        plainPwdField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+        plainPwdField.setVisible(false);
+        plainPwdField.setManaged(false);
+        HBox.setHgrow(plainPwdField, Priority.ALWAYS);
+        plainPwdField.textProperty().bindBidirectional(pwdField.textProperty());
+
+        Button showPwdBtn = new Button("👁");
+        showPwdBtn.setStyle("-fx-background-color: #334155; -fx-text-fill: #cbd5e1; -fx-cursor: hand; -fx-background-radius: 6;");
+        showPwdBtn.setOnAction(e -> {
+            boolean show = !plainPwdField.isVisible();
+            plainPwdField.setVisible(show);
+            plainPwdField.setManaged(show);
+            pwdField.setVisible(!show);
+            pwdField.setManaged(!show);
+            showPwdBtn.setText(show ? "🔒" : "👁");
+        });
+
+        HBox pwdBox = new HBox(6, pwdField, plainPwdField, showPwdBtn);
+        pwdBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label emailErrLbl = new Label();
+        emailErrLbl.setWrapText(true);
+        emailErrLbl.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 12px; -fx-font-weight: bold;");
+
+        Button emailLoginBtn = new Button("Sign In with VIT Email →");
+        emailLoginBtn.setMaxWidth(Double.MAX_VALUE);
+        emailLoginBtn.setStyle("-fx-background-color: #ff6b35; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-cursor: hand; -fx-padding: 10; -fx-background-radius: 6;");
+
+        emailLoginBtn.setOnAction(e -> {
+            String em = emailField.getText().trim();
+            String pw = pwdField.getText();
+            SecurityService.AuthResult res = SecurityService.getInstance().loginWithPassword(em, pw, "student");
+            if (res.success && res.session != null) {
+                currentStudentId = res.session.userId;
+                currentStudentName = res.session.name;
+                currentStudentEmail = res.session.email;
+                activeUserName = res.session.name;
+                activeUserEmail = res.session.email;
+                activeUserExtra = res.session.extra;
+                log("🎓 [Student Auth] Signed in as " + activeUserName + " (" + activeUserEmail + ")");
+                showDashboardForRole("student");
+            } else {
+                emailErrLbl.setText("❌ " + res.message);
+            }
+        });
+
+        HBox quickFillBox = new HBox(8);
+        quickFillBox.setAlignment(Pos.CENTER);
+        Button quickRohitBtn = new Button("⚡ Quick Fill: Rohit (9,000 Cr)");
+        quickRohitBtn.setStyle("-fx-background-color: #334155; -fx-text-fill: #38bdf8; -fx-font-size: 11px; -fx-cursor: hand;");
+        quickRohitBtn.setOnAction(e -> {
+            emailField.setText("rohit.kundu2022@vitstudent.ac.in");
+            pwdField.setText("Student@123");
+        });
+        quickFillBox.getChildren().add(quickRohitBtn);
+
+        emailForm.getChildren().addAll(emailLbl, emailField, pwdLbl, pwdBox, emailErrLbl, emailLoginBtn, quickFillBox);
+
+        // OTP Form
+        VBox otpForm = new VBox(10);
+        otpForm.setVisible(false);
+        otpForm.setManaged(false);
+
+        Label phoneLbl = new Label("Registered Indian Mobile Number:");
+        phoneLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+        TextField phoneField = new TextField("+91 9876543210");
+        phoneField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+
+        Button sendOtpBtn = new Button("📲 Send SMS OTP");
+        sendOtpBtn.setStyle("-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 8 14 8 14; -fx-background-radius: 6;");
+
+        Label otpStatusLbl = new Label();
+        otpStatusLbl.setStyle("-fx-font-size: 11px;");
+        otpStatusLbl.setWrapText(true);
+
+        sendOtpBtn.setOnAction(e -> {
+            String ph = phoneField.getText().trim();
+            SecurityService.OtpResult r = SecurityService.getInstance().sendMobileOtp(ph);
+            if (r.success) {
+                otpStatusLbl.setText("✅ " + r.message);
+                otpStatusLbl.setStyle("-fx-text-fill: #34d399; -fx-font-size: 11px;");
+                showAlert(Alert.AlertType.INFORMATION, "Simulated SMS Received",
+                        "📱 SMS GATEWAY NOTIFICATION:\nVerification Code: 123456\nValid for 5 minutes.");
+            } else {
+                otpStatusLbl.setText("❌ " + r.message);
+                otpStatusLbl.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 11px;");
+            }
+        });
+
+        HBox phoneRow = new HBox(8, phoneField, sendOtpBtn);
+        HBox.setHgrow(phoneField, Priority.ALWAYS);
+
+        Label otpLbl = new Label("6-Digit OTP Code:");
+        otpLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+        TextField otpCodeField = new TextField("123456");
+        otpCodeField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+
+        Button verifyOtpBtn = new Button("Verify OTP & Sign In →");
+        verifyOtpBtn.setMaxWidth(Double.MAX_VALUE);
+        verifyOtpBtn.setStyle("-fx-background-color: #ff6b35; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-cursor: hand; -fx-padding: 10; -fx-background-radius: 6;");
+
+        verifyOtpBtn.setOnAction(e -> {
+            String ph = phoneField.getText().trim();
+            String code = otpCodeField.getText().trim();
+            SecurityService.AuthResult res = SecurityService.getInstance().loginWithMobileOtp(ph, code);
+            if (res.success && res.session != null) {
+                currentStudentId = res.session.userId;
+                currentStudentName = res.session.name;
+                currentStudentEmail = res.session.email;
+                activeUserName = res.session.name;
+                activeUserEmail = res.session.email;
+                activeUserExtra = res.session.extra;
+                log("🎓 [Student Auth] Signed in via OTP as " + activeUserName);
+                showDashboardForRole("student");
+            } else {
+                otpStatusLbl.setText("❌ " + res.message);
+                otpStatusLbl.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 11px;");
+            }
+        });
+
+        otpForm.getChildren().addAll(phoneLbl, phoneRow, otpLbl, otpCodeField, otpStatusLbl, verifyOtpBtn);
+
+        // Switch listeners
+        emailTabBtn.setOnAction(e -> {
+            emailTabBtn.setStyle("-fx-background-color: #ff6b35; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;");
+            otpTabBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;");
+            emailForm.setVisible(true);
+            emailForm.setManaged(true);
+            otpForm.setVisible(false);
+            otpForm.setManaged(false);
+        });
+
+        otpTabBtn.setOnAction(e -> {
+            otpTabBtn.setStyle("-fx-background-color: #ff6b35; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;");
+            emailTabBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;");
+            otpForm.setVisible(true);
+            otpForm.setManaged(true);
+            emailForm.setVisible(false);
+            emailForm.setManaged(false);
+        });
+
+        // Bottom links
+        HBox bottomLinks = new HBox(12);
+        bottomLinks.setAlignment(Pos.CENTER);
+
+        Hyperlink regLink = new Hyperlink("New student? Register (+9,000 Cr)");
+        regLink.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 11px;");
+        regLink.setOnAction(e -> openStudentRegistrationDialog(mainStage));
+
+        Hyperlink forgotLink = new Hyperlink("Forgot password?");
+        forgotLink.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 11px;");
+        forgotLink.setOnAction(e -> openForgotPasswordDialog(mainStage));
+
+        bottomLinks.getChildren().addAll(regLink, new Label("•"), forgotLink);
+
+        card.getChildren().addAll(headerBox, tabSwitch, emailForm, otpForm, bottomLinks);
+        return card;
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. CHEF LOGIN VIEW
+    // -------------------------------------------------------------------------
+    private Node createChefLoginView() {
+        VBox card = new VBox(14);
+        card.setMaxWidth(460);
+        card.setPadding(new Insets(28));
+        card.setStyle("-fx-background-color: #1e293b; -fx-border-color: #ea580c; -fx-border-width: 1.5; -fx-border-radius: 12; -fx-background-radius: 12;");
+
+        Label icon = new Label("👨‍🍳");
+        icon.setStyle("-fx-font-size: 38px;");
+
+        Label title = new Label("Chef & Kitchen Staff Console");
+        title.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 22px; -fx-font-weight: bold;");
+
+        Label badge = new Label("🔥 Central Mess Main Kitchen • Active Dispatch");
+        badge.setStyle("-fx-background-color: #7c2d12; -fx-text-fill: #fdba74; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3 8 3 8; -fx-background-radius: 4;");
+
+        Label sub = new Label("Restricted culinary terminal for mess chefs and culinary dispatchers");
+        sub.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+
+        VBox headerBox = new VBox(6, icon, title, badge, sub);
+        headerBox.setAlignment(Pos.CENTER);
+
+        Label stationLbl = new Label("Kitchen Station:");
+        stationLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+
+        ComboBox<String> stationCombo = new ComboBox<>();
+        stationCombo.getItems().addAll(
+                "Station 1: Hot Kitchen & Main Curries",
+                "Station 2: Tandoor, Breads & Breakfast",
+                "Station 3: Beverage, Dessert & Salad Bar"
+        );
+        stationCombo.setValue("Station 1: Hot Kitchen & Main Curries");
+        stationCombo.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6;");
+        stationCombo.setMaxWidth(Double.MAX_VALUE);
+
+        Label emailLbl = new Label("Kitchen Staff Email:");
+        emailLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+        TextField emailField = new TextField("chef.campus@vit.ac.in");
+        emailField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+
+        Label pwdLbl = new Label("Master Kitchen Password:");
+        pwdLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+        PasswordField pwdField = new PasswordField();
+        pwdField.setText("Chef@123");
+        pwdField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+        HBox.setHgrow(pwdField, Priority.ALWAYS);
+
+        TextField plainPwd = new TextField("Chef@123");
+        plainPwd.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+        plainPwd.setVisible(false);
+        plainPwd.setManaged(false);
+        HBox.setHgrow(plainPwd, Priority.ALWAYS);
+        plainPwd.textProperty().bindBidirectional(pwdField.textProperty());
+
+        Button showPwdBtn = new Button("👁");
+        showPwdBtn.setStyle("-fx-background-color: #334155; -fx-text-fill: #cbd5e1; -fx-cursor: hand; -fx-background-radius: 6;");
+        showPwdBtn.setOnAction(e -> {
+            boolean show = !plainPwd.isVisible();
+            plainPwd.setVisible(show);
+            plainPwd.setManaged(show);
+            pwdField.setVisible(!show);
+            pwdField.setManaged(!show);
+            showPwdBtn.setText(show ? "🔒" : "👁");
+        });
+
+        HBox pwdBox = new HBox(6, pwdField, plainPwd, showPwdBtn);
+        pwdBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label errLbl = new Label();
+        errLbl.setWrapText(true);
+        errLbl.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 12px; -fx-font-weight: bold;");
+
+        Button loginBtn = new Button("👨‍🍳 Enter Kitchen Console →");
+        loginBtn.setMaxWidth(Double.MAX_VALUE);
+        loginBtn.setStyle("-fx-background-color: #ea580c; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-cursor: hand; -fx-padding: 10; -fx-background-radius: 6;");
+
+        loginBtn.setOnAction(e -> {
+            String em = emailField.getText().trim();
+            String pw = pwdField.getText();
+            SecurityService.AuthResult res = SecurityService.getInstance().loginWithPassword(em, pw, "chef");
+            if (res.success && res.session != null) {
+                activeUserName = res.session.name;
+                activeUserEmail = res.session.email;
+                activeUserExtra = stationCombo.getValue();
+                log("👨‍🍳 [Chef Auth] Authenticated as " + activeUserName + " at " + activeUserExtra);
+                showDashboardForRole("chef");
+            } else {
+                errLbl.setText("❌ " + res.message);
+            }
+        });
+
+        Button demoBtn = new Button("⚡ Quick Fill: Head Chef Vikram");
+        demoBtn.setStyle("-fx-background-color: #334155; -fx-text-fill: #f59e0b; -fx-font-size: 11px; -fx-cursor: hand;");
+        demoBtn.setOnAction(e -> {
+            emailField.setText("chef.campus@vit.ac.in");
+            pwdField.setText("Chef@123");
+        });
+
+        card.getChildren().addAll(headerBox, stationLbl, stationCombo, emailLbl, emailField, pwdLbl, pwdBox, errLbl, loginBtn, demoBtn);
+        return card;
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. WARDEN LOGIN VIEW
+    // -------------------------------------------------------------------------
+    private Node createWardenLoginView() {
+        VBox card = new VBox(14);
+        card.setMaxWidth(460);
+        card.setPadding(new Insets(28));
+        card.setStyle("-fx-background-color: #1e293b; -fx-border-color: #0284c7; -fx-border-width: 1.5; -fx-border-radius: 12; -fx-background-radius: 12;");
+
+        Label icon = new Label("🏢");
+        icon.setStyle("-fx-font-size: 38px;");
+
+        Label title = new Label("Hostel Warden Clearance Portal");
+        title.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 22px; -fx-font-weight: bold;");
+
+        Label badge = new Label("🛡️ Hostel Block Residence Council Authority");
+        badge.setStyle("-fx-background-color: #0c4a6e; -fx-text-fill: #7dd3fc; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3 8 3 8; -fx-background-radius: 4;");
+
+        Label sub = new Label("Official clearance terminal for sick-leave hostel room delivery approvals");
+        sub.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+
+        VBox headerBox = new VBox(6, icon, title, badge, sub);
+        headerBox.setAlignment(Pos.CENTER);
+
+        Label blockLbl = new Label("Assigned Hostel Block:");
+        blockLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+
+        ComboBox<String> blockCombo = new ComboBox<>();
+        blockCombo.getItems().addAll(
+                "Block B - Boys Hostel (Dr. S. Raman)",
+                "Block C - Boys Hostel (Prof. Priya Nair)",
+                "Block A - Girls Hostel (Mr. K. Varma)"
+        );
+        blockCombo.setValue("Block B - Boys Hostel (Dr. S. Raman)");
+        blockCombo.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6;");
+        blockCombo.setMaxWidth(Double.MAX_VALUE);
+
+        Label emailLbl = new Label("Official Warden Email:");
+        emailLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+        TextField emailField = new TextField("warden.blockb@vit.ac.in");
+        emailField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+
+        blockCombo.setOnAction(e -> {
+            String sel = blockCombo.getValue();
+            if (sel.contains("Block B")) {
+                emailField.setText("warden.blockb@vit.ac.in");
+            } else if (sel.contains("Block C")) {
+                emailField.setText("warden.blockc@vit.ac.in");
+            } else if (sel.contains("Block A")) {
+                emailField.setText("warden.blocka@vit.ac.in");
+            }
+        });
+
+        Label pwdLbl = new Label("Warden Security Pin / Password:");
+        pwdLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+        PasswordField pwdField = new PasswordField();
+        pwdField.setText("Warden@123");
+        pwdField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+        HBox.setHgrow(pwdField, Priority.ALWAYS);
+
+        TextField plainPwd = new TextField("Warden@123");
+        plainPwd.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+        plainPwd.setVisible(false);
+        plainPwd.setManaged(false);
+        HBox.setHgrow(plainPwd, Priority.ALWAYS);
+        plainPwd.textProperty().bindBidirectional(pwdField.textProperty());
+
+        Button showPwdBtn = new Button("👁");
+        showPwdBtn.setStyle("-fx-background-color: #334155; -fx-text-fill: #cbd5e1; -fx-cursor: hand; -fx-background-radius: 6;");
+        showPwdBtn.setOnAction(e -> {
+            boolean show = !plainPwd.isVisible();
+            plainPwd.setVisible(show);
+            plainPwd.setManaged(show);
+            pwdField.setVisible(!show);
+            pwdField.setManaged(!show);
+            showPwdBtn.setText(show ? "🔒" : "👁");
+        });
+
+        HBox pwdBox = new HBox(6, pwdField, plainPwd, showPwdBtn);
+        pwdBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label errLbl = new Label();
+        errLbl.setWrapText(true);
+        errLbl.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 12px; -fx-font-weight: bold;");
+
+        Button loginBtn = new Button("🏢 Access Block Deliveries →");
+        loginBtn.setMaxWidth(Double.MAX_VALUE);
+        loginBtn.setStyle("-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-cursor: hand; -fx-padding: 10; -fx-background-radius: 6;");
+
+        loginBtn.setOnAction(e -> {
+            String em = emailField.getText().trim();
+            String pw = pwdField.getText();
+            SecurityService.AuthResult res = SecurityService.getInstance().loginWithPassword(em, pw, "warden");
+            if (res.success && res.session != null) {
+                activeUserName = res.session.name;
+                activeUserEmail = res.session.email;
+                activeUserExtra = blockCombo.getValue();
+                log("🏢 [Warden Auth] Authenticated as " + activeUserName + " for " + activeUserExtra);
+                showDashboardForRole("warden");
+            } else {
+                errLbl.setText("❌ " + res.message);
+            }
+        });
+
+        Button demoBtn = new Button("⚡ Quick Fill: Dr. S. Raman (Block B)");
+        demoBtn.setStyle("-fx-background-color: #334155; -fx-text-fill: #38bdf8; -fx-font-size: 11px; -fx-cursor: hand;");
+        demoBtn.setOnAction(e -> {
+            blockCombo.setValue("Block B - Boys Hostel (Dr. S. Raman)");
+            emailField.setText("warden.blockb@vit.ac.in");
+            pwdField.setText("Warden@123");
+        });
+
+        card.getChildren().addAll(headerBox, blockLbl, blockCombo, emailLbl, emailField, pwdLbl, pwdBox, errLbl, loginBtn, demoBtn);
+        return card;
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. ADMIN LOGIN VIEW
+    // -------------------------------------------------------------------------
+    private Node createAdminLoginView() {
+        VBox card = new VBox(14);
+        card.setMaxWidth(460);
+        card.setPadding(new Insets(28));
+        card.setStyle("-fx-background-color: #1e293b; -fx-border-color: #9333ea; -fx-border-width: 1.5; -fx-border-radius: 12; -fx-background-radius: 12;");
+
+        Label icon = new Label("👑");
+        icon.setStyle("-fx-font-size: 38px;");
+
+        Label title = new Label("Campus Mess Admin Portal");
+        title.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 22px; -fx-font-weight: bold;");
+
+        Label badge = new Label("🔒 LEVEL 4 ROOT AUTHORITY • EXECUTIVE COMMITTEE");
+        badge.setStyle("-fx-background-color: #581c87; -fx-text-fill: #e9d5ff; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3 8 3 8; -fx-background-radius: 4;");
+
+        Label sub = new Label("Restricted governance console for menu control, credit audits & KPIs");
+        sub.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+
+        VBox headerBox = new VBox(6, icon, title, badge, sub);
+        headerBox.setAlignment(Pos.CENTER);
+
+        Label emailLbl = new Label("Executive Admin Email:");
+        emailLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+        TextField emailField = new TextField("admin.mess@vit.ac.in");
+        emailField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+
+        Label pwdLbl = new Label("Master Key Password:");
+        pwdLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+        PasswordField pwdField = new PasswordField();
+        pwdField.setText("Admin@123");
+        pwdField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+        HBox.setHgrow(pwdField, Priority.ALWAYS);
+
+        TextField plainPwd = new TextField("Admin@123");
+        plainPwd.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+        plainPwd.setVisible(false);
+        plainPwd.setManaged(false);
+        HBox.setHgrow(plainPwd, Priority.ALWAYS);
+        plainPwd.textProperty().bindBidirectional(pwdField.textProperty());
+
+        Button showPwdBtn = new Button("👁");
+        showPwdBtn.setStyle("-fx-background-color: #334155; -fx-text-fill: #cbd5e1; -fx-cursor: hand; -fx-background-radius: 6;");
+        showPwdBtn.setOnAction(e -> {
+            boolean show = !plainPwd.isVisible();
+            plainPwd.setVisible(show);
+            plainPwd.setManaged(show);
+            pwdField.setVisible(!show);
+            pwdField.setManaged(!show);
+            showPwdBtn.setText(show ? "🔒" : "👁");
+        });
+
+        HBox pwdBox = new HBox(6, pwdField, plainPwd, showPwdBtn);
+        pwdBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label pinLbl = new Label("2FA Security Passcode:");
+        pinLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px; -fx-font-weight: bold;");
+        TextField pinField = new TextField("999888");
+        pinField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #f8fafc; -fx-border-color: #475569; -fx-border-radius: 6; -fx-padding: 8;");
+
+        Label errLbl = new Label();
+        errLbl.setWrapText(true);
+        errLbl.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 12px; -fx-font-weight: bold;");
+
+        Button loginBtn = new Button("👑 Unlock Executive Dashboard →");
+        loginBtn.setMaxWidth(Double.MAX_VALUE);
+        loginBtn.setStyle("-fx-background-color: #9333ea; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-cursor: hand; -fx-padding: 10; -fx-background-radius: 6;");
+
+        loginBtn.setOnAction(e -> {
+            String em = emailField.getText().trim();
+            String pw = pwdField.getText();
+            SecurityService.AuthResult res = SecurityService.getInstance().loginWithPassword(em, pw, "admin");
+            if (res.success && res.session != null) {
+                activeUserName = res.session.name;
+                activeUserEmail = res.session.email;
+                activeUserExtra = "Root Clearance L4";
+                log("👑 [Admin Auth] Root Session Authenticated for " + activeUserName);
+                showDashboardForRole("admin");
+            } else {
+                errLbl.setText("❌ " + res.message);
+            }
+        });
+
+        Button demoBtn = new Button("⚡ Quick Fill: Mess Committee Admin");
+        demoBtn.setStyle("-fx-background-color: #334155; -fx-text-fill: #c084fc; -fx-font-size: 11px; -fx-cursor: hand;");
+        demoBtn.setOnAction(e -> {
+            emailField.setText("admin.mess@vit.ac.in");
+            pwdField.setText("Admin@123");
+            pinField.setText("999888");
+        });
+
+        card.getChildren().addAll(headerBox, emailLbl, emailField, pwdLbl, pwdBox, pinLbl, pinField, errLbl, loginBtn, demoBtn);
+        return card;
+    }
+
+    // =========================================================================
+    // DEDICATED ROLE DASHBOARDS (100% Isolated - No Leaked Tabs)
+    // =========================================================================
+
+    public void showDashboardForRole(String role) {
+        this.activeRole = role.toLowerCase();
+        this.currentRole = Character.toUpperCase(role.charAt(0)) + role.substring(1).toLowerCase();
+
+        BorderPane root = new BorderPane();
+        root.setStyle("-fx-background-color: #0f172a;");
+
+        // Top Header for this role
+        VBox headerBox = createRoleHeader(role);
+        root.setTop(headerBox);
+
+        // Center TabPane with ONLY this role's tabs
+        TabPane tabPane = new TabPane();
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabPane.setStyle("-fx-background-color: #0f172a; -fx-tab-min-width: 140px; -fx-tab-min-height: 38px;");
+
+        switch (role.toLowerCase()) {
+            case "chef":
+                Tab kitchenTab = new Tab("👨‍🍳 Kitchen Queue FIFO Dispatch", createKitchenQueueTab());
+                Tab sustainabilityTab = new Tab("🌱 Sustainability & Food Waste Hub", createSustainabilityTab());
+                tabPane.getTabs().addAll(kitchenTab, sustainabilityTab);
+                refreshKitchenQueue();
+                refreshSustainabilityMetrics();
+                break;
+
+            case "warden":
+                Tab wardenTab = new Tab("🏥 Sick-Leave Room Delivery Approvals", createWardenTab());
+                tabPane.getTabs().addAll(wardenTab);
+                refreshHealthRequests();
+                break;
+
+            case "admin":
+                Tab adminTab = new Tab("👑 Campus KPIs & Financial Analytics", createAdminTab());
+                Tab adminWasteTab = new Tab("🌱 Food Waste & Sustainability Audits", createSustainabilityTab());
+                Tab adminHistTab = new Tab("📜 System History & CSV Audit", createOrderHistoryTab());
+                Tab diagTab = new Tab("⚡ Diagnostics, Servlets & JDBC", createDiagnosticsTab());
+                tabPane.getTabs().addAll(adminTab, adminWasteTab, adminHistTab, diagTab);
+                refreshAdminAnalytics();
+                refreshSustainabilityMetrics();
+                refreshOrderHistory();
+                break;
+
+            case "student":
+            default:
+                Tab menuTab = new Tab("🍽️ Menu & Tray Ordering", createMenuAndTrayTab());
+                Tab trackerTab = new Tab("📱 Live Stepper & Active Order", createLiveStepperTab());
+                Tab walletTab = new Tab("💳 Wallet & Pre-Orders", createWalletAndPreOrdersTab());
+                Tab myHistTab = new Tab("📜 My Order History", createOrderHistoryTab());
+                tabPane.getTabs().addAll(menuTab, trackerTab, walletTab, myHistTab);
+                refreshMenuData("All", false);
+                refreshOrderHistory();
+                refreshPreOrders();
+                seedInitialActiveOrders();
+                break;
+        }
+
+        root.setCenter(tabPane);
+        root.setBottom(createStatusBar());
+
+        Scene scene = new Scene(root, 1260, 840);
+        scene.getStylesheets().add(createInlineStyles());
+        mainStage.setScene(scene);
+    }
+
+    private VBox createRoleHeader(String role) {
         VBox header = new VBox(8);
         header.setPadding(new Insets(12, 18, 12, 18));
         header.setStyle("-fx-background-color: #1e293b; -fx-border-color: #334155; -fx-border-width: 0 0 1 0;");
@@ -215,142 +996,196 @@ public class SmartMessFXApp extends Application {
         topRow.setAlignment(Pos.CENTER_LEFT);
 
         Label titleLabel = new Label("SMARTMESS");
-        titleLabel.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 22px; -fx-font-weight: bold; -fx-font-family: 'Helvetica Neue', Arial;");
+        titleLabel.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 20px; -fx-font-weight: bold; -fx-font-family: 'Helvetica Neue', Arial;");
 
-        Label subtitleLabel = new Label("Pure Java 22  •  JavaFX Desktop  •  Java Servlets  •  ACID JDBC  •  PostgreSQL");
-        subtitleLabel.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+        String roleBadgeText;
+        String roleBadgeBg;
+        switch (role.toLowerCase()) {
+            case "chef":
+                roleBadgeText = "👨‍🍳 CHEF CONSOLE";
+                roleBadgeBg = "#ea580c";
+                break;
+            case "warden":
+                roleBadgeText = "🏢 WARDEN CLEARANCE (" + activeUserExtra + ")";
+                roleBadgeBg = "#0284c7";
+                break;
+            case "admin":
+                roleBadgeText = "👑 ADMIN ROOT CLEARANCE";
+                roleBadgeBg = "#9333ea";
+                break;
+            default:
+                roleBadgeText = "🎓 STUDENT PORTAL";
+                roleBadgeBg = "#ff6b35";
+                break;
+        }
+
+        Label roleBadge = new Label(roleBadgeText);
+        roleBadge.setStyle("-fx-background-color: " + roleBadgeBg + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 4 10 4 10; -fx-background-radius: 6;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // Role Switcher Dropdown
-        ComboBox<String> roleSelector = new ComboBox<>();
-        roleSelector.getItems().addAll("Role: Student (22)", "Role: Chef Staff", "Role: Admin Committee", "Role: Hostel Warden");
-        roleSelector.setValue("Role: Student (22)");
-        roleSelector.setStyle("-fx-background-color: #334155; -fx-text-fill: #f8fafc; -fx-font-weight: bold; -fx-font-size: 12px;");
-        roleSelector.setOnAction(e -> {
-            String selected = roleSelector.getValue();
-            if (selected.contains("Chef")) {
-                currentRole = "Chef";
-                log("👨‍🍳 Switched active view context to Chef / Kitchen Staff.");
-            } else if (selected.contains("Admin")) {
-                currentRole = "Admin";
-                log("👑 Switched active view context to Campus Admin Committee.");
-            } else if (selected.contains("Warden")) {
-                currentRole = "Warden";
-                log("🏥 Switched active view context to Hostel Warden.");
-            } else {
-                currentRole = "Student";
-                log("🎓 Switched active view context to Student (#" + currentStudentId + ").");
-            }
-        });
+        HBox userBadge = new HBox(8);
+        userBadge.setAlignment(Pos.CENTER);
+        userBadge.setPadding(new Insets(5, 12, 5, 12));
+        userBadge.setStyle("-fx-background-color: #334155; -fx-background-radius: 8;");
 
-        // Dual Auth Login Button
-        Button authBtn = new Button("🔐 VIT Dual Auth");
-        authBtn.setStyle("-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px; -fx-cursor: hand;");
-        authBtn.setOnAction(e -> openAuthDialog(ownerStage));
-
-        // Profile Badge
-        HBox studentBadge = new HBox(8);
-        studentBadge.setAlignment(Pos.CENTER);
-        studentBadge.setPadding(new Insets(5, 12, 5, 12));
-        studentBadge.setStyle("-fx-background-color: #334155; -fx-background-radius: 8;");
-
-        studentBadgeLabel = new Label("👤 " + currentStudentName);
+        studentBadgeLabel.setText("👤 " + activeUserName);
         studentBadgeLabel.setStyle("-fx-text-fill: #f8fafc; -fx-font-weight: bold; -fx-font-size: 12px;");
 
         Label divider = new Label("|");
         divider.setStyle("-fx-text-fill: #64748b;");
 
-        Label creditsLabel = new Label("Balance: ");
-        creditsLabel.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px;");
+        if ("student".equalsIgnoreCase(role)) {
+            Label creditsLabel = new Label("Balance: ");
+            creditsLabel.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px;");
+            creditsValueLabel.setText(currentCredits + " Cr");
+            creditsValueLabel.setStyle("-fx-text-fill: #10b981; -fx-font-weight: bold; -fx-font-size: 13px;");
+            userBadge.getChildren().setAll(studentBadgeLabel, divider, creditsLabel, creditsValueLabel);
+        } else {
+            Label detailLabel = new Label(activeUserEmail);
+            detailLabel.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+            userBadge.getChildren().setAll(studentBadgeLabel, divider, detailLabel);
+        }
 
-        creditsValueLabel = new Label(currentCredits + " Cr");
-        creditsValueLabel.setStyle("-fx-text-fill: #10b981; -fx-font-weight: bold; -fx-font-size: 13px;");
-
-        studentBadge.getChildren().addAll(studentBadgeLabel, divider, creditsLabel, creditsValueLabel);
-
-        // Server Status Indicator
-        serverStatusBadge = new Label("● SERVLETS READY");
         serverStatusBadge.setPadding(new Insets(5, 10, 5, 10));
         serverStatusBadge.setStyle("-fx-background-color: #065f46; -fx-text-fill: #34d399; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 20;");
 
-        topRow.getChildren().addAll(titleLabel, subtitleLabel, spacer, roleSelector, authBtn, studentBadge, serverStatusBadge);
+        Button signOutBtn = new Button("🚪 Sign Out");
+        signOutBtn.setStyle("-fx-background-color: #dc2626; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px; -fx-cursor: hand; -fx-background-radius: 6;");
+        signOutBtn.setOnAction(e -> {
+            activeRole = null;
+            log("👋 User " + activeUserName + " signed out.");
+            showRoleSelectionScreen();
+        });
+
+        topRow.getChildren().addAll(titleLabel, roleBadge, spacer, userBadge, serverStatusBadge, signOutBtn);
         header.getChildren().add(topRow);
         return header;
     }
 
-    private void openAuthDialog(Stage owner) {
+    private void openStudentRegistrationDialog(Stage owner) {
         Stage dialog = new Stage();
         dialog.initModality(Modality.WINDOW_MODAL);
         dialog.initOwner(owner);
-        dialog.setTitle("SmartMess - VIT Student & Staff Dual Authentication");
+        dialog.setTitle("SmartMess - New Student Registration");
+
+        VBox layout = new VBox(12);
+        layout.setPadding(new Insets(24));
+        layout.setStyle("-fx-background-color: #0f172a;");
+
+        Label title = new Label("🎓 Register New Student (+9,000 Credits)");
+        title.setStyle("-fx-text-fill: #ff6b35; -fx-font-size: 16px; -fx-font-weight: bold;");
+
+        Label note = new Label("Strict VIT Domain: Email must end with @vitstudent.ac.in");
+        note.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 11px;");
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Full Name (e.g. Priya Sharma)");
+        nameField.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #f8fafc; -fx-border-color: #475569;");
+
+        TextField emailField = new TextField();
+        emailField.setPromptText("VIT Student Email (e.g. priya.sharma2023@vitstudent.ac.in)");
+        emailField.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #f8fafc; -fx-border-color: #475569;");
+
+        TextField phoneField = new TextField("+91 ");
+        phoneField.setPromptText("Mobile (+91 9876543210)");
+        phoneField.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #f8fafc; -fx-border-color: #475569;");
+
+        TextField roomField = new TextField();
+        roomField.setPromptText("Hostel Room (e.g. Block A - Room 204)");
+        roomField.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #f8fafc; -fx-border-color: #475569;");
+
+        PasswordField passField = new PasswordField();
+        passField.setPromptText("Password (min 8 characters)");
+        passField.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #f8fafc; -fx-border-color: #475569;");
+
+        PasswordField confirmPassField = new PasswordField();
+        confirmPassField.setPromptText("Confirm Password");
+        confirmPassField.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #f8fafc; -fx-border-color: #475569;");
+
+        Label errLabel = new Label();
+        errLabel.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 11px; -fx-font-weight: bold;");
+        errLabel.setWrapText(true);
+
+        Button registerBtn = new Button("Register & Initialize 9,000 Credits");
+        registerBtn.setStyle("-fx-background-color: #ff6b35; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-cursor: hand;");
+        registerBtn.setMaxWidth(Double.MAX_VALUE);
+        registerBtn.setOnAction(e -> {
+            String name = nameField.getText().trim();
+            String email = emailField.getText().trim();
+            String phone = phoneField.getText().trim();
+            String room = roomField.getText().trim();
+            String pwd = passField.getText();
+            String cpwd = confirmPassField.getText();
+
+            SecurityService.AuthResult res = SecurityService.getInstance().registerStudent(name, email, phone, room, pwd, cpwd, new MessServiceImpl());
+            if (res.success) {
+                dialog.close();
+                showAlert(Alert.AlertType.INFORMATION, "Registration Successful",
+                        "Welcome to SmartMess, " + name + "!\nYour account has been created with 9,000 Monthly Mess Credits.\nYou can now sign in.");
+            } else {
+                errLabel.setText("❌ " + res.message);
+            }
+        });
+
+        layout.getChildren().addAll(
+                title, note,
+                new Label("Full Name:"), nameField,
+                new Label("VIT Email:"), emailField,
+                new Label("Mobile Number:"), phoneField,
+                new Label("Hostel Room:"), roomField,
+                new Label("Password:"), passField,
+                new Label("Confirm Password:"), confirmPassField,
+                errLabel, registerBtn
+        );
+
+        ScrollPane sp = new ScrollPane(layout);
+        sp.setFitToWidth(true);
+        Scene scene = new Scene(sp, 480, 560);
+        dialog.setScene(scene);
+        dialog.show();
+    }
+
+    private void openForgotPasswordDialog(Stage owner) {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.WINDOW_MODAL);
+        dialog.initOwner(owner);
+        dialog.setTitle("SmartMess - Reset Password");
 
         VBox layout = new VBox(14);
         layout.setPadding(new Insets(20));
         layout.setStyle("-fx-background-color: #0f172a;");
 
-        Label title = new Label("VIT Student & Staff Dual Authentication");
+        Label title = new Label("🔑 Password Recovery");
         title.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 16px; -fx-font-weight: bold;");
 
-        Label note = new Label("Strict VIT Domain Check: Students must authenticate with @vitstudent.ac.in");
+        Label note = new Label("Enter your VIT email to receive a password reset verification code.");
         note.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
 
-        TextField emailField = new TextField(currentStudentEmail);
-        emailField.setPromptText("e.g. rohit.kundu2022@vitstudent.ac.in");
+        TextField emailField = new TextField("rohit.kundu2022@vitstudent.ac.in");
         emailField.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #f8fafc; -fx-border-color: #475569;");
 
-        PasswordField passField = new PasswordField();
-        passField.setText("Student@123");
-        passField.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #f8fafc; -fx-border-color: #475569;");
+        Label statusLabel = new Label();
+        statusLabel.setStyle("-fx-font-size: 11px;");
 
-        TextField otpField = new TextField("123456");
-        otpField.setPromptText("Mobile OTP (Simulation: 123456)");
-        otpField.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #f8fafc; -fx-border-color: #475569;");
-
-        Label resultLabel = new Label();
-        resultLabel.setStyle("-fx-font-size: 12px;");
-
-        Button submitBtn = new Button("Verify & Login via AuthServlet");
-        submitBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-cursor: hand;");
-        submitBtn.setMaxWidth(Double.MAX_VALUE);
-        submitBtn.setOnAction(e -> {
+        Button sendBtn = new Button("Send Reset Code");
+        sendBtn.setStyle("-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold;");
+        sendBtn.setOnAction(e -> {
             String email = emailField.getText().trim();
-            String pass = passField.getText().trim();
-            String otp = otpField.getText().trim();
-
-            new Thread(() -> {
-                try {
-                    JsonObject resp = apiClient.authenticate(email, pass, otp);
-                    Platform.runLater(() -> {
-                        if (resp != null && resp.has("success") && resp.get("success").getAsBoolean()) {
-                            resultLabel.setText("✅ " + resp.get("message").getAsString());
-                            resultLabel.setStyle("-fx-text-fill: #34d399; -fx-font-weight: bold;");
-                            currentStudentEmail = email;
-                            currentStudentName = email.split("@")[0].replace(".", " ");
-                            studentBadgeLabel.setText("👤 " + currentStudentName);
-                            log("🔐 [AuthServlet] Dual Authentication successful for " + email);
-                            dialog.close();
-                            showAlert(Alert.AlertType.INFORMATION, "Authentication Successful",
-                                    "Verified VIT Account:\n" + email + "\nRole: Student\nProcessed by AuthServlet.");
-                        } else {
-                            String msg = (resp != null && resp.has("message")) ? resp.get("message").getAsString() : "Verification failed";
-                            resultLabel.setText("❌ " + msg);
-                            resultLabel.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
-                        }
-                    });
-                } catch (Exception ex) {
-                    Platform.runLater(() -> {
-                        resultLabel.setText("❌ Error: " + ex.getMessage());
-                        resultLabel.setStyle("-fx-text-fill: #ef4444;");
-                    });
-                }
-            }).start();
+            SecurityService.OtpResult r = SecurityService.getInstance().sendPasswordResetOtp(email);
+            if (r.success) {
+                statusLabel.setStyle("-fx-text-fill: #34d399;");
+                statusLabel.setText("✅ " + r.message);
+            } else {
+                statusLabel.setStyle("-fx-text-fill: #ef4444;");
+                statusLabel.setText("❌ " + r.message);
+            }
         });
 
-        layout.getChildren().addAll(title, note, new Label("VIT Email:"), emailField, new Label("Password:"), passField, new Label("OTP:"), otpField, submitBtn, resultLabel);
-        Scene dialogScene = new Scene(layout, 440, 420);
-        dialog.setScene(dialogScene);
+        layout.getChildren().addAll(title, note, new Label("VIT Email:"), emailField, sendBtn, statusLabel);
+        Scene scene = new Scene(layout, 420, 260);
+        dialog.setScene(scene);
         dialog.show();
     }
 
