@@ -31,34 +31,38 @@ A production-ready digital campus mess food ordering and credit management platf
 
 ---
 
-## 🏗️ Tech Stack
+## 🏗️ Pure Java Architecture (Review 2)
 
-- **Frontend**: React 18, Vite, Tailwind CSS, Lucide Icons, Canvas Confetti
-- **Desktop Frontend (Review 2)**: **JavaFX 22** (Rich desktop GUI with Menu Tray, Chef Queue, and Order History)
-- **Backend**: Node.js, Express.js, Better Auth, JWT Authentication, Bcrypt.js
-- **Java Backend & Servlets**: **Java 22**, Standard **Java Servlets** (`javax.servlet.http.HttpServlet`), Multithreaded Kitchen Worker, OOP Models
-- **Database**: Remote Neon PostgreSQL (AWS serverless) + SQLite local fallback with ACID transactions
-- **Database API Connector**: **Pure JDBC** (`java.sql.Connection`, `PreparedStatement`, atomic `commit()` and `rollback()`)
-- **SMS & Mail Gateways**: Twilio Node.js SDK, Gmail SMTP Nodemailer, Resend API
+- **Frontend (`frontend/`)**: **JavaFX 22 Desktop Application** ([`SmartMessFXApp.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/frontend/src/main/java/com/smartmess/gui/SmartMessFXApp.java))
+- **Backend (`backend/`)**: **Java 22 & Java Servlets** ([`javax.servlet.http.HttpServlet`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/backend/src/main/java/com/smartmess/servlet/))
+- **Database Engine**: **PostgreSQL SQL Database** (Neon Cloud Serverless)
+- **Database API Connector**: **Pure JDBC API** (`java.sql.Connection`, `PreparedStatement`, ACID transactions with `commit()` and `rollback()`)
+- **Legacy Web Stack**: Original React 18 & Node.js code safely archived in `legacy-javascript-web/`
 
 ---
 
-## ☕ Java Full-Stack Architecture (Review 2)
+## ☕ How to Run the Java Full Stack
 
-A complete, self-contained Java implementation is available in [`smartmess-java/`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/):
-1. **Frontend**: **JavaFX Desktop Application** (`SmartMessFXApp`)
-2. **Backend**: **Java Core 22** (OOP, Collections, Threads, Exceptions)
-3. **Database**: **PostgreSQL SQL Database** (Neon Cloud)
-4. **Database API Connector**: **Pure JDBC** (`java.sql.*` DAOs with ACID transactions)
-5. **Web API Runtime**: **Java Servlets** (`MenuServlet`, `OrderServlet`, `OrderHistoryServlet`, `KitchenQueueServlet`)
-
-### How to Launch the Java Applications:
+### 1. Launch the JavaFX Frontend GUI:
 ```bash
-cd smartmess-java
-bash run.sh gui     # Launches JavaFX Desktop Application
-bash run.sh server  # Starts Java Servlet Container on port 8080
-bash run.sh         # Runs automated Review 2 test suite
+cd frontend
+bash run.sh
 ```
+*Launches the JavaFX desktop application. If the backend servlet container is not yet running, the desktop app automatically starts an embedded servlet server in the background so everything works immediately out of the box!*
+
+### 2. Launch the Java Servlets Backend:
+```bash
+cd backend
+bash run.sh        # Starts Java Servlet Container on port 8080
+bash run.sh test   # Runs automated Review 2 test suite
+```
+
+### 3. Active Java Servlet Endpoints (port 8080):
+- `POST http://localhost:8080/api/java/auth` → Handled by `AuthServlet`
+- `GET  http://localhost:8080/api/java/menu` → Handled by `MenuServlet`
+- `POST http://localhost:8080/api/java/order` → Handled by `OrderServlet`
+- `GET  http://localhost:8080/api/java/kitchen` → Handled by `KitchenQueueServlet`
+- `GET  http://localhost:8080/api/java/history` → Handled by `OrderHistoryServlet`
 
 
 ---
