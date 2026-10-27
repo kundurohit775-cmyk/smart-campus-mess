@@ -1,0 +1,89 @@
+package com.smartmess.servlet;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.smartmess.model.PreOrder;
+import com.smartmess.service.IMessService;
+import com.smartmess.util.GsonHelper;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Demonstrates Java Servlets:
+ * Handles next-day special pre-orders to eliminate kitchen overproduction and food waste.
+ * GET /api/java/preorders: list student's pre-orders.
+ * POST /api/java/preorders: book special for tomorrow.
+ */
+public class PreOrderServlet extends HttpServlet {
+
+    private final IMessService messService;
+    private final Gson gson = GsonHelper.getGson();
+
+    public PreOrderServlet(IMessService messService) {
+        this.messService = messService;
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+
+        String studentIdParam = req.getParameter("studentId");
+        int studentId = (studentIdParam != null && !studentIdParam.isEmpty()) ? Integer.parseInt(studentIdParam) : 22;
+
+        List<PreOrder> list = messService.getPreOrders(studentId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("success", true);
+        data.put("preOrders", list);
+
+        try (PrintWriter out = resp.getWriter()) {
+            out.print(gson.toJson(data));
+            out.flush();
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = req.getReader()) {
+            String line;
+            while ((line = reader.readLine()) != null) sb.append(line);
+        }
+
+        Map<String, Object> responseData = new HashMap<>();
+        try {
+            JsonObject json = gson.fromJson(sb.toString(), JsonObject.class);
+            int studentId = json.has("studentId") ? json.get("studentId").getAsInt() : 22;
+            int itemId = json.has("itemId") ? json.get("itemId").getAsInt() : 12;
+            int quantity = json.has("quantity") ? json.get("quantity").getAsInt() : 1;
+
+            PreOrder pre = messService.placePreOrder(studentId, itemId, quantity, LocalDate.now().plusDays(1));
+            resp.setStatus(HttpServletResponse.SC_CREATED);
+            responseData.put("success", true);
+            responseData.put("message", "Next-day pre-order confirmed! Token: " + pre.getPickupToken());
+            responseData.put("preOrder", pre);
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            responseData.put("success", false);
+            responseData.put("message", e.getMessage());
+        }
+
+        try (PrintWriter out = resp.getWriter()) {
+            out.print(gson.toJson(responseData));
+            out.flush();
+        }
+    }
+}

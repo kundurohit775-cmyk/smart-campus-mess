@@ -2,10 +2,16 @@ package com.smartmess.server;
 
 import com.smartmess.service.IMessService;
 import com.smartmess.service.MessServiceImpl;
+import com.smartmess.servlet.AdminServlet;
+import com.smartmess.servlet.AuthServlet;
+import com.smartmess.servlet.CreditServlet;
 import com.smartmess.servlet.KitchenQueueServlet;
 import com.smartmess.servlet.MenuServlet;
 import com.smartmess.servlet.OrderHistoryServlet;
 import com.smartmess.servlet.OrderServlet;
+import com.smartmess.servlet.PreOrderServlet;
+import com.smartmess.servlet.SickLeaveServlet;
+import com.smartmess.servlet.SustainabilityServlet;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -30,10 +36,17 @@ import java.util.*;
  * Demonstrates Java Servlets Runtime & Deployment:
  * Provides an embedded, zero-dependency HTTP server that mounts and routes HTTP requests
  * directly to standard Java HttpServlet instances:
- * - /api/java/menu       -> MenuServlet
- * - /api/java/order      -> OrderServlet
- * - /api/java/history    -> OrderHistoryServlet
- * - /api/java/kitchen    -> KitchenQueueServlet
+ * - /                      -> WebPortalServlet (Dynamic HTML5/CSS Pure Java Web UI)
+ * - /api/java/auth         -> AuthServlet (VIT email check & dual auth)
+ * - /api/java/menu         -> MenuServlet (digital menu & stock toggles)
+ * - /api/java/order        -> OrderServlet (atomic checkout, cancel, stepper update)
+ * - /api/java/history      -> OrderHistoryServlet (student & campus ledger)
+ * - /api/java/kitchen      -> KitchenQueueServlet (chef live FIFO queue)
+ * - /api/java/preorders    -> PreOrderServlet (next-day special pre-orders)
+ * - /api/java/sickleave    -> SickLeaveServlet (warden sick-leave delivery requests)
+ * - /api/java/credits      -> CreditServlet (student wallet balance & Razorpay topup)
+ * - /api/java/admin        -> AdminServlet (analytics, top 5 dishes, 9k reset)
+ * - /api/java/impact       -> SustainabilityServlet (live food waste avoidance)
  * 
  * Enables immediate demonstration during Review 2 without requiring an external Apache Tomcat installation.
  */
@@ -53,16 +66,29 @@ public class EmbeddedServletServer {
         server = HttpServer.create(new InetSocketAddress(port), 0);
 
         // Instantiate Servlets
+        AuthServlet authServlet = new AuthServlet();
         MenuServlet menuServlet = new MenuServlet(messService);
         OrderServlet orderServlet = new OrderServlet(messService);
         OrderHistoryServlet historyServlet = new OrderHistoryServlet(messService);
         KitchenQueueServlet kitchenServlet = new KitchenQueueServlet(messService);
+        PreOrderServlet preOrderServlet = new PreOrderServlet(messService);
+        SickLeaveServlet sickLeaveServlet = new SickLeaveServlet(messService);
+        CreditServlet creditServlet = new CreditServlet(messService);
+        AdminServlet adminServlet = new AdminServlet(messService);
+        SustainabilityServlet sustainabilityServlet = new SustainabilityServlet(messService);
 
         // Mount Servlets on HTTP routes
+        server.createContext("/", new ServletAdapterHandler(new com.smartmess.web.WebPortalServlet(messService)));
+        server.createContext("/api/java/auth", new ServletAdapterHandler(authServlet));
         server.createContext("/api/java/menu", new ServletAdapterHandler(menuServlet));
         server.createContext("/api/java/order", new ServletAdapterHandler(orderServlet));
         server.createContext("/api/java/history", new ServletAdapterHandler(historyServlet));
         server.createContext("/api/java/kitchen", new ServletAdapterHandler(kitchenServlet));
+        server.createContext("/api/java/preorders", new ServletAdapterHandler(preOrderServlet));
+        server.createContext("/api/java/sickleave", new ServletAdapterHandler(sickLeaveServlet));
+        server.createContext("/api/java/credits", new ServletAdapterHandler(creditServlet));
+        server.createContext("/api/java/admin", new ServletAdapterHandler(adminServlet));
+        server.createContext("/api/java/impact", new ServletAdapterHandler(sustainabilityServlet));
 
         executor = java.util.concurrent.Executors.newFixedThreadPool(4, r -> {
             Thread t = new Thread(r, "EmbeddedServletWorker");
@@ -75,10 +101,17 @@ public class EmbeddedServletServer {
         System.out.println("======================================================================");
         System.out.printf("🚀 SmartMess Java Servlet Container running at: http://localhost:%d%n", port);
         System.out.println("   Available Java Servlet Endpoints:");
-        System.out.printf("   • GET  http://localhost:%d/api/java/menu        (MenuServlet)%n", port);
-        System.out.printf("   • POST http://localhost:%d/api/java/order       (OrderServlet)%n", port);
-        System.out.printf("   • GET  http://localhost:%d/api/java/history     (OrderHistoryServlet)%n", port);
-        System.out.printf("   • GET  http://localhost:%d/api/java/kitchen     (KitchenQueueServlet)%n", port);
+        System.out.printf("   • GET  http://localhost:%d/                       (WebPortalServlet)%n", port);
+        System.out.printf("   • POST http://localhost:%d/api/java/auth          (AuthServlet)%n", port);
+        System.out.printf("   • GET  http://localhost:%d/api/java/menu          (MenuServlet)%n", port);
+        System.out.printf("   • POST http://localhost:%d/api/java/order         (OrderServlet)%n", port);
+        System.out.printf("   • GET  http://localhost:%d/api/java/history       (OrderHistoryServlet)%n", port);
+        System.out.printf("   • GET  http://localhost:%d/api/java/kitchen       (KitchenQueueServlet)%n", port);
+        System.out.printf("   • GET  http://localhost:%d/api/java/preorders     (PreOrderServlet)%n", port);
+        System.out.printf("   • GET  http://localhost:%d/api/java/sickleave     (SickLeaveServlet)%n", port);
+        System.out.printf("   • GET  http://localhost:%d/api/java/credits       (CreditServlet)%n", port);
+        System.out.printf("   • GET  http://localhost:%d/api/java/admin         (AdminServlet)%n", port);
+        System.out.printf("   • GET  http://localhost:%d/api/java/impact        (SustainabilityServlet)%n", port);
         System.out.println("======================================================================");
     }
 

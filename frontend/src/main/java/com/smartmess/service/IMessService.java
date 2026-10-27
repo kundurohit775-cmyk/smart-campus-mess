@@ -1,60 +1,64 @@
 package com.smartmess.service;
 
 import com.smartmess.collections.MenuCatalog;
-import com.smartmess.model.BaseOrder;
-import com.smartmess.model.MenuItem;
-import com.smartmess.model.OrderItem;
-import com.smartmess.model.Student;
 import com.smartmess.exception.*;
+import com.smartmess.model.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
  * Demonstrates OOP: Abstraction & Interface Design.
- * Defines the public contract for all SmartMess kitchen, credit, and ordering capabilities.
+ * Defines the public contract for all SmartMess kitchen, credit, ordering, pre-order,
+ * sick-leave, and administrative capabilities.
  */
 public interface IMessService {
 
-    /**
-     * Initializes the menu catalog from persistent storage or default data.
-     */
     void initializeCatalog();
 
-    /**
-     * Retrieves the collections-backed MenuCatalog.
-     */
     MenuCatalog getCatalog();
 
-    /**
-     * Fetches student profile and available credits.
-     */
     Student getStudentProfile(int studentId);
 
-    /**
-     * Places a new meal order atomically with credit verification and inventory deduction.
-     */
+    void registerStudent(Student student);
+
     BaseOrder placeOrder(int studentId, List<OrderItem> items, boolean isRoomDelivery, String roomAddress)
             throws OutOfStockException, InsufficientCreditsException, MenuItemNotFoundException;
 
-    /**
-     * Cancels an order and refunds student credits if still pending.
-     */
-    void cancelOrder(int orderId, int studentId) throws InvalidOrderStateException;
+    BaseOrder cancelOrder(int orderId, int studentId) throws InvalidOrderStateException;
 
-    /**
-     * Exports order history to CSV using try-with-resources file streams.
-     */
+    BaseOrder updateOrderStatus(int orderId, OrderStatus newStatus);
+
+    PreOrder placePreOrder(int studentId, int itemId, int quantity, LocalDate scheduledDate)
+            throws OutOfStockException, InsufficientCreditsException, MenuItemNotFoundException;
+
+    List<PreOrder> getPreOrders(int studentId);
+
+    HealthRequest submitHealthRequest(int studentId, String hostel, String room, String reason, LocalDate date);
+
+    List<HealthRequest> getPendingHealthRequests();
+
+    HealthRequest reviewHealthRequest(int requestId, boolean approve, String rejectionReason, String wardenName);
+
+    void topUpCredits(int studentId, int amount);
+
+    List<TransactionRecord> getTransactions(int studentId);
+
+    void adjustStock(int itemId, int delta);
+
+    void toggleStockStatus(int itemId);
+
+    void resetAllStudentCredits(int amount);
+
+    SustainabilityMetrics getSustainabilityMetrics();
+
+    List<MenuItem> getTop5Dishes();
+
     File exportOrderHistory(int studentId, String filePath) throws IOException;
 
-    /**
-     * Retrieves list of pending orders in the kitchen FIFO queue.
-     */
     List<BaseOrder> getPendingKitchenOrders();
 
-    /**
-     * Simulates cooking the next pending kitchen order.
-     */
     BaseOrder processNextKitchenOrder();
 }

@@ -68,6 +68,14 @@ public class KitchenOrderQueue {
         return new ArrayList<>(pendingQueue);
     }
 
+    public List<BaseOrder> toList() {
+        return getAllPendingOrders();
+    }
+
+    public BaseOrder dequeue() {
+        return pollNextOrder();
+    }
+
     public List<BaseOrder> getAllProcessedOrders() {
         synchronized (processedOrders) {
             return new ArrayList<>(processedOrders);

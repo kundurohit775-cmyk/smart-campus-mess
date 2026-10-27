@@ -55,6 +55,24 @@ public class MenuCatalog {
         return item;
     }
 
+    public MenuItem findById(int itemId) {
+        return itemMap.get(itemId);
+    }
+
+    public synchronized void reduceStock(int itemId, int quantity) {
+        MenuItem item = itemMap.get(itemId);
+        if (item != null) {
+            item.setAvailableQuantity(Math.max(0, item.getAvailableQuantity() - quantity));
+        }
+    }
+
+    public synchronized void increaseStock(int itemId, int quantity) {
+        MenuItem item = itemMap.get(itemId);
+        if (item != null) {
+            item.setAvailableQuantity(item.getAvailableQuantity() + quantity);
+        }
+    }
+
     public boolean containsItem(int itemId) {
         return itemMap.containsKey(itemId);
     }

@@ -33,6 +33,12 @@ public class AsyncAuditLogger {
         });
     }
 
+    public Future<?> logAsync(String action, String details) {
+        return executor.submit(() -> {
+            fileManager.logTransaction(action, 0, 0, 0, details);
+        });
+    }
+
     /**
      * Submits a Callable task that returns the confirmation message.
      */

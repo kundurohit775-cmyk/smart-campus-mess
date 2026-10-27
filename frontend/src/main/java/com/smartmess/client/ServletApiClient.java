@@ -200,4 +200,286 @@ public class ServletApiClient {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         return response.body();
     }
+
+    /**
+     * Calls OrderServlet: POST /api/java/order with action="cancel"
+     */
+    public JsonObject cancelOrder(int orderId, int studentId) throws IOException, InterruptedException {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("action", "cancel");
+        payload.addProperty("orderId", orderId);
+        payload.addProperty("studentId", studentId);
+
+        String jsonBody = gson.toJson(payload);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/order"))
+                .timeout(Duration.ofSeconds(6))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls OrderServlet: POST /api/java/order with action="status_update"
+     */
+    public JsonObject updateOrderStatus(int orderId, String newStatus) throws IOException, InterruptedException {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("action", "status_update");
+        payload.addProperty("orderId", orderId);
+        payload.addProperty("status", newStatus);
+
+        String jsonBody = gson.toJson(payload);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/order"))
+                .timeout(Duration.ofSeconds(6))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls MenuServlet: POST /api/java/menu with action="toggle_stock"
+     */
+    public JsonObject toggleStock(int itemId, boolean inStock) throws IOException, InterruptedException {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("action", "toggle_stock");
+        payload.addProperty("itemId", itemId);
+        payload.addProperty("inStock", inStock);
+
+        String jsonBody = gson.toJson(payload);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/menu"))
+                .timeout(Duration.ofSeconds(6))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls PreOrderServlet: GET /api/java/preorders?studentId=...
+     */
+    public JsonObject fetchPreOrders(int studentId) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/preorders?studentId=" + studentId))
+                .timeout(Duration.ofSeconds(5))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls PreOrderServlet: POST /api/java/preorders
+     */
+    public JsonObject placePreOrder(int studentId, String studentName, int itemId, String itemName,
+                                    String mealType, String pickupSlot) throws IOException, InterruptedException {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("studentId", studentId);
+        payload.addProperty("studentName", studentName);
+        payload.addProperty("itemId", itemId);
+        payload.addProperty("itemName", itemName);
+        payload.addProperty("mealType", mealType);
+        payload.addProperty("pickupSlot", pickupSlot);
+
+        String jsonBody = gson.toJson(payload);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/preorders"))
+                .timeout(Duration.ofSeconds(6))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls SickLeaveServlet: GET /api/java/sickleave
+     */
+    public JsonObject fetchSickLeaveRequests() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/sickleave"))
+                .timeout(Duration.ofSeconds(5))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls SickLeaveServlet: POST /api/java/sickleave (Submit request)
+     */
+    public JsonObject submitSickLeaveRequest(int studentId, String studentName, String hostelRoom,
+                                             String reason, String mealType) throws IOException, InterruptedException {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("action", "submit");
+        payload.addProperty("studentId", studentId);
+        payload.addProperty("studentName", studentName);
+        payload.addProperty("hostelRoom", hostelRoom);
+        payload.addProperty("reason", reason);
+        payload.addProperty("mealType", mealType);
+
+        String jsonBody = gson.toJson(payload);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/sickleave"))
+                .timeout(Duration.ofSeconds(6))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls SickLeaveServlet: POST /api/java/sickleave (Warden Review)
+     */
+    public JsonObject reviewSickLeaveRequest(int requestId, String decision, String reviewedBy)
+            throws IOException, InterruptedException {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("action", "review");
+        payload.addProperty("requestId", requestId);
+        payload.addProperty("decision", decision);
+        payload.addProperty("reviewedBy", reviewedBy);
+
+        String jsonBody = gson.toJson(payload);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/sickleave"))
+                .timeout(Duration.ofSeconds(6))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls CreditServlet: GET /api/java/credits?studentId=...
+     */
+    public JsonObject fetchCredits(int studentId) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/credits?studentId=" + studentId))
+                .timeout(Duration.ofSeconds(5))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls CreditServlet: POST /api/java/credits (Razorpay Top-up)
+     */
+    public JsonObject topUpCredits(int studentId, double amount, String paymentId) throws IOException, InterruptedException {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("studentId", studentId);
+        payload.addProperty("amount", amount);
+        payload.addProperty("paymentId", paymentId);
+
+        String jsonBody = gson.toJson(payload);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/credits"))
+                .timeout(Duration.ofSeconds(6))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls AdminServlet: GET /api/java/admin (Analytics & Top 5 Dishes)
+     */
+    public JsonObject fetchAdminAnalytics() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/admin"))
+                .timeout(Duration.ofSeconds(5))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls AdminServlet: POST /api/java/admin (Reset Credits)
+     */
+    public JsonObject resetStudentCredits(double amount) throws IOException, InterruptedException {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("action", "reset_credits");
+        payload.addProperty("amount", amount);
+
+        String jsonBody = gson.toJson(payload);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/admin"))
+                .timeout(Duration.ofSeconds(6))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls SustainabilityServlet: GET /api/java/impact
+     */
+    public JsonObject fetchSustainabilityMetrics() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/impact"))
+                .timeout(Duration.ofSeconds(5))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls AuthServlet: POST /api/java/auth (Dual Auth + VIT domain check)
+     */
+    public JsonObject authenticate(String email, String password, String otp) throws IOException, InterruptedException {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("email", email);
+        payload.addProperty("password", password);
+        payload.addProperty("otp", otp);
+
+        String jsonBody = gson.toJson(payload);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/auth"))
+                .timeout(Duration.ofSeconds(6))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
 }

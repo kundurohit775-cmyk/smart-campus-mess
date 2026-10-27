@@ -5,10 +5,12 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartmess.exception.InsufficientCreditsException;
+import com.smartmess.exception.InvalidOrderStateException;
 import com.smartmess.exception.MenuItemNotFoundException;
 import com.smartmess.exception.OutOfStockException;
 import com.smartmess.model.BaseOrder;
 import com.smartmess.model.OrderItem;
+import com.smartmess.model.OrderStatus;
 import com.smartmess.service.IMessService;
 import com.smartmess.util.GsonHelper;
 
@@ -26,8 +28,10 @@ import java.util.Map;
 
 /**
  * Demonstrates Java Servlets:
- * Handles HTTP POST requests to place meal tray orders and HTTP GET to view order status.
- * Returns appropriate HTTP status codes (201 Created, 400 Bad Request, 404 Not Found, 500 Error).
+ * Handles:
+ * 1. Place order (Atomic JDBC transaction)
+ * 2. Instant cancellation while Pending (credit refund + inventory restored)
+ * 3. Chef status progression stepper (Pending -> Accepted -> Preparing -> Ready -> Completed)
  */
 public class OrderServlet extends HttpServlet {
 
@@ -61,51 +65,83 @@ public class OrderServlet extends HttpServlet {
                 throw new IllegalArgumentException("Request payload cannot be empty.");
             }
 
-            int studentId = json.has("studentId") ? json.get("studentId").getAsInt() : 22;
-            boolean isRoomDelivery = json.has("deliveryType") && 
-                    "hostel-delivery".equalsIgnoreCase(json.get("deliveryType").getAsString());
-            String deliveryAddress = json.has("deliveryAddress") ? json.get("deliveryAddress").getAsString() : null;
+            String action = json.has("action") ? json.get("action").getAsString() : "place";
 
-            List<OrderItem> items = new ArrayList<>();
-            if (json.has("items")) {
-                JsonArray itemsArray = json.getAsJsonArray("items");
-                for (JsonElement el : itemsArray) {
-                    JsonObject itemObj = el.getAsJsonObject();
-                    int itemId = itemObj.get("itemId").getAsInt();
-                    int qty = itemObj.has("quantity") ? itemObj.get("quantity").getAsInt() : 1;
-                    items.add(new OrderItem(itemId, "", qty, 0, 0));
+            if ("cancel".equalsIgnoreCase(action)) {
+                // Cancellation flow
+                int orderId = json.get("orderId").getAsInt();
+                int studentId = json.has("studentId") ? json.get("studentId").getAsInt() : 22;
+                BaseOrder cancelled = messService.cancelOrder(orderId, studentId);
+
+                resp.setStatus(HttpServletResponse.SC_OK);
+                responseData.put("success", true);
+                responseData.put("message", "Order #" + orderId + " cancelled successfully. Credits refunded and inventory restored.");
+                responseData.put("order", cancelled);
+
+            } else if ("status_update".equalsIgnoreCase(action)) {
+                // Chef status progression
+                int orderId = json.get("orderId").getAsInt();
+                String statusStr = json.get("status").getAsString();
+                OrderStatus newStatus = OrderStatus.fromString(statusStr);
+                BaseOrder updated = messService.updateOrderStatus(orderId, newStatus);
+
+                resp.setStatus(HttpServletResponse.SC_OK);
+                responseData.put("success", true);
+                responseData.put("message", "Order #" + orderId + " progressed to " + newStatus.getDisplayName());
+                responseData.put("order", updated);
+
+            } else {
+                // Place new order flow
+                int studentId = json.has("studentId") ? json.get("studentId").getAsInt() : 22;
+                boolean isRoomDelivery = json.has("deliveryType") &&
+                        "hostel-delivery".equalsIgnoreCase(json.get("deliveryType").getAsString());
+                String deliveryAddress = json.has("deliveryAddress") ? json.get("deliveryAddress").getAsString() : null;
+
+                List<OrderItem> items = new ArrayList<>();
+                if (json.has("items")) {
+                    JsonArray itemsArray = json.getAsJsonArray("items");
+                    for (JsonElement el : itemsArray) {
+                        JsonObject itemObj = el.getAsJsonObject();
+                        int itemId = itemObj.get("itemId").getAsInt();
+                        int qty = itemObj.has("quantity") ? itemObj.get("quantity").getAsInt() : 1;
+                        items.add(new OrderItem(itemId, "", qty, 0, 0));
+                    }
                 }
+
+                if (items.isEmpty()) {
+                    throw new IllegalArgumentException("No order items specified in payload.");
+                }
+
+                BaseOrder order = messService.placeOrder(studentId, items, isRoomDelivery, deliveryAddress);
+
+                resp.setStatus(HttpServletResponse.SC_CREATED); // 201 Created
+                responseData.put("success", true);
+                responseData.put("message", "Order placed successfully! Token: " + order.getPickupToken());
+                responseData.put("order", order);
             }
-
-            if (items.isEmpty()) {
-                throw new IllegalArgumentException("No order items specified in payload.");
-            }
-
-            // Execute service order placement
-            BaseOrder order = messService.placeOrder(studentId, items, isRoomDelivery, deliveryAddress);
-
-            resp.setStatus(HttpServletResponse.SC_CREATED); // 201 Created
-            responseData.put("success", true);
-            responseData.put("message", "Order placed successfully! Token: " + order.getPickupToken());
-            responseData.put("order", order);
 
         } catch (OutOfStockException e) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST); // 400
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             responseData.put("success", false);
             responseData.put("error", "OUT_OF_STOCK");
             responseData.put("message", e.getMessage());
         } catch (InsufficientCreditsException e) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST); // 400
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             responseData.put("success", false);
             responseData.put("error", "INSUFFICIENT_CREDITS");
             responseData.put("message", e.getMessage());
+        } catch (InvalidOrderStateException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            responseData.put("success", false);
+            responseData.put("error", "INVALID_STATE");
+            responseData.put("message", e.getMessage());
         } catch (MenuItemNotFoundException e) {
-            resp.setStatus(HttpServletResponse.SC_NOT_FOUND); // 404
+            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             responseData.put("success", false);
             responseData.put("error", "ITEM_NOT_FOUND");
             responseData.put("message", e.getMessage());
         } catch (Exception e) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST); // 400
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             responseData.put("success", false);
             responseData.put("error", "ORDER_FAILED");
             responseData.put("message", e.getMessage());

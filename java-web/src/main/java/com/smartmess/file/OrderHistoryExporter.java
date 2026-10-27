@@ -21,6 +21,15 @@ public class OrderHistoryExporter {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    public static boolean exportToCsv(List<BaseOrder> orders, String filePath) {
+        try {
+            exportOrdersToCSV(orders, filePath);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     /**
      * Exports a list of orders to a clean CSV report.
      * Uses try-with-resources for automatic resource closing.
