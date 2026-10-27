@@ -1,7 +1,10 @@
 #!/bin/bash
 # ==============================================================================
 # SmartMess Java Module Runner Script
-# Runs the full Review 2 Demonstration Suite or Embedded Servlet Server
+# Launches:
+#   1. JavaFX Desktop Application: ./run.sh gui
+#   2. Embedded Java Servlet Server: ./run.sh server [port]
+#   3. Comprehensive Review 2 Suite: ./run.sh
 # ==============================================================================
 
 set -e
@@ -19,6 +22,8 @@ elif command -v /usr/libexec/java_home >/dev/null 2>&1; then
     else
         JAVA="$(which java || true)"
     fi
+elif [ -x "/Library/Java/JavaVirtualMachines/jdk-22.jdk/Contents/Home/bin/java" ]; then
+    JAVA="/Library/Java/JavaVirtualMachines/jdk-22.jdk/Contents/Home/bin/java"
 else
     JAVA="$(which java || true)"
 fi
@@ -28,13 +33,31 @@ if [ ! -d "target/classes" ]; then
     bash ./build.sh
 fi
 
-CP="target/classes:lib/postgresql-42.7.3.jar:lib/javax.servlet-api-4.0.1.jar:lib/gson-2.10.1.jar"
+CP="target/classes:lib/*"
+MODULE_PATH="lib"
+MODULES="javafx.controls,javafx.fxml"
 JAVA_OPTS="--add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED"
 
-if [ "$1" = "server" ] || [ "$1" = "servlets" ]; then
+MODE="$1"
+
+if [ "$MODE" = "gui" ] || [ "$MODE" = "fx" ] || [ "$MODE" = "app" ] || [ "$MODE" = "desktop" ]; then
+    echo "======================================================================"
+    echo "🖥️  STARTING SMARTMESS JAVAFX DESKTOP GUI"
+    echo "   Connecting to Java Servlets (HTTP) & PostgreSQL via JDBC"
+    echo "======================================================================"
+    "$JAVA" --module-path "$MODULE_PATH" --add-modules "$MODULES" $JAVA_OPTS -cp "$CP" com.smartmess.gui.SmartMessFXLauncher "${@:2}"
+
+elif [ "$MODE" = "server" ] || [ "$MODE" = "servlets" ] || [ "$MODE" = "servlet" ]; then
     PORT="${2:-8080}"
-    echo "Starting Embedded SmartMess Java Servlet Container on port $PORT..."
-    "$JAVA" $JAVA_OPTS -cp "$CP" com.smartmess.server.EmbeddedServletServer "$PORT"
+    echo "======================================================================"
+    echo "🚀 STARTING SMARTMESS JAVA SERVLET CONTAINER ON PORT $PORT"
+    echo "   Endpoints: /api/java/menu, /api/java/order, /api/java/kitchen, /api/java/history"
+    echo "======================================================================"
+    "$JAVA" --module-path "$MODULE_PATH" --add-modules "$MODULES" $JAVA_OPTS -cp "$CP" com.smartmess.server.EmbeddedServletServer "$PORT"
+
 else
-    "$JAVA" $JAVA_OPTS -cp "$CP" com.smartmess.SmartMessApp "$@"
+    echo "======================================================================"
+    echo "🧪 RUNNING SMARTMESS JAVA DEMONSTRATION SUITE (OOP, JDBC, SERVLETS)"
+    echo "======================================================================"
+    "$JAVA" --module-path "$MODULE_PATH" --add-modules "$MODULES" $JAVA_OPTS -cp "$CP" com.smartmess.SmartMessApp "$@"
 fi

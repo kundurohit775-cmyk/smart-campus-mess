@@ -1,129 +1,132 @@
-# SmartMess: Review 2 Java Concepts Implementation Guide
+# SmartMess: Complete Java Full-Stack Architecture
 
 > [!IMPORTANT]
-> **Existing Project Safety Guarantee**:
-> **Zero existing files were deleted, modified, or moved.** The React frontend (`frontend/`), Express/Node.js backend (`backend/`), and live PostgreSQL database schema remain 100% untouched. All Review 2 Java requirements are cleanly encapsulated in the self-contained module:
-> `smartmess-java/`
+> **Complete Architecture Delivered as Requested**:
+> 1. **Frontend**: JavaFX Desktop Application ([`SmartMessFXApp.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/gui/SmartMessFXApp.java))
+> 2. **Backend**: Java Core 22 ([`com.smartmess.*`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/))
+> 3. **Database**: PostgreSQL SQL Database (Neon Cloud SQL + local fallback)
+> 4. **Database API Connector**: Pure JDBC API (`java.sql.Connection`, `PreparedStatement`, `ResultSet`, ACID transactions with `commit()` and `rollback()`)
+> 5. **Web API Runtime**: Standard Java Servlets (`javax.servlet.http.HttpServlet`, [`MenuServlet`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/MenuServlet.java), [`OrderServlet`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/OrderServlet.java), [`OrderHistoryServlet`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/OrderHistoryServlet.java), [`KitchenQueueServlet`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/KitchenQueueServlet.java))
 
 ---
 
-## 1. Quick Start: How to Run the Demonstration
+## 1. Quick Start Commands
 
-### A. Run the Complete Review 2 Demonstration Suite
-Executes all 7 core Java topics end-to-end with live tests against Neon PostgreSQL:
+All commands are executed from the `smartmess-java` directory:
+
 ```bash
 cd smartmess-java
-bash run.sh
 ```
-*(Or compile explicitly first using `bash build.sh && bash run.sh`)*
 
-### B. Run the Standalone Java Servlet Container
-Starts the embedded servlet container serving HTTP API endpoints on port `8080`:
+### A. Launch the JavaFX Desktop GUI Application
 ```bash
-cd smartmess-java
+bash run.sh gui
+```
+*Launches the interactive JavaFX desktop application. If the servlet container is not yet running, the desktop app automatically starts an embedded servlet server in the background so everything works immediately out of the box!*
+
+### B. Launch Standalone Java Servlet Container
+```bash
 bash run.sh server 8080
 ```
-**Active Servlet Endpoints:**
-- `GET  http://localhost:8080/api/java/menu?healthy=true` → Handled by [`MenuServlet`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/MenuServlet.java)
-- `POST http://localhost:8080/api/java/order` → Handled by [`OrderServlet`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/OrderServlet.java)
-- `GET  http://localhost:8080/api/java/history?studentId=22` → Handled by [`OrderHistoryServlet`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/OrderHistoryServlet.java)
-- `GET  http://localhost:8080/api/java/kitchen` → Handled by [`KitchenQueueServlet`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/KitchenQueueServlet.java)
+*Starts the embedded Java servlet engine hosting all 4 servlets on port `8080`:*
+- `GET  http://localhost:8080/api/java/menu?healthy=true` → Handled by `MenuServlet`
+- `POST http://localhost:8080/api/java/order` → Handled by `OrderServlet`
+- `GET  http://localhost:8080/api/java/kitchen` → Handled by `KitchenQueueServlet`
+- `GET  http://localhost:8080/api/java/history?studentId=22` → Handled by `OrderHistoryServlet`
+- `GET  http://localhost:8080/api/java/history?studentId=22&format=csv` → Handled by `OrderHistoryServlet` (CSV download)
+
+### C. Run the Comprehensive Verification Test Suite
+```bash
+bash run.sh
+```
+*Executes all 7 core Java topics (OOP, Custom Exceptions, Collections, Multithreading, File I/O, JDBC Transactions, Servlets) sequentially with 100% automated test verification.*
 
 ---
 
-## 2. All 7 Java Concepts & File Mapping
+## 2. Full-Stack System Architecture
 
 ```mermaid
 graph TD
-    A["Review 2 Evaluation Topics"] --> B["1. OOP Principles"]
-    A --> C["2. Exception Handling"]
-    A --> D["3. Collections Framework"]
-    A --> E["4. File Handling & I/O"]
-    A --> F["5. Multithreading & Concurrency"]
-    A --> G["6. JDBC Database Transactions"]
-    A --> H["7. Java Servlets & MVC Architecture"]
+    subgraph Frontend["1. Frontend Tier (JavaFX 22)"]
+        UI["SmartMessFXApp (Desktop GUI)"]
+        FX1["Tab 1: Menu & Tray Order"]
+        FX2["Tab 2: Kitchen Live Queue"]
+        FX3["Tab 3: Order History & CSV"]
+        FX4["Tab 4: JDBC Diagnostics"]
+        Client["ServletApiClient (HTTP Client)"]
+        UI --> FX1
+        UI --> FX2
+        UI --> FX3
+        UI --> FX4
+        UI --> Client
+    end
 
-    B --> B1["AbstractUser, Student, MenuItem, SpecialMenuItem, BaseOrder, DineInOrder, RoomDeliveryOrder"]
-    C --> C1["MessException, OutOfStockException, InsufficientCreditsException, MenuItemNotFoundException"]
-    D --> D1["MenuCatalog (ArrayList, HashMap, HashSet), KitchenOrderQueue (Queue)"]
-    E --> E1["OrderHistoryExporter (CSV with try-with-resources), AuditLogFileManager (FileWriter append)"]
-    F --> F1["KitchenWorkerThread (Runnable), AsyncAuditLogger (ExecutorService)"]
-    G --> G1["DatabaseConnection, StudentDAO, MenuItemDAO, OrderDAO (ACID commit/rollback)"]
-    H --> H1["MenuServlet, OrderServlet, OrderHistoryServlet, KitchenQueueServlet, EmbeddedServletServer"]
+    subgraph ServletTier["2. Servlet Container & Controller Tier"]
+        Server["EmbeddedServletServer (port 8080)"]
+        S1["MenuServlet (GET /api/java/menu)"]
+        S2["OrderServlet (POST /api/java/order)"]
+        S3["KitchenQueueServlet (GET/POST /api/java/kitchen)"]
+        S4["OrderHistoryServlet (GET /api/java/history)"]
+        Client -- "HTTP JSON Requests" --> Server
+        Server --> S1
+        Server --> S2
+        Server --> S3
+        Server --> S4
+    end
+
+    subgraph BackendCore["3. Backend Business Logic & Concurrency"]
+        Service["MessServiceImpl (IMessService)"]
+        OOP["Models: BaseOrder, Student, MenuItem"]
+        Collections["MenuCatalog (ArrayList/HashMap/HashSet)"]
+        Queue["KitchenOrderQueue (ConcurrentLinkedQueue)"]
+        Threads["KitchenWorkerThread (Runnable Chef Workers)"]
+        FileIO["OrderHistoryExporter & AuditLogFileManager"]
+        S1 --> Service
+        S2 --> Service
+        S3 --> Service
+        S4 --> Service
+        Service --> OOP
+        Service --> Collections
+        Service --> Queue
+        Service --> Threads
+        Service --> FileIO
+    end
+
+    subgraph DatabaseTier["4. Database & Connector Tier (Pure JDBC + SQL)"]
+        JDBC["Pure JDBC API (java.sql.Connection)"]
+        DAOs["OrderDAO, StudentDAO, MenuItemDAO"]
+        Tx["ACID Transactions: setAutoCommit(false), commit(), rollback()"]
+        SQL[("Neon PostgreSQL Cloud Database")]
+        Service --> DAOs
+        DAOs --> JDBC
+        JDBC --> Tx
+        Tx -- "TCP / SSL (port 5432)" --> SQL
+    end
 ```
-
-### 1. Object-Oriented Programming (OOP)
-- **Encapsulation**: Private fields with strictly validated getters/setters across all model entities.
-- **Abstraction**:
-  - [`AbstractUser`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/model/AbstractUser.java): Abstract base class defining common credentials and abstract method `getDashboardView()`.
-  - [`IMessService`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/service/IMessService.java): High-level service interface decoupling business logic from implementation.
-- **Inheritance**:
-  - [`Student`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/model/Student.java) extends [`AbstractUser`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/model/AbstractUser.java).
-  - [`SpecialMenuItem`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/model/SpecialMenuItem.java) extends [`MenuItem`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/model/MenuItem.java).
-  - [`DineInOrder`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/model/DineInOrder.java) & [`RoomDeliveryOrder`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/model/RoomDeliveryOrder.java) extend [`BaseOrder`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/model/BaseOrder.java).
-- **Polymorphism**:
-  - `BaseOrder.generatePickupToken()`: Dynamic dispatch generates `TK-XXXX` for dine-in/pickup orders and `ROOM-TK-XXXX` for sick-leave hostel room delivery orders.
-  - `MenuItem.getItemType()`: Polymorphically displays whether an item is regular or next-day chef special.
-
-### 2. Exception Handling
-- **Custom Checked Exception Hierarchy**:
-  - [`MessException`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/exception/MessException.java): Base application exception.
-  - [`OutOfStockException`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/exception/OutOfStockException.java): Thrown when requested portions exceed available cafeteria stock.
-  - [`InsufficientCreditsException`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/exception/InsufficientCreditsException.java): Thrown when order total exceeds student mess credit balance.
-  - [`MenuItemNotFoundException`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/exception/MenuItemNotFoundException.java): Thrown for nonexistent dish IDs.
-  - [`InvalidOrderStateException`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/exception/InvalidOrderStateException.java): Thrown when illegal status transitions occur.
-  - [`MessDatabaseException`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/exception/MessDatabaseException.java): Wraps SQL exceptions.
-- **Robust Exception Handling Patterns**:
-  - Demonstrated in [`SmartMessApp.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/SmartMessApp.java#L110-L153) using structured `try`, `catch`, and `finally` blocks for resource cleanup and deterministic state recovery.
-
-### 3. Java Collections Framework
-- **`ArrayList`**: Dynamic list of menu items and meal tray orders.
-- **`HashMap`**: $O(1)$ fast lookup of menu items by dish ID and students by student ID.
-- **`HashSet`**: Efficient mathematical set ensuring unique dish categories without duplicates.
-- **`Queue` (`ConcurrentLinkedQueue`)**: Thread-safe FIFO ordering queue in [`KitchenOrderQueue.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/collections/KitchenOrderQueue.java) ensuring fair order preparation for chefs.
-
-### 4. File Handling & I/O
-- **CSV Export with `try-with-resources`**:
-  - [`OrderHistoryExporter.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/file/OrderHistoryExporter.java): Exports student order history to `exports/student_{id}_orders_review2.csv`.
-  - Uses `BufferedWriter`, `FileWriter`, and `BufferedReader` with automated resource release.
-- **Append-Only Transaction Audit Logging**:
-  - [`AuditLogFileManager.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/file/AuditLogFileManager.java): Writes synchronized timestamped records of orders, debit transactions, and cancellations to `smartmess_audit_log.txt`.
-
-### 5. Multithreading & Concurrency
-- **Background Kitchen Chef Cooking Worker**:
-  - [`KitchenWorkerThread.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/concurrency/KitchenWorkerThread.java): Implements `java.lang.Runnable`. Simulates multiple chefs (e.g. `Head-Chef-Vikram` and `Sous-Chef-Ananya`) polling tickets from the concurrent queue, updating state to `Preparing`, and marking `Ready`.
-- **Asynchronous Audit Logger**:
-  - [`AsyncAuditLogger.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/concurrency/AsyncAuditLogger.java): Uses `java.util.concurrent.ExecutorService` (`Executors.newSingleThreadExecutor()`) to log transactions asynchronously without blocking the main student checkout thread.
-
-### 6. JDBC Database Connectivity & Transactions
-- **Connection Management**:
-  - [`DatabaseConnection.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/db/DatabaseConnection.java): Safely parses PostgreSQL connection string from `backend/.env` without hardcoding credentials into source code.
-- **ACID Transaction & Rollback**:
-  - [`OrderDAO.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/db/OrderDAO.java#L100-L165): Uses `conn.setAutoCommit(false)`. Executes row lock with `SELECT ... FOR UPDATE`, checks stock, debits credits, inserts order headers, inserts order items, and commits with `conn.commit()`. If any step fails, `conn.rollback()` restores original database state.
-
-### 7. Java Servlets & MVC Architecture
-- **Servlets Implemented**:
-  - [`MenuServlet.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/MenuServlet.java): Handles `GET /api/java/menu` with category and healthy filtering (Returns `200 OK`).
-  - [`OrderServlet.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/OrderServlet.java): Handles `POST /api/java/order` (Returns `201 Created` or `400 Bad Request`).
-  - [`OrderHistoryServlet.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/OrderHistoryServlet.java): Handles `GET /api/java/history` (Returns `200 OK`).
-  - [`KitchenQueueServlet.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/KitchenQueueServlet.java): Handles `GET /api/java/kitchen` (Returns `200 OK`).
-- **Embedded Servlet Runner**:
-  - [`EmbeddedServletServer.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/server/EmbeddedServletServer.java): Zero-external-dependency embedded servlet container enabling instant local execution without installing Apache Tomcat.
 
 ---
 
-## 3. Files to Open in VS Code for Review 2
+## 3. Technology Stack Breakdown
 
-When your evaluators ask to see specific concepts in VS Code, open these files:
+| Layer | Technology | Key Implementation Files | Description |
+| :--- | :--- | :--- | :--- |
+| **Frontend** | **JavaFX 22** | [`SmartMessFXApp.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/gui/SmartMessFXApp.java)<br>[`SmartMessFXLauncher.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/gui/SmartMessFXLauncher.java) | Modern desktop client with dynamic category filtering, interactive meal tray, chef kitchen queue manager, order history table, and real-time execution log. |
+| **HTTP Client** | **Java 11+ HttpClient** | [`ServletApiClient.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/client/ServletApiClient.java) | Asynchronously dispatches HTTP GET and POST requests from JavaFX to the servlet endpoints. |
+| **Servlet Runtime** | **Java Servlet API** | [`EmbeddedServletServer.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/server/EmbeddedServletServer.java)<br>[`MenuServlet.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/MenuServlet.java)<br>[`OrderServlet.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/OrderServlet.java)<br>[`KitchenQueueServlet.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/KitchenQueueServlet.java)<br>[`OrderHistoryServlet.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/OrderHistoryServlet.java) | Handles RESTful HTTP requests, validates payloads, enforces HTTP status codes (`200 OK`, `201 Created`, `400 Bad Request`, `404 Not Found`), and serves JSON / CSV payloads. |
+| **Backend Core** | **Java 22 (OOP & Threads)** | [`com.smartmess.model.*`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/model/)<br>[`com.smartmess.concurrency.*`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/concurrency/)<br>[`com.smartmess.exception.*`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/exception/) | Abstract classes, inheritance (`Student` extends `AbstractUser`, `RoomDeliveryOrder` extends `BaseOrder`), custom checked exceptions, concurrent chef threads, CSV file exporters. |
+| **DB Connector** | **Pure JDBC API** | [`DatabaseConnection.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/db/DatabaseConnection.java)<br>[`OrderDAO.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/db/OrderDAO.java)<br>[`StudentDAO.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/db/StudentDAO.java)<br>[`MenuItemDAO.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/db/MenuItemDAO.java) | Uses standard `java.sql.Connection`, `PreparedStatement`, `ResultSet`. Enforces multi-table ACID transactions with `setAutoCommit(false)`, `commit()`, and `rollback()`. |
+| **SQL Database** | **PostgreSQL (Neon Cloud)** | Tables: `students`, `menu_items`, `orders`, `order_items` | Relational SQL schema with foreign key constraints, numeric stock counters, credit ledgers, and token indexes. |
 
-| Concept Evaluated | Recommended File to Open in VS Code | Key Methods / Lines to Point Out |
+---
+
+## 4. Evaluation Guide for Review 2
+
+When your evaluators ask to see specific architectural tiers in VS Code:
+
+| Requirement | Code File to Open in VS Code | What to Explain to Evaluators |
 | :--- | :--- | :--- |
-| **Complete Demonstration** | [`SmartMessApp.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/SmartMessApp.java) | `main()` method running all 7 sections sequentially |
-| **Inheritance & Polymorphism** | [`BaseOrder.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/model/BaseOrder.java) & [`RoomDeliveryOrder.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/model/RoomDeliveryOrder.java) | `generatePickupToken()` generating `TK-` vs `ROOM-TK-` |
-| **Custom Exceptions** | [`OutOfStockException.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/exception/OutOfStockException.java) | Exception inheritance and informative constructor |
-| **Collections** | [`MenuCatalog.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/collections/MenuCatalog.java) | `ArrayList`, `HashMap`, and `HashSet` usage |
-| **File I/O (CSV & Logs)** | [`OrderHistoryExporter.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/file/OrderHistoryExporter.java) | `try-with-resources` reading/writing CSV files |
-| **Multithreading** | [`KitchenWorkerThread.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/concurrency/KitchenWorkerThread.java) | `implements Runnable` with `run()` loop |
-| **Async Execution** | [`AsyncAuditLogger.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/concurrency/AsyncAuditLogger.java) | `ExecutorService` executing background tasks |
-| **JDBC Transactions** | [`OrderDAO.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/db/OrderDAO.java) | `conn.setAutoCommit(false)`, `conn.commit()`, `conn.rollback()` |
-| **Java Servlets & HTTP** | [`OrderServlet.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/OrderServlet.java) | `doPost()` returning `201 Created` / `400 Bad Request` |
+| **Frontend: JavaFX** | [`SmartMessFXApp.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/gui/SmartMessFXApp.java) | Explain the 4 tabs, `TableView` bindings, `ObservableList`, responsive button actions, and asynchronous thread dispatching. |
+| **Backend: Java** | [`MessServiceImpl.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/service/MessServiceImpl.java) & [`BaseOrder.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/model/BaseOrder.java) | Explain OOP abstraction, polymorphism (`getPickupTokenPrefix()`), custom exceptions, and concurrent collections. |
+| **Database: SQL Database** | [`DatabaseConnection.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/db/DatabaseConnection.java) | Show the PostgreSQL Neon connection URL and driver registration (`org.postgresql.Driver`). |
+| **DB API Connector: JDBC** | [`OrderDAO.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/db/OrderDAO.java) | Highlight lines 29–135 showing `conn.setAutoCommit(false)`, `PreparedStatement`, row locking with `FOR UPDATE`, `conn.commit()`, and `conn.rollback()` in the `catch` block. |
+| **Must Run on Java Servlet** | [`OrderServlet.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/servlet/OrderServlet.java) & [`EmbeddedServletServer.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/src/main/java/com/smartmess/server/EmbeddedServletServer.java) | Show how the class extends `HttpServlet`, overrides `doPost()`, sets HTTP response headers, parses JSON with `BufferedReader`, and returns HTTP status `201 Created`. |

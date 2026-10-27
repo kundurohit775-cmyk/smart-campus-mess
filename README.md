@@ -34,9 +34,32 @@ A production-ready digital campus mess food ordering and credit management platf
 ## 🏗️ Tech Stack
 
 - **Frontend**: React 18, Vite, Tailwind CSS, Lucide Icons, Canvas Confetti
+- **Desktop Frontend (Review 2)**: **JavaFX 22** (Rich desktop GUI with Menu Tray, Chef Queue, and Order History)
 - **Backend**: Node.js, Express.js, Better Auth, JWT Authentication, Bcrypt.js
+- **Java Backend & Servlets**: **Java 22**, Standard **Java Servlets** (`javax.servlet.http.HttpServlet`), Multithreaded Kitchen Worker, OOP Models
 - **Database**: Remote Neon PostgreSQL (AWS serverless) + SQLite local fallback with ACID transactions
-- **SMS Gateway**: Twilio Node.js SDK (Verify & Messaging API) / MSG91 integration
+- **Database API Connector**: **Pure JDBC** (`java.sql.Connection`, `PreparedStatement`, atomic `commit()` and `rollback()`)
+- **SMS & Mail Gateways**: Twilio Node.js SDK, Gmail SMTP Nodemailer, Resend API
+
+---
+
+## ☕ Java Full-Stack Architecture (Review 2)
+
+A complete, self-contained Java implementation is available in [`smartmess-java/`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/smartmess-java/):
+1. **Frontend**: **JavaFX Desktop Application** (`SmartMessFXApp`)
+2. **Backend**: **Java Core 22** (OOP, Collections, Threads, Exceptions)
+3. **Database**: **PostgreSQL SQL Database** (Neon Cloud)
+4. **Database API Connector**: **Pure JDBC** (`java.sql.*` DAOs with ACID transactions)
+5. **Web API Runtime**: **Java Servlets** (`MenuServlet`, `OrderServlet`, `OrderHistoryServlet`, `KitchenQueueServlet`)
+
+### How to Launch the Java Applications:
+```bash
+cd smartmess-java
+bash run.sh gui     # Launches JavaFX Desktop Application
+bash run.sh server  # Starts Java Servlet Container on port 8080
+bash run.sh         # Runs automated Review 2 test suite
+```
+
 
 ---
 
