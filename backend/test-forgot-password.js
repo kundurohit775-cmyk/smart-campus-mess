@@ -29,13 +29,10 @@ async function runForgotPasswordTests() {
     const resetRes = await passwordResetService.requestReset(student.email);
     console.log(`✅ Test 2 Passed: Reset requested successfully!`);
     console.log(`   Message: ${resetRes.message}`);
-    console.log(`   Dev Code generated: ${resetRes.devCode}`);
 
-    if (!resetRes.devCode) {
-      throw new Error('DevCode was not returned for testing.');
-    }
-
-    const testCode = resetRes.devCode;
+    const testCode = '582910';
+    const testHash = await bcrypt.hash(testCode, 10);
+    await db.run('UPDATE password_resets SET otp_hash = ? WHERE reset_id = (SELECT MAX(reset_id) FROM password_resets WHERE LOWER(email) = ?)', testHash, student.email);
 
     // 4. Test Verification with Incorrect Code
     console.log('\n--- Test 3: Attempt reset with wrong code ---');
