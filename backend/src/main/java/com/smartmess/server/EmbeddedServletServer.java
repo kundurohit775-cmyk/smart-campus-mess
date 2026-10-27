@@ -61,6 +61,7 @@ public class EmbeddedServletServer {
         KitchenQueueServlet kitchenServlet = new KitchenQueueServlet(messService);
 
         // Mount Servlets on HTTP routes
+        server.createContext("/", new ServletAdapterHandler(new com.smartmess.web.WebPortalServlet(messService)));
         server.createContext("/api/java/auth", new ServletAdapterHandler(authServlet));
         server.createContext("/api/java/menu", new ServletAdapterHandler(menuServlet));
         server.createContext("/api/java/order", new ServletAdapterHandler(orderServlet));

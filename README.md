@@ -35,15 +35,15 @@ A production-ready digital campus mess food ordering and credit management platf
 
 - **Frontend (`frontend/`)**: **JavaFX 22 Desktop Application** ([`SmartMessFXApp.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/frontend/src/main/java/com/smartmess/gui/SmartMessFXApp.java))
 - **Backend (`backend/`)**: **Java 22 & Java Servlets** ([`javax.servlet.http.HttpServlet`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/backend/src/main/java/com/smartmess/servlet/))
+- **Web Portal (`java-web/`)**: **Java Servlets Web Application** ([`WebPortalServlet.java`](file:///Users/rohit/.gemini/antigravity/scratch/smart-campus-mess/java-web/src/main/java/com/smartmess/web/WebPortalServlet.java))
 - **Database Engine**: **PostgreSQL SQL Database** (Neon Cloud Serverless)
 - **Database API Connector**: **Pure JDBC API** (`java.sql.Connection`, `PreparedStatement`, ACID transactions with `commit()` and `rollback()`)
-- **Legacy Web Stack**: Original React 18 & Node.js code safely archived in `legacy-javascript-web/`
 
 ---
 
-## ☕ How to Run the Java Full Stack
+## ☕ How to Run the Java Modules
 
-### 1. Launch the JavaFX Frontend GUI:
+### 1. Launch the JavaFX Desktop GUI:
 ```bash
 cd frontend
 bash run.sh
@@ -57,21 +57,28 @@ bash run.sh        # Starts Java Servlet Container on port 8080
 bash run.sh test   # Runs automated Review 2 test suite
 ```
 
-### 3. Active Java Servlet Endpoints (port 8080):
+### 3. Launch the Java Web Portal:
+```bash
+cd java-web
+bash run.sh        # Starts Java Web Portal on port 8080
+```
+*Open http://localhost:8080/ in any web browser.*
+
+### 4. Active Java Servlet Endpoints (port 8080):
+- `GET  http://localhost:8080/` → Handled by `WebPortalServlet`
 - `POST http://localhost:8080/api/java/auth` → Handled by `AuthServlet`
 - `GET  http://localhost:8080/api/java/menu` → Handled by `MenuServlet`
 - `POST http://localhost:8080/api/java/order` → Handled by `OrderServlet`
 - `GET  http://localhost:8080/api/java/kitchen` → Handled by `KitchenQueueServlet`
 - `GET  http://localhost:8080/api/java/history` → Handled by `OrderHistoryServlet`
 
-
 ---
 
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
-- Node.js (v18+)
-- npm
+- Java Development Kit (JDK 17 or JDK 22)
+- Git
 
 ### 1. Clone the Repository
 ```bash
