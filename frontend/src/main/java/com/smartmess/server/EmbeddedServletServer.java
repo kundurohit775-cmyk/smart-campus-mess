@@ -66,7 +66,7 @@ public class EmbeddedServletServer {
         server = HttpServer.create(new InetSocketAddress(port), 0);
 
         // Instantiate Servlets
-        AuthServlet authServlet = new AuthServlet();
+        AuthServlet authServlet = new AuthServlet(messService);
         MenuServlet menuServlet = new MenuServlet(messService);
         OrderServlet orderServlet = new OrderServlet(messService);
         OrderHistoryServlet historyServlet = new OrderHistoryServlet(messService);
@@ -76,9 +76,16 @@ public class EmbeddedServletServer {
         CreditServlet creditServlet = new CreditServlet(messService);
         AdminServlet adminServlet = new AdminServlet(messService);
         SustainabilityServlet sustainabilityServlet = new SustainabilityServlet(messService);
+        com.smartmess.web.WebPortalServlet webPortalServlet = new com.smartmess.web.WebPortalServlet(messService);
 
         // Mount Servlets on HTTP routes
-        server.createContext("/", new ServletAdapterHandler(new com.smartmess.web.WebPortalServlet(messService)));
+        server.createContext("/", new ServletAdapterHandler(webPortalServlet));
+        server.createContext("/login", new ServletAdapterHandler(webPortalServlet));
+        server.createContext("/register", new ServletAdapterHandler(webPortalServlet));
+        server.createContext("/forgot-password", new ServletAdapterHandler(webPortalServlet));
+        server.createContext("/dashboard", new ServletAdapterHandler(webPortalServlet));
+        server.createContext("/logout", new ServletAdapterHandler(webPortalServlet));
+        server.createContext("/action", new ServletAdapterHandler(webPortalServlet));
         server.createContext("/api/java/auth", new ServletAdapterHandler(authServlet));
         server.createContext("/api/java/menu", new ServletAdapterHandler(menuServlet));
         server.createContext("/api/java/order", new ServletAdapterHandler(orderServlet));
@@ -141,8 +148,17 @@ public class EmbeddedServletServer {
             int[] statusCode = new int[]{200};
             Map<String, List<String>> responseHeaders = new HashMap<>();
 
+            byte[] requestBodyBytes = exchange.getRequestBody().readAllBytes();
+
             // Parse Query Parameters
             Map<String, String[]> parameterMap = parseQueryParams(exchange.getRequestURI());
+
+            // If POST form data, merge into parameterMap
+            String contentTypeHeader = exchange.getRequestHeaders().getFirst("Content-Type");
+            if (contentTypeHeader != null && contentTypeHeader.toLowerCase().contains("application/x-www-form-urlencoded")) {
+                String formBody = new String(requestBodyBytes, StandardCharsets.UTF_8);
+                mergeFormParameters(formBody, parameterMap);
+            }
 
             // Build Proxy for HttpServletRequest
             HttpServletRequest requestProxy = (HttpServletRequest) Proxy.newProxyInstance(
@@ -179,10 +195,36 @@ public class EmbeddedServletServer {
                         if (name.equals("getHeaderNames")) {
                             return Collections.enumeration(exchange.getRequestHeaders().keySet());
                         }
-                        if (name.equals("getReader")) {
-                            return new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8));
+                        if (name.equals("getCookies")) {
+                            String cookieHeader = exchange.getRequestHeaders().getFirst("Cookie");
+                            if (cookieHeader != null && !cookieHeader.isEmpty()) {
+                                List<javax.servlet.http.Cookie> list = new ArrayList<>();
+                                for (String pair : cookieHeader.split(";")) {
+                                    String[] parts = pair.trim().split("=", 2);
+                                    if (parts.length == 2) {
+                                        list.add(new javax.servlet.http.Cookie(parts[0].trim(), parts[1].trim()));
+                                    }
+                                }
+                                return list.toArray(new javax.servlet.http.Cookie[0]);
+                            }
+                            return new javax.servlet.http.Cookie[0];
                         }
-                        if (name.equals("getInputStream")) return exchange.getRequestBody();
+                        if (name.equals("getReader")) {
+                            return new BufferedReader(new InputStreamReader(new ByteArrayInputStream(requestBodyBytes), StandardCharsets.UTF_8));
+                        }
+                        if (name.equals("getInputStream")) {
+                            return new javax.servlet.ServletInputStream() {
+                                private final ByteArrayInputStream bais = new ByteArrayInputStream(requestBodyBytes);
+                                @Override
+                                public boolean isFinished() { return bais.available() == 0; }
+                                @Override
+                                public boolean isReady() { return true; }
+                                @Override
+                                public void setReadListener(javax.servlet.ReadListener readListener) {}
+                                @Override
+                                public int read() { return bais.read(); }
+                            };
+                        }
                         if (name.equals("getContentType")) return exchange.getRequestHeaders().getFirst("Content-Type");
                         if (name.equals("getCharacterEncoding")) return "UTF-8";
                         if (name.equals("getProtocol")) return "HTTP/1.1";
@@ -193,12 +235,10 @@ public class EmbeddedServletServer {
                         if (name.equals("getServletPath")) return exchange.getRequestURI().getPath();
                         if (name.equals("getPathInfo")) return null;
                         if (name.equals("getContentLength")) {
-                            String cl = exchange.getRequestHeaders().getFirst("Content-Length");
-                            return cl != null ? Integer.parseInt(cl) : -1;
+                            return requestBodyBytes.length;
                         }
                         if (name.equals("getContentLengthLong")) {
-                            String cl = exchange.getRequestHeaders().getFirst("Content-Length");
-                            return cl != null ? Long.parseLong(cl) : -1L;
+                            return (long) requestBodyBytes.length;
                         }
 
                         // Safeguard for any primitive return type to avoid NullPointerException unboxing
@@ -245,6 +285,23 @@ public class EmbeddedServletServer {
                         }
                         if (name.equals("addHeader")) {
                             responseHeaders.computeIfAbsent((String) args[0], k -> new ArrayList<>()).add((String) args[1]);
+                            return null;
+                        }
+                        if (name.equals("addCookie")) {
+                            javax.servlet.http.Cookie c = (javax.servlet.http.Cookie) args[0];
+                            StringBuilder sb = new StringBuilder();
+                            sb.append(c.getName()).append("=").append(c.getValue()).append("; Path=/; HttpOnly");
+                            if (c.getMaxAge() >= 0) {
+                                sb.append("; Max-Age=").append(c.getMaxAge());
+                            }
+                            responseHeaders.computeIfAbsent("Set-Cookie", k -> new ArrayList<>()).add(sb.toString());
+                            return null;
+                        }
+                        if (name.equals("sendRedirect")) {
+                            statusCode[0] = 302;
+                            List<String> list = new ArrayList<>();
+                            list.add((String) args[0]);
+                            responseHeaders.put("Location", list);
                             return null;
                         }
                         if (name.equals("getOutputStream")) {
@@ -319,6 +376,19 @@ public class EmbeddedServletServer {
                 }
             }
             return params;
+        }
+
+        private void mergeFormParameters(String formBody, Map<String, String[]> params) {
+            if (formBody != null && !formBody.trim().isEmpty()) {
+                for (String param : formBody.split("&")) {
+                    String[] pair = param.split("=", 2);
+                    if (pair.length > 0 && !pair[0].isEmpty()) {
+                        String key = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
+                        String val = pair.length > 1 ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8) : "";
+                        params.put(key, new String[]{val});
+                    }
+                }
+            }
         }
     }
 

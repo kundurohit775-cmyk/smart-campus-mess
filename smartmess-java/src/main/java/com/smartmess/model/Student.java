@@ -27,7 +27,15 @@ public class Student extends AbstractUser {
         return roomNumber;
     }
 
+    public String getHostelRoom() {
+        return roomNumber;
+    }
+
     public void setRoomNumber(String roomNumber) {
+        this.roomNumber = roomNumber;
+    }
+
+    public void setHostelRoom(String roomNumber) {
         this.roomNumber = roomNumber;
     }
 

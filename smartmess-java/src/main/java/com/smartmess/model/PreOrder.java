@@ -65,6 +65,7 @@ public class PreOrder {
     public void setTotalAmount(int totalAmount) { this.totalAmount = totalAmount; }
 
     public String getPickupToken() { return pickupToken; }
+    public String getToken() { return pickupToken; }
     public void setPickupToken(String pickupToken) { this.pickupToken = pickupToken; }
 
     public LocalDate getScheduledDate() { return scheduledDate; }

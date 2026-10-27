@@ -91,7 +91,7 @@ public class SmartMessApp {
             // Order 1: Counter Pickup Order (DineInOrder)
             List<OrderItem> tray1 = new ArrayList<>();
             tray1.add(new OrderItem(1, "", 1, 0, 0)); // Crispy Masala Dosa
-            tray1.add(new OrderItem(17, "", 1, 0, 0)); // Iced Cold Coffee
+            tray1.add(new OrderItem(10, "", 1, 0, 0)); // Filter Coffee
 
             System.out.println("Placing Order 1 (Counter Pickup)...");
             BaseOrder order1 = messService.placeOrder(student.getId(), tray1, false, null);
@@ -233,7 +233,7 @@ public class SmartMessApp {
 
             // Perform HTTP Test against OrderServlet
             System.out.println("\nTesting OrderServlet via HTTP POST http://localhost:" + servletPort + "/api/java/order...");
-            String orderPayload = "{\"studentId\":22,\"deliveryType\":\"hostel-delivery\",\"deliveryAddress\":\"Block B - Room 204\",\"items\":[{\"itemId\":17,\"quantity\":2}]}";
+            String orderPayload = "{\"studentId\":22,\"deliveryType\":\"hostel-delivery\",\"deliveryAddress\":\"Block B - Room 204\",\"items\":[{\"itemId\":10,\"quantity\":2}]}";
             testHttpEndpoint("http://localhost:" + servletPort + "/api/java/order", "POST", orderPayload);
 
             servletServer.stop();

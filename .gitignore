@@ -57,6 +57,8 @@ lerna-debug.log*
 # Java build outputs & runtime generated logs
 target/
 *.class
+exports/
+smartmess_audit_log.txt
 smartmess-java/target/
 smartmess-java/exports/
 smartmess-java/smartmess_audit_log.txt
