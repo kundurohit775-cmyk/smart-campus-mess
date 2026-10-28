@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.smartmess.exception.InsufficientCreditsException;
 import com.smartmess.exception.InvalidOrderStateException;
 import com.smartmess.exception.MenuItemNotFoundException;
+import com.smartmess.exception.MessException;
 import com.smartmess.exception.OutOfStockException;
 import com.smartmess.model.BaseOrder;
 import com.smartmess.model.OrderItem;
@@ -21,6 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,9 +31,10 @@ import java.util.Map;
 /**
  * Demonstrates Java Servlets:
  * Handles:
- * 1. Place order (Atomic JDBC transaction)
+ * 1. Place order (Atomic JDBC transaction, strictly enforces room-delivery sick-leave approval)
  * 2. Instant cancellation while Pending (credit refund + inventory restored)
- * 3. Chef status progression stepper (Pending -> Accepted -> Preparing -> Ready -> Completed)
+ * 3. Chef prep-time configuration and status progression (Pending -> Accepted -> Preparing -> Ready -> Out for Delivery -> Delivered / Completed)
+ * 4. Real-time active orders query and countdown status
  */
 public class OrderServlet extends HttpServlet {
 
@@ -41,6 +44,48 @@ public class OrderServlet extends HttpServlet {
     public OrderServlet(IMessService messService) {
         this.messService = messService;
         this.gson = GsonHelper.getGson();
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        String studentIdParam = req.getParameter("studentId");
+        String orderIdParam = req.getParameter("orderId");
+        Map<String, Object> data = new HashMap<>();
+
+        if (orderIdParam != null) {
+            try {
+                int orderId = Integer.parseInt(orderIdParam);
+                BaseOrder order = messService.getOrderById(orderId);
+                data.put("success", order != null);
+                data.put("order", order);
+            } catch (NumberFormatException e) {
+                data.put("success", false);
+                data.put("message", "Invalid order ID format.");
+            }
+        } else if (studentIdParam != null) {
+            try {
+                int studentId = Integer.parseInt(studentIdParam);
+                List<BaseOrder> active = messService.getActiveOrdersForStudent(studentId);
+                boolean roomDeliveryEnabled = messService.hasApprovedSickLeave(studentId, LocalDate.now());
+                data.put("success", true);
+                data.put("orders", active);
+                data.put("roomDeliveryEnabled", roomDeliveryEnabled);
+            } catch (NumberFormatException e) {
+                data.put("success", false);
+                data.put("message", "Invalid student ID format.");
+            }
+        } else {
+            List<BaseOrder> kitchenOrders = messService.getPendingKitchenOrders();
+            data.put("success", true);
+            data.put("orders", kitchenOrders);
+        }
+
+        try (PrintWriter out = resp.getWriter()) {
+            out.print(gson.toJson(data));
+            out.flush();
+        }
     }
 
     @Override
@@ -68,7 +113,7 @@ public class OrderServlet extends HttpServlet {
             String action = json.has("action") ? json.get("action").getAsString() : "place";
 
             if ("cancel".equalsIgnoreCase(action)) {
-                // Cancellation flow
+                // Rule 1: The only action on an active order is Cancel, allowed while it is still Pending
                 int orderId = json.get("orderId").getAsInt();
                 int studentId = json.has("studentId") ? json.get("studentId").getAsInt() : 22;
                 BaseOrder cancelled = messService.cancelOrder(orderId, studentId);
@@ -78,16 +123,29 @@ public class OrderServlet extends HttpServlet {
                 responseData.put("message", "Order #" + orderId + " cancelled successfully. Credits refunded and inventory restored.");
                 responseData.put("order", cancelled);
 
-            } else if ("status_update".equalsIgnoreCase(action)) {
-                // Chef status progression
+            } else if ("set_prep_time".equalsIgnoreCase(action)) {
+                // Rule 4: Chef sets the estimated prep time on each order
                 int orderId = json.get("orderId").getAsInt();
-                String statusStr = json.get("status").getAsString();
-                OrderStatus newStatus = OrderStatus.fromString(statusStr);
-                BaseOrder updated = messService.updateOrderStatus(orderId, newStatus);
+                int minutes = json.has("prepMinutes") ? json.get("prepMinutes").getAsInt() : 15;
+                String chefActivity = json.has("chefActivity") ? json.get("chefActivity").getAsString() : null;
+                BaseOrder updated = messService.updateOrderPrepTime(orderId, minutes, chefActivity);
 
                 resp.setStatus(HttpServletResponse.SC_OK);
                 responseData.put("success", true);
-                responseData.put("message", "Order #" + orderId + " progressed to " + newStatus.getDisplayName());
+                responseData.put("message", "Prep time updated to " + minutes + " minutes.");
+                responseData.put("order", updated);
+
+            } else if ("status_update".equalsIgnoreCase(action) || "advance_status".equalsIgnoreCase(action)) {
+                // Rule 4: Chef moves order through Accept -> Start Cooking -> Mark Ready -> Out for Delivery -> Delivered / Complete
+                int orderId = json.get("orderId").getAsInt();
+                String statusStr = json.get("status").getAsString();
+                String chefActivity = json.has("chefActivity") ? json.get("chefActivity").getAsString() : null;
+                OrderStatus newStatus = OrderStatus.fromString(statusStr);
+                BaseOrder updated = messService.advanceOrderStatus(orderId, newStatus, chefActivity);
+
+                resp.setStatus(HttpServletResponse.SC_OK);
+                responseData.put("success", true);
+                responseData.put("message", "Order #" + orderId + " is now " + newStatus.getDisplayName());
                 responseData.put("order", updated);
 
             } else {
@@ -112,6 +170,7 @@ public class OrderServlet extends HttpServlet {
                     throw new IllegalArgumentException("No order items specified in payload.");
                 }
 
+                // Rule & Security: Room delivery order is rejected if no approved sick leave exists
                 BaseOrder order = messService.placeOrder(studentId, items, isRoomDelivery, deliveryAddress);
 
                 resp.setStatus(HttpServletResponse.SC_CREATED); // 201 Created
@@ -139,6 +198,11 @@ public class OrderServlet extends HttpServlet {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             responseData.put("success", false);
             responseData.put("error", "ITEM_NOT_FOUND");
+            responseData.put("message", e.getMessage());
+        } catch (MessException e) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            responseData.put("success", false);
+            responseData.put("error", "ROOM_DELIVERY_NOT_APPROVED");
             responseData.put("message", e.getMessage());
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);

@@ -3,13 +3,16 @@ package com.smartmess.model;
 /**
  * Represents the lifecycle stages of an order in the SmartMess system.
  * Follows the canonical status flow:
- * PENDING -> ACCEPTED -> PREPARING -> READY -> COMPLETED (or CANCELLED)
+ * Self-Pickup:   PENDING -> ACCEPTED -> PREPARING -> READY -> COMPLETED (or CANCELLED)
+ * Room Delivery: PENDING -> ACCEPTED -> PREPARING -> READY -> OUT_FOR_DELIVERY -> DELIVERED (or CANCELLED)
  */
 public enum OrderStatus {
     PENDING("Pending"),
     ACCEPTED("Accepted"),
     PREPARING("Preparing"),
     READY("Ready"),
+    OUT_FOR_DELIVERY("Out for Delivery"),
+    DELIVERED("Delivered"),
     COMPLETED("Completed"),
     CANCELLED("Cancelled");
 
@@ -30,9 +33,15 @@ public enum OrderStatus {
                 return status;
             }
         }
-        // Graceful normalization: Cooking -> Preparing
+        // Graceful normalizations
         if ("Cooking".equalsIgnoreCase(text.trim())) {
             return PREPARING;
+        }
+        if ("Out for Delivery".equalsIgnoreCase(text.trim()) || "OUT_FOR_DELIVERY".equalsIgnoreCase(text.trim()) || "OutForDelivery".equalsIgnoreCase(text.trim())) {
+            return OUT_FOR_DELIVERY;
+        }
+        if ("Delivered".equalsIgnoreCase(text.trim())) {
+            return DELIVERED;
         }
         throw new IllegalArgumentException("Unknown order status: " + text);
     }

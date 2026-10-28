@@ -22,6 +22,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * 100% Pure Java Web Portal Servlet (javax.servlet.http.HttpServlet).
@@ -141,14 +144,20 @@ public class WebPortalServlet extends HttpServlet {
             handleBookPreOrder(req, resp, session);
         } else if ("/action/topup".equals(path)) {
             handleTopup(req, resp, session);
+        } else if ("/action/submit-sickleave".equals(path)) {
+            handleSubmitSickLeave(req, resp, session);
+        } else if ("/action/review-sickleave".equals(path)) {
+            handleReviewSickLeave(req, resp, session);
+        } else if ("/action/chef-set-prep".equals(path)) {
+            handleChefSetPrep(req, resp, session);
+        } else if ("/action/chef-advance-order".equals(path)) {
+            handleChefAdvanceOrder(req, resp, session);
         } else if ("/action/advance-kitchen".equals(path)) {
             handleAdvanceKitchen(req, resp, session);
         } else if ("/action/toggle-stock".equals(path)) {
             handleToggleStock(req, resp, session);
         } else if ("/action/log-waste".equals(path)) {
             handleLogWaste(req, resp, session);
-        } else if ("/action/review-sickleave".equals(path)) {
-            handleReviewSickLeave(req, resp, session);
         } else if ("/action/reset-credits".equals(path)) {
             handleResetCredits(req, resp, session);
         } else {
@@ -844,19 +853,32 @@ public class WebPortalServlet extends HttpServlet {
     }
 
     // -------------------------------------------------------------------------
-    // STUDENT DASHBOARD
+    // STUDENT DASHBOARD: READ-ONLY LIVE TRACKING & SICK-LEAVE CLEARANCE
     // -------------------------------------------------------------------------
     private void renderStudentDashboard(PrintWriter out, SecurityService.Session session) {
         Student student = messService.getStudentProfile(session.userId);
         int credits = student != null ? student.getRemainingCredits() : 9000;
-        String room = student != null ? student.getHostelRoom() : session.extra;
+        String room = student != null ? student.getHostelRoom() : (session.extra != null ? session.extra : "Block B - Room 304");
 
-        // Student Stats Banner
+        LocalDate today = LocalDate.now();
+        boolean roomApprovedToday = messService.hasApprovedSickLeave(session.userId, today);
+        List<BaseOrder> activeOrders = messService.getActiveOrdersForStudent(session.userId);
+        List<HealthRequest> mySickRequests = messService.getHealthRequestsForStudent(session.userId);
+
+        HealthRequest todaySickReq = null;
+        for (HealthRequest hr : mySickRequests) {
+            if (today.equals(hr.getDate())) {
+                todaySickReq = hr;
+                break;
+            }
+        }
+
+        // Student Stats & Wallet Banner
         out.println("    <div class='dash-card' style='margin-top:20px;'>");
         out.println("      <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;'>");
         out.println("        <div>");
         out.println("          <h2 style='margin:0; font-size:20px;'>Welcome, " + escapeHtml(session.name) + "</h2>");
-        out.println("          <p style='margin:4px 0 0; color:#6B6560; font-size:13px;'>Hostel Room: <strong>" + escapeHtml(room != null ? room : "Block B - Room 304") + "</strong> | Strict VIT Email: <strong>" + escapeHtml(session.email) + "</strong></p>");
+        out.println("          <p style='margin:4px 0 0; color:#6B6560; font-size:13px;'>Hostel Room: <strong>" + escapeHtml(room) + "</strong> | Strict VIT Email: <strong>" + escapeHtml(session.email) + "</strong></p>");
         out.println("        </div>");
         out.println("        <div style='display:flex; gap:16px; align-items:center;'>");
         out.println("          <div style='text-align:right;'>");
@@ -871,33 +893,240 @@ public class WebPortalServlet extends HttpServlet {
         out.println("      </div>");
         out.println("    </div>");
 
-        // Stepper: Active Order Tracking (with Cancel Order when Pending)
-        out.println("    <div class='dash-card'>");
-        out.println("      <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;'>");
-        out.println("        <h3 style='margin:0; font-size:16px;'>📱 Real-Time Kitchen Order Stepper</h3>");
-        out.println("        <span class='badge badge-orange'>Active Order: TK-8472</span>");
-        out.println("      </div>");
+        // 1. LIVE TRACKING CARDS (READ-ONLY KITCHEN FLOW)
+        out.println("    <div id='active-orders-container'>");
+        if (activeOrders.isEmpty()) {
+            out.println("      <div class='dash-card' style='text-align:center; padding:28px 20px;'>");
+            out.println("        <div style='font-size:32px;'>🍽️</div>");
+            out.println("        <h3 style='margin:8px 0; font-size:16px;'>No Active Kitchen Orders Right Now</h3>");
+            out.println("        <p style='margin:0; color:#6B6560; font-size:13px;'>Choose a delicious meal from the cafeteria menu below to track cooking progress live!</p>");
+            out.println("      </div>");
+        } else {
+            for (BaseOrder o : activeOrders) {
+                boolean isRoom = o.isRoomDelivery();
+                OrderStatus st = o.getStatus();
+                long readyEpoch = (o.getEstimatedReadyTime() != null)
+                        ? o.getEstimatedReadyTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        : (System.currentTimeMillis() + (o.getEstimatedPrepMinutes() * 60000L));
 
-        out.println("      <div class='stepper-row'>");
-        out.println("        <div class='step-node step-active'>1. PENDING ⏳</div>");
-        out.println("        <div class='step-arrow'>──▶</div>");
-        out.println("        <div class='step-node'>2. PREPARING 🍳</div>");
-        out.println("        <div class='step-arrow'>──▶</div>");
-        out.println("        <div class='step-node'>3. READY 🔔</div>");
-        out.println("        <div class='step-arrow'>──▶</div>");
-        out.println("        <div class='step-node'>4. COMPLETED ✅</div>");
-        out.println("      </div>");
+                out.println("      <div class='dash-card order-live-card' id='order-card-" + o.getOrderId() + "' style='border-left: 4px solid #FF6B35;'>");
+                out.println("        <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;'>");
+                out.println("          <div>");
+                out.println("            <span style='font-size:16px; font-weight:800; color:#1E1B16;'>📱 Live Kitchen Tracking</span>");
+                out.println("            <span class='badge badge-orange' style='margin-left:8px; font-size:13px; font-weight:700;'>Token: " + escapeHtml(o.getPickupToken()) + "</span>");
+                if (isRoom) {
+                    out.println("            <span class='badge' style='background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; margin-left:6px;'>🛵 Room Delivery</span>");
+                } else {
+                    out.println("            <span class='badge' style='background:#F3F4F6; color:#374151; border:1px solid #E5E7EB; margin-left:6px;'>🛍️ Cafeteria Pickup</span>");
+                }
+                out.println("          </div>");
+                out.println("          <div class='countdown-box order-countdown' id='countdown-" + o.getOrderId() + "' data-order-id='" + o.getOrderId() + "' data-ready-epoch='" + readyEpoch + "' data-status='" + st.name() + "' data-room='" + isRoom + "'>");
+                out.println("            ⏱️ Calculating time left...");
+                out.println("          </div>");
+                out.println("        </div>");
 
-        out.println("      <div style='margin-top:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;'>");
-        out.println("        <div style='font-size:12px; color:#6B6560;'>Order #101 • 1x Paneer Butter Masala &amp; Roti • Total: 120 Credits</div>");
-        out.println("        <form method='POST' action='/action/cancel-order' style='margin:0;'>");
-        out.println("          <input type='hidden' name='orderId' value='101'>");
-        out.println("          <button type='submit' class='btn btn-danger btn-sm'>❌ Cancel Order (Allowed while Pending)</button>");
-        out.println("        </form>");
-        out.println("      </div>");
+                // Room delivery details if applicable
+                if (isRoom) {
+                    out.println("        <div style='background:#FFF7ED; border:1px solid #FFEDD5; border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:12px; color:#9A3412;'>");
+                    out.println("          <strong>Hostel Block &amp; Room:</strong> " + escapeHtml(o.getDeliveryAddress()) + " • <em>Warden approved delivery clearance</em>");
+                    if (st == OrderStatus.OUT_FOR_DELIVERY) {
+                        out.println("          <div style='font-weight:700; color:#EA580C; margin-top:3px; font-size:13px;'>🛵 Live Status: Out for delivery to your room!</div>");
+                    } else if (st == OrderStatus.DELIVERED) {
+                        out.println("          <div style='font-weight:700; color:#10B981; margin-top:3px; font-size:13px;'>🏠 Live Status: Delivered to your room. Enjoy your meal!</div>");
+                    }
+                    out.println("        </div>");
+                }
+
+                // Ordered Items summary
+                StringBuilder itemsSummary = new StringBuilder();
+                if (o.getItems() != null) {
+                    for (int i = 0; i < o.getItems().size(); i++) {
+                        OrderItem item = o.getItems().get(i);
+                        if (i > 0) itemsSummary.append(" • ");
+                        itemsSummary.append(item.getQuantity()).append("x ").append(escapeHtml(item.getItemName()));
+                    }
+                }
+                out.println("        <div style='font-size:13px; color:#4B5563; margin-bottom:12px;'><strong>Ordered:</strong> " + (itemsSummary.length() > 0 ? itemsSummary.toString() : "Cafeteria Meal") + " • Total: <strong>" + o.getTotalAmount() + " Credits</strong></div>");
+
+                // Real-time Stepper (5-step for pickup, 6-step for room delivery)
+                out.println("        <div class='stepper-row'>");
+                if (!isRoom) {
+                    boolean pActive = (st == OrderStatus.PENDING);
+                    boolean aActive = (st == OrderStatus.ACCEPTED);
+                    boolean cActive = (st == OrderStatus.PREPARING);
+                    boolean rActive = (st == OrderStatus.READY);
+                    boolean dActive = (st == OrderStatus.COMPLETED);
+
+                    out.println("          <div class='step-node " + (pActive ? "step-active" : "") + "'>1. PENDING ⏳</div>");
+                    out.println("          <div class='step-arrow'>──▶</div>");
+                    out.println("          <div class='step-node " + (aActive ? "step-active" : "") + "'>2. ACCEPTED 👨‍🍳</div>");
+                    out.println("          <div class='step-arrow'>──▶</div>");
+                    out.println("          <div class='step-node " + (cActive ? "step-active" : "") + "'>3. PREPARING 🍳</div>");
+                    out.println("          <div class='step-arrow'>──▶</div>");
+                    out.println("          <div class='step-node " + (rActive ? "step-active" : "") + "'>4. READY 🔔</div>");
+                    out.println("          <div class='step-arrow'>──▶</div>");
+                    out.println("          <div class='step-node " + (dActive ? "step-active" : "") + "'>5. COMPLETED ✅</div>");
+                } else {
+                    boolean pActive = (st == OrderStatus.PENDING);
+                    boolean aActive = (st == OrderStatus.ACCEPTED);
+                    boolean cActive = (st == OrderStatus.PREPARING);
+                    boolean rActive = (st == OrderStatus.READY);
+                    boolean oActive = (st == OrderStatus.OUT_FOR_DELIVERY);
+                    boolean dActive = (st == OrderStatus.DELIVERED || st == OrderStatus.COMPLETED);
+
+                    out.println("          <div class='step-node " + (pActive ? "step-active" : "") + "'>1. PENDING ⏳</div>");
+                    out.println("          <div class='step-arrow'>──▶</div>");
+                    out.println("          <div class='step-node " + (aActive ? "step-active" : "") + "'>2. ACCEPTED 👨‍🍳</div>");
+                    out.println("          <div class='step-arrow'>──▶</div>");
+                    out.println("          <div class='step-node " + (cActive ? "step-active" : "") + "'>3. PREPARING 🍳</div>");
+                    out.println("          <div class='step-arrow'>──▶</div>");
+                    out.println("          <div class='step-node " + (rActive ? "step-active" : "") + "'>4. READY 🔔</div>");
+                    out.println("          <div class='step-arrow'>──▶</div>");
+                    out.println("          <div class='step-node " + (oActive ? "step-active" : "") + "'>5. OUT FOR DELIVERY 🛵</div>");
+                    out.println("          <div class='step-arrow'>──▶</div>");
+                    out.println("          <div class='step-node " + (dActive ? "step-active" : "") + "'>6. DELIVERED 🏠</div>");
+                }
+                out.println("        </div>");
+
+                // Live Chef Activity Line
+                String activity = o.getChefActivity() != null ? o.getChefActivity() : "Order accepted, cooking starts soon";
+                out.println("        <div style='margin-top:10px; background:#F8FAFC; border:1px solid #E2E8F0; padding:8px 12px; border-radius:6px; font-size:12px; color:#475569;'>");
+                out.println("          👨‍🍳 <strong>Live Chef Activity:</strong> <span class='activity-text'>" + escapeHtml(activity) + "</span>");
+                out.println("        </div>");
+
+                // Action row: Cancel permitted strictly while Pending; NO other kitchen controls
+                out.println("        <div style='margin-top:12px; display:flex; justify-content:space-between; align-items:center;'>");
+                out.println("          <div style='font-size:12px; color:#6B6560;'>Order #" + o.getOrderId() + " • Estimated Prep Time: <strong>" + o.getEstimatedPrepMinutes() + " mins</strong></div>");
+                if (st == OrderStatus.PENDING) {
+                    out.println("          <form method='POST' action='/action/cancel-order' style='margin:0;'>");
+                    out.println("            <input type='hidden' name='orderId' value='" + o.getOrderId() + "'>");
+                    out.println("            <button type='submit' class='btn btn-danger btn-sm' onclick='return confirm(\"Cancel this pending order? Full amount will be refunded immediately.\");'>❌ Cancel Order (Allowed while Pending)</button>");
+                    out.println("          </form>");
+                } else {
+                    out.println("          <span style='font-size:12px; color:#9CA3AF; font-weight:600;'>🔒 Kitchen Flow Locked (Cancel allowed strictly while Pending)</span>");
+                }
+                out.println("        </div>");
+
+                out.println("      </div>");
+            }
+        }
         out.println("    </div>");
 
-        // Next-Day Pre-Order Booking Banner
+        // 2. SICK LEAVE & ROOM DELIVERY CLEARANCE
+        out.println("    <div class='dash-card' style='margin-top:20px;'>");
+        out.println("      <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;'>");
+        out.println("        <h3 style='margin:0; font-size:16px;'>🏥 Sick Leave Request &amp; Hostel Room Delivery Clearance</h3>");
+        if (roomApprovedToday) {
+            out.println("        <span class='badge badge-green' style='font-size:12px;'>✅ Room delivery enabled for today</span>");
+        } else if (todaySickReq != null && "PENDING".equalsIgnoreCase(todaySickReq.getStatus())) {
+            out.println("        <span class='badge badge-orange' style='font-size:12px;'>⏳ Waiting for warden approval</span>");
+        } else if (todaySickReq != null && "REJECTED".equalsIgnoreCase(todaySickReq.getStatus())) {
+            out.println("        <span class='badge' style='background:#FEF2F2; color:#B91C1C; border:1px solid #FCA5A5; font-size:12px;'>❌ Request rejected</span>");
+        }
+        out.println("      </div>");
+
+        // Status banner
+        if (roomApprovedToday) {
+            out.println("      <div class='alert alert-success' style='margin-bottom:16px;'>");
+            out.println("        <strong>✅ Room Delivery Enabled for Today (" + today + ")</strong><br>");
+            out.println("        <span style='font-size:12px;'>Your hostel warden approved your sick leave clearance. You can now select <strong>'Room Delivery'</strong> when ordering from the cafeteria menu below.</span>");
+            out.println("      </div>");
+        } else if (todaySickReq != null && "PENDING".equalsIgnoreCase(todaySickReq.getStatus())) {
+            out.println("      <div class='alert' style='background:#FFFBEB; color:#92400E; border:1px solid #FCD34D; margin-bottom:16px;'>");
+            out.println("        <strong>⏳ Waiting for Warden Approval</strong><br>");
+            out.println("        <span style='font-size:12px;'>Your sick leave request for " + today + " has been submitted to your hostel block warden. Room delivery will unlock immediately once approved.</span>");
+            out.println("      </div>");
+        } else if (todaySickReq != null && "REJECTED".equalsIgnoreCase(todaySickReq.getStatus())) {
+            out.println("      <div class='alert alert-error' style='margin-bottom:16px;'>");
+            out.println("        <strong>❌ Sick Leave Request Rejected by Warden</strong><br>");
+            out.println("        <span style='font-size:12px;'>Warden's Reason: <em>" + escapeHtml(todaySickReq.getRejectionReason()) + "</em>. Room delivery ordering remains locked.</span>");
+            out.println("      </div>");
+        } else {
+            out.println("      <p style='margin:0 0 16px; font-size:13px; color:#6B6560;'>");
+            out.println("        Feeling sick or recovering from illness? Submit your sick-leave request below to request hostel-room meal delivery clearance from your Hostel Warden.");
+            out.println("      </p>");
+        }
+
+        // Sick Leave Submission Form
+        String defaultBlock = "Block B";
+        if (room.toLowerCase().contains("block a")) defaultBlock = "Block A";
+        else if (room.toLowerCase().contains("block b")) defaultBlock = "Block B";
+        else if (room.toLowerCase().contains("block c")) defaultBlock = "Block C";
+        else if (room.toLowerCase().contains("block d")) defaultBlock = "Block D";
+
+        String defaultRoomNum = "304";
+        try {
+            String[] parts = room.split("-");
+            if (parts.length > 1) defaultRoomNum = parts[1].replace("Room", "").trim();
+        } catch (Exception ignored) {}
+
+        out.println("      <form method='POST' action='/action/submit-sickleave' style='background:#FAF8F5; border:1px solid #E7E5E4; border-radius:10px; padding:16px; margin-bottom:20px;'>");
+        out.println("        <div style='font-size:13px; font-weight:700; color:#1E1B16; margin-bottom:12px;'>📝 New Sick Leave &amp; Meal Delivery Application</div>");
+        out.println("        <div style='display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px;'>");
+        out.println("          <div class='form-group' style='margin-bottom:0;'>");
+        out.println("            <label style='font-size:12px;'>Hostel Block <span class='req'>*</span></label>");
+        out.println("            <select name='hostelBlock' required style='padding:8px 10px; font-size:13px;'>");
+        out.println("              <option value='Block A' " + ("Block A".equals(defaultBlock) ? "selected" : "") + ">Block A</option>");
+        out.println("              <option value='Block B' " + ("Block B".equals(defaultBlock) ? "selected" : "") + ">Block B</option>");
+        out.println("              <option value='Block C' " + ("Block C".equals(defaultBlock) ? "selected" : "") + ">Block C</option>");
+        out.println("              <option value='Block D' " + ("Block D".equals(defaultBlock) ? "selected" : "") + ">Block D</option>");
+        out.println("            </select>");
+        out.println("          </div>");
+        out.println("          <div class='form-group' style='margin-bottom:0;'>");
+        out.println("            <label style='font-size:12px;'>Room Number <span class='req'>*</span></label>");
+        out.println("            <input type='text' name='roomNumber' value='" + escapeHtml(defaultRoomNum) + "' required placeholder='e.g. 304' style='padding:8px 10px; font-size:13px;'>");
+        out.println("          </div>");
+        out.println("          <div class='form-group' style='margin-bottom:0;'>");
+        out.println("            <label style='font-size:12px;'>Date <span class='req'>*</span></label>");
+        out.println("            <input type='date' name='date' value='" + today + "' required style='padding:8px 10px; font-size:13px;'>");
+        out.println("          </div>");
+        out.println("          <div class='form-group' style='margin-bottom:0;'>");
+        out.println("            <label style='font-size:12px;'>Optional Meals Needed</label>");
+        out.println("            <input type='text' name='mealsNeeded' placeholder='e.g. Lunch &amp; Dinner' style='padding:8px 10px; font-size:13px;'>");
+        out.println("          </div>");
+        out.println("        </div>");
+        out.println("        <div class='form-group' style='margin-top:12px; margin-bottom:12px;'>");
+        out.println("          <label style='font-size:12px;'>Reason for Sick Leave <span class='req'>*</span></label>");
+        out.println("          <input type='text' name='reason' placeholder='e.g. High fever, viral flu and doctor recommended bed rest' required style='padding:8px 10px; font-size:13px;'>");
+        out.println("        </div>");
+        out.println("        <button type='submit' class='btn btn-orange btn-sm' style='padding:8px 18px;'>Submit Sick Leave to Warden</button>");
+        out.println("      </form>");
+
+        // History of past sick-leave requests
+        out.println("      <div style='font-size:13px; font-weight:700; color:#1E1B16; margin-bottom:8px;'>📜 Sick Leave Request History</div>");
+        out.println("      <table class='data-table'>");
+        out.println("        <thead>");
+        out.println("          <tr><th>Req ID</th><th>Date</th><th>Hostel &amp; Room</th><th>Reason</th><th>Meals</th><th>Status</th><th>Warden Decision / Reason</th></tr>");
+        out.println("        </thead>");
+        out.println("        <tbody>");
+        if (mySickRequests.isEmpty()) {
+            out.println("          <tr><td colspan='7' style='text-align:center; color:#6B6560;'>No previous sick leave requests recorded.</td></tr>");
+        } else {
+            for (HealthRequest hr : mySickRequests) {
+                out.println("          <tr>");
+                out.println("            <td>#" + hr.getRequestId() + "</td>");
+                out.println("            <td>" + hr.getDate() + "</td>");
+                out.println("            <td><strong>" + escapeHtml(hr.getHostelName()) + " - " + escapeHtml(hr.getRoomNumber()) + "</strong></td>");
+                out.println("            <td>" + escapeHtml(hr.getReason()) + "</td>");
+                out.println("            <td>" + escapeHtml(hr.getMealsNeeded() != null && !hr.getMealsNeeded().isEmpty() ? hr.getMealsNeeded() : "All Meals") + "</td>");
+                if ("APPROVED".equalsIgnoreCase(hr.getStatus())) {
+                    out.println("            <td><span class='badge badge-green'>Approved ✅</span></td>");
+                    out.println("            <td><span style='color:#059669; font-weight:600;'>Room delivery enabled</span></td>");
+                } else if ("REJECTED".equalsIgnoreCase(hr.getStatus())) {
+                    out.println("            <td><span class='badge' style='background:#FEF2F2; color:#B91C1C; border:1px solid #FCA5A5;'>Rejected ❌</span></td>");
+                    out.println("            <td><span style='color:#DC2626;'>" + escapeHtml(hr.getRejectionReason() != null ? hr.getRejectionReason() : "Rejected by Warden") + "</span></td>");
+                } else {
+                    out.println("            <td><span class='badge badge-orange'>Pending ⏳</span></td>");
+                    out.println("            <td><span style='color:#D97706;'>Waiting for warden approval</span></td>");
+                }
+                out.println("          </tr>");
+            }
+        }
+        out.println("        </tbody>");
+        out.println("      </table>");
+        out.println("    </div>");
+
+        // 3. NEXT-DAY PRE-ORDER BANNER (ZERO WASTE HUB)
         out.println("    <div class='dash-card' style='border:1px solid #F59E0B; background:#FFFDF7;'>");
         out.println("      <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;'>");
         out.println("        <div>");
@@ -912,13 +1141,21 @@ public class WebPortalServlet extends HttpServlet {
         out.println("      </div>");
         out.println("    </div>");
 
-        // Cafeteria Menu Table
+        // 4. CAFETERIA MENU & ORDERING (ENFORCING ROOM DELIVERY RULES)
         List<MenuItem> items = messService.getCatalog().getAllItems();
         out.println("    <div class='dash-card'>");
-        out.println("      <h3 style='margin:0 0 14px; font-size:16px;'>🍽️ Cafeteria Menu &amp; Ordering</h3>");
+        out.println("      <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;'>");
+        out.println("        <h3 style='margin:0; font-size:16px;'>🍽️ Cafeteria Menu &amp; Ordering</h3>");
+        if (roomApprovedToday) {
+            out.println("        <span class='badge badge-green' style='font-size:12px;'>🚚 Room Delivery Unlocked</span>");
+        } else {
+            out.println("        <span class='badge' style='background:#F3F4F6; color:#6B7280; font-size:12px;'>🛍️ Cafeteria Pickup Active</span>");
+        }
+        out.println("      </div>");
+
         out.println("      <table class='data-table'>");
         out.println("        <thead>");
-        out.println("          <tr><th>ID</th><th>Dish Name</th><th>Category</th><th>Price</th><th>Calories</th><th>Portions Left</th><th>Action</th></tr>");
+        out.println("          <tr><th>ID</th><th>Dish Name</th><th>Category</th><th>Price</th><th>Calories</th><th>Portions Left</th><th>Delivery Option</th><th>Action</th></tr>");
         out.println("        </thead>");
         out.println("        <tbody>");
         for (MenuItem item : items) {
@@ -929,9 +1166,16 @@ public class WebPortalServlet extends HttpServlet {
             out.println("            <td>" + item.getPrice() + " Cr</td>");
             out.println("            <td>" + (item.getCalories() != null ? item.getCalories() + " kcal" : "-") + "</td>");
             out.println("            <td>" + item.getAvailableQuantity() + " left</td>");
-            out.println("            <td>");
-            out.println("              <form method='POST' action='/action/order' style='margin:0;'>");
+            out.println("            <td colspan='2'>");
+            out.println("              <form method='POST' action='/action/order' style='margin:0; display:flex; align-items:center; gap:12px; justify-content:flex-end;'>");
             out.println("                <input type='hidden' name='itemId' value='" + item.getItemId() + "'>");
+            if (roomApprovedToday) {
+                out.println("                <label style='font-size:12px; cursor:pointer;'><input type='radio' name='deliveryType' value='PICKUP' checked> Pickup</label>");
+                out.println("                <label style='font-size:12px; color:#059669; font-weight:700; cursor:pointer;'><input type='radio' name='deliveryType' value='ROOM_DELIVERY'> 🚚 Room (" + escapeHtml(defaultRoomNum) + ")</label>");
+            } else {
+                out.println("                <label style='font-size:12px; cursor:pointer;'><input type='radio' name='deliveryType' value='PICKUP' checked> Pickup</label>");
+                out.println("                <label style='font-size:12px; color:#9CA3AF;' title='Requires warden sick-leave clearance'><input type='radio' name='deliveryType' value='ROOM_DELIVERY' disabled> 🚚 Room (Waiting for warden approval)</label>");
+            }
             out.println("                <button type='submit' class='btn btn-orange btn-sm'>Add &amp; Order</button>");
             out.println("              </form>");
             out.println("            </td>");
@@ -940,10 +1184,101 @@ public class WebPortalServlet extends HttpServlet {
         out.println("        </tbody>");
         out.println("      </table>");
         out.println("    </div>");
+
+        // 5. ORDER HISTORY
+        List<BaseOrder> history = messService.getOrderHistory(session.userId);
+        out.println("    <div class='dash-card'>");
+        out.println("      <h3 style='margin:0 0 12px; font-size:16px;'>📜 My Food Order History</h3>");
+        out.println("      <table class='data-table'>");
+        out.println("        <thead>");
+        out.println("          <tr><th>Order ID</th><th>Token</th><th>Modality</th><th>Amount</th><th>Status</th><th>Placed At</th></tr>");
+        out.println("        </thead>");
+        out.println("        <tbody>");
+        if (history.isEmpty()) {
+            out.println("          <tr><td colspan='6' style='text-align:center; color:#6B6560;'>No past orders found.</td></tr>");
+        } else {
+            for (BaseOrder ho : history) {
+                out.println("          <tr>");
+                out.println("            <td>#" + ho.getOrderId() + "</td>");
+                out.println("            <td><strong>" + escapeHtml(ho.getPickupToken()) + "</strong></td>");
+                out.println("            <td>" + (ho.isRoomDelivery() ? "🚚 Room Delivery (" + escapeHtml(ho.getDeliveryAddress()) + ")" : "🛍️ Cafeteria Pickup") + "</td>");
+                out.println("            <td>" + ho.getTotalAmount() + " Cr</td>");
+                out.println("            <td><span class='badge " + (ho.getStatus() == OrderStatus.COMPLETED || ho.getStatus() == OrderStatus.DELIVERED ? "badge-green" : "badge-orange") + "'>" + ho.getStatus().getDisplayName() + "</span></td>");
+                out.println("            <td>" + ho.getOrderTime() + "</td>");
+                out.println("          </tr>");
+            }
+        }
+        out.println("        </tbody>");
+        out.println("      </table>");
+        out.println("    </div>");
+
+        // 6. INLINE REAL-TIME COUNTDOWN & SSE LIVE RECONNECT SCRIPT
+        out.println("    <script>");
+        out.println("    (function() {");
+        out.println("      function updateCountdowns() {");
+        out.println("        var now = Date.now();");
+        out.println("        var els = document.querySelectorAll('.order-countdown');");
+        out.println("        els.forEach(function(el) {");
+        out.println("          var epoch = parseInt(el.getAttribute('data-ready-epoch') || '0', 10);");
+        out.println("          var st = el.getAttribute('data-status');");
+        out.println("          var isRoom = el.getAttribute('data-room') === 'true';");
+        out.println("          if (st === 'COMPLETED') {");
+        out.println("            el.innerHTML = '<span style=\"color:#10B981; font-weight:700;\">✅ Completed</span>';");
+        out.println("            return;");
+        out.println("          }");
+        out.println("          if (st === 'DELIVERED') {");
+        out.println("            el.innerHTML = '<span style=\"color:#10B981; font-weight:700;\">🏠 Delivered to Room</span>';");
+        out.println("            return;");
+        out.println("          }");
+        out.println("          if (st === 'OUT_FOR_DELIVERY') {");
+        out.println("            el.innerHTML = '<span style=\"color:#EA580C; font-weight:700;\">🛵 Out for Delivery</span>';");
+        out.println("            return;");
+        out.println("          }");
+        out.println("          var diffSec = Math.max(0, Math.floor((epoch - now) / 1000));");
+        out.println("          if (diffSec <= 0 || st === 'READY') {");
+        out.println("            el.innerHTML = '<span style=\"color:#10B981; font-weight:700;\">🔔 Ready for pickup</span>';");
+        out.println("          } else {");
+        out.println("            var mins = Math.floor(diffSec / 60);");
+        out.println("            var secs = diffSec % 60;");
+        out.println("            el.innerHTML = '⏱️ Time left: <strong>' + mins + 'm ' + (secs < 10 ? '0' : '') + secs + 's</strong>';");
+        out.println("          }");
+        out.println("        });");
+        out.println("      }");
+        out.println("      setInterval(updateCountdowns, 1000);");
+        out.println("      updateCountdowns();");
+        out.println("");
+        out.println("      // SSE Connection with Auto-Reconnect");
+        out.println("      var studentId = '" + session.userId + "';");
+        out.println("      var sse = null;");
+        out.println("      var lastSnapshot = '';");
+        out.println("      function connectSSE() {");
+        out.println("        if (typeof EventSource !== 'undefined') {");
+        out.println("          try {");
+        out.println("            sse = new EventSource('/api/java/live-events?studentId=' + studentId);");
+        out.println("            sse.addEventListener('state-update', function(e) {");
+        out.println("              try {");
+        out.println("                var data = JSON.parse(e.data);");
+        out.println("                var snap = JSON.stringify({ orders: data.activeOrders, approved: data.roomDeliveryApproved });");
+        out.println("                if (lastSnapshot && lastSnapshot !== snap) {");
+        out.println("                  window.location.reload();");
+        out.println("                }");
+        out.println("                lastSnapshot = snap;");
+        out.println("              } catch (err) {}");
+        out.println("            });");
+        out.println("            sse.onerror = function() {");
+        out.println("              if (sse) sse.close();");
+        out.println("              setTimeout(connectSSE, 3000);");
+        out.println("            };");
+        out.println("          } catch (e) { setTimeout(connectSSE, 3000); }");
+        out.println("        }");
+        out.println("      }");
+        out.println("      connectSSE();");
+        out.println("    })();");
+        out.println("    </script>");
     }
 
     // -------------------------------------------------------------------------
-    // CHEF DASHBOARD
+    // CHEF DASHBOARD: PREP TIME, ROOM DELIVERY BADGES & PROGRESSION
     // -------------------------------------------------------------------------
     private void renderChefDashboard(PrintWriter out, SecurityService.Session session) {
         List<BaseOrder> orders = messService.getPendingKitchenOrders();
@@ -954,45 +1289,132 @@ public class WebPortalServlet extends HttpServlet {
         out.println("          <h2 style='margin:0; font-size:20px;'>👨‍🍳 Kitchen Live Queue &amp; Stock Operations</h2>");
         out.println("          <p style='margin:4px 0 0; color:#6B6560; font-size:13px;'>Logged in as: <strong>" + escapeHtml(session.email) + "</strong> (Authorized Chef)</p>");
         out.println("        </div>");
-        out.println("        <form method='POST' action='/action/advance-kitchen' style='margin:0;'>");
-        out.println("          <button type='submit' class='btn btn-orange'>🍳 Advance FIFO Queue (Next Order)</button>");
-        out.println("        </form>");
+        out.println("        <span class='badge badge-orange' style='font-size:13px;'>" + orders.size() + " Active Kitchen Orders</span>");
         out.println("      </div>");
         out.println("    </div>");
 
-        // Queue Table
+        // Active Orders Queue Cards
         out.println("    <div class='dash-card'>");
-        out.println("      <h3 style='margin:0 0 12px; font-size:16px;'>Active Incoming Orders Queue (" + orders.size() + " Waiting)</h3>");
-        out.println("      <table class='data-table'>");
-        out.println("        <thead>");
-        out.println("          <tr><th>Order ID</th><th>Token</th><th>Modality</th><th>Amount</th><th>Status</th><th>Action</th></tr>");
-        out.println("        </thead>");
-        out.println("        <tbody>");
+        out.println("      <h3 style='margin:0 0 16px; font-size:16px;'>Active Incoming Orders Queue</h3>");
         if (orders.isEmpty()) {
-            out.println("          <tr><td colspan='6' style='text-align:center; color:#6B6560;'>No pending kitchen orders right now.</td></tr>");
+            out.println("      <div style='text-align:center; padding:30px; color:#6B6560;'>No pending kitchen orders right now.</div>");
         } else {
             for (BaseOrder o : orders) {
-                out.println("          <tr>");
-                out.println("            <td>#" + o.getOrderId() + "</td>");
-                out.println("            <td><strong>" + escapeHtml(o.getPickupToken()) + "</strong></td>");
-                out.println("            <td>" + escapeHtml(o.getDeliveryType()) + "</td>");
-                out.println("            <td>" + o.getTotalAmount() + " Cr</td>");
-                out.println("            <td><span class='badge badge-orange'>" + o.getStatus().getDisplayName() + "</span></td>");
-                out.println("            <td>");
-                out.println("              <form method='POST' action='/action/advance-kitchen' style='margin:0;'>");
-                out.println("                <button type='submit' class='btn btn-white btn-sm'>Mark Cooked</button>");
-                out.println("              </form>");
-                out.println("            </td>");
-                out.println("          </tr>");
+                boolean isRoom = o.isRoomDelivery();
+                OrderStatus st = o.getStatus();
+
+                out.println("      <div style='border:1px solid #E7E5E4; border-radius:12px; padding:16px; margin-bottom:16px; background:#FFFFFF; box-shadow:0 1px 4px rgba(0,0,0,0.03);'>");
+                out.println("        <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;'>");
+                out.println("          <div>");
+                out.println("            <span style='font-size:16px; font-weight:800; color:#1E1B16;'>Order #" + o.getOrderId() + "</span>");
+                out.println("            <span class='badge badge-orange' style='font-size:13px; font-weight:700; margin-left:8px;'>Token: " + escapeHtml(o.getPickupToken()) + "</span>");
+                out.println("            <span class='badge' style='background:#F3F4F6; color:#374151; margin-left:6px;'>" + st.getDisplayName() + "</span>");
+                out.println("          </div>");
+                out.println("          <div style='font-size:13px; font-weight:700; color:#10B981;'>" + o.getTotalAmount() + " Credits</div>");
+                out.println("        </div>");
+
+                // Clear Room Delivery Badge with student, block, room
+                if (isRoom) {
+                    out.println("        <div style='background:#FFF7ED; border:1px solid #FFEDD5; border-radius:8px; padding:10px 14px; margin:10px 0;'>");
+                    out.println("          <div style='font-weight:800; color:#EA580C; font-size:13px; display:flex; align-items:center; gap:6px;'>");
+                    out.println("            <span>🛵 ROOM DELIVERY</span>");
+                    out.println("            <span class='badge badge-green' style='font-size:10px;'>Warden Approved</span>");
+                    out.println("          </div>");
+                    out.println("          <div style='font-size:13px; color:#9A3412; margin-top:3px;'>");
+                    out.println("            <strong>Recipient:</strong> Student #" + o.getStudentId() + " • <strong>Delivery Address:</strong> " + escapeHtml(o.getDeliveryAddress()));
+                    out.println("          </div>");
+                    out.println("        </div>");
+                } else {
+                    out.println("        <div style='background:#F9FAFB; border:1px solid #E5E7EB; border-radius:8px; padding:6px 12px; margin:10px 0; font-size:12px; color:#374151;'>");
+                    out.println("          🛍️ <strong>Cafeteria Pickup:</strong> Counter Collection");
+                    out.println("        </div>");
+                }
+
+                // Ordered Items
+                StringBuilder itemsSummary = new StringBuilder();
+                if (o.getItems() != null) {
+                    for (int i = 0; i < o.getItems().size(); i++) {
+                        OrderItem item = o.getItems().get(i);
+                        if (i > 0) itemsSummary.append(" • ");
+                        itemsSummary.append(item.getQuantity()).append("x ").append(escapeHtml(item.getItemName()));
+                    }
+                }
+                out.println("        <div style='font-size:13px; color:#1E1B16; margin-bottom:10px;'><strong>Items:</strong> " + (itemsSummary.length() > 0 ? itemsSummary.toString() : "Cafeteria Meal") + "</div>");
+
+                // Prep Time & Chef Activity Setter
+                out.println("        <form method='POST' action='/action/chef-set-prep' style='display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px; background:#FAF8F5; padding:8px 12px; border-radius:8px; border:1px solid #E7E5E4;'>");
+                out.println("          <input type='hidden' name='orderId' value='" + o.getOrderId() + "'>");
+                out.println("          <span style='font-size:12px; font-weight:700;'>⏱️ Set Prep Time:</span>");
+                out.println("          <select name='prepMinutes' style='padding:4px 8px; font-size:12px; border-radius:6px; border:1px solid #D6D3D1;'>");
+                int currentPrep = o.getEstimatedPrepMinutes();
+                for (int m : new int[]{5, 10, 15, 20, 25, 30, 45}) {
+                    out.println("            <option value='" + m + "' " + (currentPrep == m ? "selected" : "") + ">" + m + " mins</option>");
+                }
+                out.println("          </select>");
+                out.println("          <input type='text' name='chefActivity' value='" + escapeHtml(o.getChefActivity() != null ? o.getChefActivity() : "Chef is actively preparing your order") + "' placeholder='Chef activity update' style='padding:4px 8px; font-size:12px; border-radius:6px; border:1px solid #D6D3D1; flex:1; min-width:180px;'>");
+                out.println("          <button type='submit' class='btn btn-white btn-sm'>Update Countdown</button>");
+                out.println("        </form>");
+
+                // Stage Progression Action Buttons
+                out.println("        <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-top:1px solid #F5F5F4; padding-top:10px;'>");
+                out.println("          <div style='font-size:12px; color:#6B6560;'>Status: <strong>" + st.getDisplayName() + "</strong></div>");
+                out.println("          <div style='display:flex; gap:8px;'>");
+
+                if (st == OrderStatus.PENDING) {
+                    out.println("            <form method='POST' action='/action/chef-advance-order' style='margin:0;'>");
+                    out.println("              <input type='hidden' name='orderId' value='" + o.getOrderId() + "'>");
+                    out.println("              <input type='hidden' name='nextStatus' value='ACCEPTED'>");
+                    out.println("              <input type='hidden' name='chefActivity' value='Order accepted, cooking starts soon'>");
+                    out.println("              <button type='submit' class='btn btn-orange btn-sm'>👉 Accept Order</button>");
+                    out.println("            </form>");
+                } else if (st == OrderStatus.ACCEPTED) {
+                    out.println("            <form method='POST' action='/action/chef-advance-order' style='margin:0;'>");
+                    out.println("              <input type='hidden' name='orderId' value='" + o.getOrderId() + "'>");
+                    out.println("              <input type='hidden' name='nextStatus' value='PREPARING'>");
+                    out.println("              <input type='hidden' name='chefActivity' value='Chef is actively preparing your order'>");
+                    out.println("              <button type='submit' class='btn btn-orange btn-sm'>🍳 Start Cooking</button>");
+                    out.println("            </form>");
+                } else if (st == OrderStatus.PREPARING) {
+                    out.println("            <form method='POST' action='/action/chef-advance-order' style='margin:0;'>");
+                    out.println("              <input type='hidden' name='orderId' value='" + o.getOrderId() + "'>");
+                    out.println("              <input type='hidden' name='nextStatus' value='READY'>");
+                    out.println("              <input type='hidden' name='chefActivity' value='Food is freshly cooked and ready for pickup'>");
+                    out.println("              <button type='submit' class='btn btn-green btn-sm'>🔔 Mark Ready</button>");
+                    out.println("            </form>");
+                } else if (st == OrderStatus.READY) {
+                    if (isRoom) {
+                        out.println("            <form method='POST' action='/action/chef-advance-order' style='margin:0;'>");
+                        out.println("              <input type='hidden' name='orderId' value='" + o.getOrderId() + "'>");
+                        out.println("              <input type='hidden' name='nextStatus' value='OUT_FOR_DELIVERY'>");
+                        out.println("              <input type='hidden' name='chefActivity' value='Runner dispatched: Food is out for delivery to your room'>");
+                        out.println("              <button type='submit' class='btn btn-orange btn-sm'>🛵 Out for Delivery</button>");
+                        out.println("            </form>");
+                    } else {
+                        out.println("            <form method='POST' action='/action/chef-advance-order' style='margin:0;'>");
+                        out.println("              <input type='hidden' name='orderId' value='" + o.getOrderId() + "'>");
+                        out.println("              <input type='hidden' name='nextStatus' value='COMPLETED'>");
+                        out.println("              <input type='hidden' name='chefActivity' value='Order completed and handed over'>");
+                        out.println("              <button type='submit' class='btn btn-white btn-sm'>✅ Complete Order</button>");
+                        out.println("            </form>");
+                    }
+                } else if (st == OrderStatus.OUT_FOR_DELIVERY) {
+                    out.println("            <form method='POST' action='/action/chef-advance-order' style='margin:0;'>");
+                    out.println("              <input type='hidden' name='orderId' value='" + o.getOrderId() + "'>");
+                    out.println("              <input type='hidden' name='nextStatus' value='DELIVERED'>");
+                    out.println("              <input type='hidden' name='chefActivity' value='Delivered to room. Enjoy your meal!'>");
+                    out.println("              <button type='submit' class='btn btn-green btn-sm'>🏠 Mark Delivered</button>");
+                    out.println("            </form>");
+                }
+
+                out.println("          </div>");
+                out.println("        </div>");
+                out.println("      </div>");
             }
         }
-        out.println("        </tbody>");
-        out.println("      </table>");
         out.println("    </div>");
 
         // Chef Stock & Wastage Tools
         out.println("    <div style='display:grid; grid-template-columns: 1fr 1fr; gap:16px;'>");
-
         out.println("      <div class='dash-card'>");
         out.println("        <h3 style='margin:0 0 10px; font-size:15px;'>📦 Stock Availability Control</h3>");
         out.println("        <form method='POST' action='/action/toggle-stock'>");
@@ -1025,62 +1447,172 @@ public class WebPortalServlet extends HttpServlet {
         out.println("          <button type='submit' class='btn btn-danger btn-block'>Record in Audit Waste Log</button>");
         out.println("        </form>");
         out.println("      </div>");
-
         out.println("    </div>");
     }
 
     // -------------------------------------------------------------------------
-    // WARDEN DASHBOARD (HOSTEL-BLOCK ASSIGNED FILTER)
+    // WARDEN DASHBOARD: APPROVE OR REJECT ONLY (STRICT HOSTEL BLOCK FILTER)
     // -------------------------------------------------------------------------
     private void renderWardenDashboard(PrintWriter out, SecurityService.Session session) {
         String assignedBlock = session.extra != null ? session.extra : "Block B";
+        if (assignedBlock.contains("-")) {
+            assignedBlock = assignedBlock.split("-")[0].trim();
+        }
+
+        List<HealthRequest> blockRequests = messService.getHealthRequestsForHostel(assignedBlock);
+
+        List<HealthRequest> pending = new ArrayList<>();
+        List<HealthRequest> approved = new ArrayList<>();
+        List<HealthRequest> rejected = new ArrayList<>();
+
+        for (HealthRequest hr : blockRequests) {
+            String status = hr.getStatus() != null ? hr.getStatus().toUpperCase() : "PENDING";
+            if ("APPROVED".equals(status)) approved.add(hr);
+            else if ("REJECTED".equals(status)) rejected.add(hr);
+            else pending.add(hr);
+        }
 
         out.println("    <div class='dash-card' style='margin-top:20px;'>");
         out.println("      <h2 style='margin:0; font-size:20px;'>🏢 Hostel Warden Approval Portal</h2>");
-        out.println("      <p style='margin:4px 0 0; color:#6B6560; font-size:13px;'>Warden: <strong>" + escapeHtml(session.name) + "</strong> | Assigned Jurisdiction: <strong style='color:#D97706;'>" + escapeHtml(assignedBlock) + "</strong></p>");
-        out.println("      <p style='margin:4px 0 0; font-size:12px; color:#B45309;'>Security Constraint: You are restricted to reviewing health delivery requests exclusively for <strong>" + escapeHtml(assignedBlock) + "</strong> residents.</p>");
+        out.println("      <p style='margin:4px 0 0; color:#6B6560; font-size:13px;'>Warden: <strong>" + escapeHtml(session.name) + "</strong> | Jurisdiction: <strong style='color:#D97706;'>" + escapeHtml(assignedBlock) + "</strong></p>");
+        out.println("      <p style='margin:4px 0 0; font-size:12px; color:#B45309;'>Jurisdiction Rule: You exclusively review sick-leave room delivery clearances for <strong>" + escapeHtml(assignedBlock) + "</strong> residents. No other controls are permitted.</p>");
         out.println("    </div>");
 
-        List<HealthRequest> requests = messService.getPendingHealthRequests();
+        // Tab Navigation
+        out.println("    <div class='tab-nav'>");
+        out.println("      <button class='tab-link active' id='btn-tab-pending' onclick='showWardenTab(\"pending\")'>⏳ Pending Requests (" + pending.size() + ")</button>");
+        out.println("      <button class='tab-link' id='btn-tab-approved' onclick='showWardenTab(\"approved\")'>✅ Approved Requests (" + approved.size() + ")</button>");
+        out.println("      <button class='tab-link' id='btn-tab-rejected' onclick='showWardenTab(\"rejected\")'>❌ Rejected Requests (" + rejected.size() + ")</button>");
+        out.println("    </div>");
 
-        out.println("    <div class='dash-card'>");
-        out.println("      <h3 style='margin:0 0 12px; font-size:16px;'>Sick-Leave Room Delivery Requests (" + escapeHtml(assignedBlock) + ")</h3>");
-        out.println("      <table class='data-table'>");
-        out.println("        <thead>");
-        out.println("          <tr><th>Req ID</th><th>Student</th><th>Hostel Room</th><th>Reason</th><th>Status</th><th>Decision</th></tr>");
-        out.println("        </thead>");
-        out.println("        <tbody>");
-
-        int count = 0;
-        for (HealthRequest hr : requests) {
-            // Strictly filter by Warden's assigned hostel block
-            if (hr.getHostelName() != null && hr.getHostelName().toLowerCase().contains(assignedBlock.toLowerCase())) {
-                count++;
-                out.println("          <tr>");
-                out.println("            <td>#" + hr.getRequestId() + "</td>");
-                out.println("            <td>Student #" + hr.getStudentId() + "</td>");
-                out.println("            <td><strong>" + escapeHtml(hr.getHostelName()) + " - " + escapeHtml(hr.getRoomNumber()) + "</strong></td>");
-                out.println("            <td>" + escapeHtml(hr.getReason()) + "</td>");
-                out.println("            <td><span class='badge badge-orange'>" + hr.getStatus() + "</span></td>");
-                out.println("            <td>");
-                out.println("              <form method='POST' action='/action/review-sickleave' style='display:inline;'>");
-                out.println("                <input type='hidden' name='requestId' value='" + hr.getRequestId() + "'>");
-                out.println("                <button type='submit' name='decision' value='APPROVED' class='btn btn-green btn-sm'>Approve</button>");
-                out.println("                <button type='submit' name='decision' value='REJECTED' class='btn btn-danger btn-sm'>Reject</button>");
-                out.println("              </form>");
-                out.println("            </td>");
-                out.println("          </tr>");
+        // Tab 1: PENDING REQUESTS (APPROVE OR REJECT ONLY)
+        out.println("    <div id='tab-pending' class='warden-tab-pane'>");
+        out.println("      <div class='dash-card'>");
+        out.println("        <h3 style='margin:0 0 12px; font-size:16px;'>Pending Sick-Leave Clearances (" + escapeHtml(assignedBlock) + ")</h3>");
+        out.println("        <table class='data-table'>");
+        out.println("          <thead>");
+        out.println("            <tr><th>Req ID</th><th>Student</th><th>Room</th><th>Date</th><th>Meals Needed</th><th>Medical Reason</th><th>Submitted At</th><th>Decision Action</th></tr>");
+        out.println("          </thead>");
+        out.println("          <tbody>");
+        if (pending.isEmpty()) {
+            out.println("            <tr><td colspan='8' style='text-align:center; color:#6B6560;'>No pending sick leave requests for " + escapeHtml(assignedBlock) + ".</td></tr>");
+        } else {
+            for (HealthRequest hr : pending) {
+                out.println("            <tr>");
+                out.println("              <td>#" + hr.getRequestId() + "</td>");
+                out.println("              <td>Student #" + hr.getStudentId() + "</td>");
+                out.println("              <td><strong>" + escapeHtml(hr.getHostelName()) + " - " + escapeHtml(hr.getRoomNumber()) + "</strong></td>");
+                out.println("              <td>" + hr.getDate() + "</td>");
+                out.println("              <td>" + escapeHtml(hr.getMealsNeeded() != null && !hr.getMealsNeeded().isEmpty() ? hr.getMealsNeeded() : "All Meals") + "</td>");
+                out.println("              <td>" + escapeHtml(hr.getReason()) + "</td>");
+                out.println("              <td>" + (hr.getSubmissionTime() != null ? hr.getSubmissionTime() : "-") + "</td>");
+                out.println("              <td>");
+                out.println("                <div style='display:flex; gap:6px;'>");
+                // Approve
+                out.println("                  <form method='POST' action='/action/review-sickleave' style='margin:0;'>");
+                out.println("                    <input type='hidden' name='requestId' value='" + hr.getRequestId() + "'>");
+                out.println("                    <input type='hidden' name='decision' value='APPROVE'>");
+                out.println("                    <button type='submit' class='btn btn-green btn-sm'>Approve</button>");
+                out.println("                  </form>");
+                // Reject with mandatory reason
+                out.println("                  <form method='POST' action='/action/review-sickleave' style='margin:0;' id='reject-form-" + hr.getRequestId() + "'>");
+                out.println("                    <input type='hidden' name='requestId' value='" + hr.getRequestId() + "'>");
+                out.println("                    <input type='hidden' name='decision' value='REJECT'>");
+                out.println("                    <input type='hidden' name='reason' id='reject-reason-" + hr.getRequestId() + "'>");
+                out.println("                    <button type='button' class='btn btn-danger btn-sm' onclick='promptReject(" + hr.getRequestId() + ")'>Reject</button>");
+                out.println("                  </form>");
+                out.println("                </div>");
+                out.println("              </td>");
+                out.println("            </tr>");
             }
         }
-
-        if (count == 0) {
-            out.println("          <tr><td colspan='6' style='text-align:center; color:#6B6560;'>No pending delivery requests for " + escapeHtml(assignedBlock) + ".</td></tr>");
-        }
-
-        out.println("        </tbody>");
-        out.println("      </table>");
+        out.println("          </tbody>");
+        out.println("        </table>");
+        out.println("      </div>");
         out.println("    </div>");
+
+        // Tab 2: APPROVED REQUESTS (LOCKED - CANNOT BE CHANGED)
+        out.println("    <div id='tab-approved' class='warden-tab-pane' style='display:none;'>");
+        out.println("      <div class='dash-card'>");
+        out.println("        <h3 style='margin:0 0 12px; font-size:16px;'>Approved Sick-Leave Clearances (" + approved.size() + ")</h3>");
+        out.println("        <table class='data-table'>");
+        out.println("          <thead>");
+        out.println("            <tr><th>Req ID</th><th>Student</th><th>Room</th><th>Date</th><th>Meals Needed</th><th>Medical Reason</th><th>Status</th><th>Notification</th></tr>");
+        out.println("          </thead>");
+        out.println("          <tbody>");
+        if (approved.isEmpty()) {
+            out.println("            <tr><td colspan='8' style='text-align:center; color:#6B6560;'>No approved requests yet.</td></tr>");
+        } else {
+            for (HealthRequest hr : approved) {
+                out.println("            <tr>");
+                out.println("              <td>#" + hr.getRequestId() + "</td>");
+                out.println("              <td>Student #" + hr.getStudentId() + "</td>");
+                out.println("              <td><strong>" + escapeHtml(hr.getHostelName()) + " - " + escapeHtml(hr.getRoomNumber()) + "</strong></td>");
+                out.println("              <td>" + hr.getDate() + "</td>");
+                out.println("              <td>" + escapeHtml(hr.getMealsNeeded() != null && !hr.getMealsNeeded().isEmpty() ? hr.getMealsNeeded() : "All Meals") + "</td>");
+                out.println("              <td>" + escapeHtml(hr.getReason()) + "</td>");
+                out.println("              <td><span class='badge badge-green'>Approved ✅</span></td>");
+                out.println("              <td><span style='font-size:11px; color:#059669;'>📧 Student notified via VIT Mail &amp; Live Alert</span></td>");
+                out.println("            </tr>");
+            }
+        }
+        out.println("          </tbody>");
+        out.println("        </table>");
+        out.println("      </div>");
+        out.println("    </div>");
+
+        // Tab 3: REJECTED REQUESTS (LOCKED - CANNOT BE CHANGED)
+        out.println("    <div id='tab-rejected' class='warden-tab-pane' style='display:none;'>");
+        out.println("      <div class='dash-card'>");
+        out.println("        <h3 style='margin:0 0 12px; font-size:16px;'>Rejected Requests (" + rejected.size() + ")</h3>");
+        out.println("        <table class='data-table'>");
+        out.println("          <thead>");
+        out.println("            <tr><th>Req ID</th><th>Student</th><th>Room</th><th>Date</th><th>Medical Reason</th><th>Warden Rejection Reason</th><th>Status</th><th>Notification</th></tr>");
+        out.println("          </thead>");
+        out.println("          <tbody>");
+        if (rejected.isEmpty()) {
+            out.println("            <tr><td colspan='8' style='text-align:center; color:#6B6560;'>No rejected requests.</td></tr>");
+        } else {
+            for (HealthRequest hr : rejected) {
+                out.println("            <tr>");
+                out.println("              <td>#" + hr.getRequestId() + "</td>");
+                out.println("              <td>Student #" + hr.getStudentId() + "</td>");
+                out.println("              <td><strong>" + escapeHtml(hr.getHostelName()) + " - " + escapeHtml(hr.getRoomNumber()) + "</strong></td>");
+                out.println("              <td>" + hr.getDate() + "</td>");
+                out.println("              <td>" + escapeHtml(hr.getReason()) + "</td>");
+                out.println("              <td><strong style='color:#DC2626;'>" + escapeHtml(hr.getRejectionReason() != null ? hr.getRejectionReason() : "Rejected by Warden") + "</strong></td>");
+                out.println("              <td><span class='badge' style='background:#FEF2F2; color:#B91C1C; border:1px solid #FCA5A5;'>Rejected ❌</span></td>");
+                out.println("              <td><span style='font-size:11px; color:#DC2626;'>📧 Student notified via VIT Mail &amp; Live Alert</span></td>");
+                out.println("            </tr>");
+            }
+        }
+        out.println("          </tbody>");
+        out.println("        </table>");
+        out.println("      </div>");
+        out.println("    </div>");
+
+        // Warden Client Script (Tab switching and mandatory rejection reason prompt)
+        out.println("    <script>");
+        out.println("    function showWardenTab(tabName) {");
+        out.println("      document.querySelectorAll('.warden-tab-pane').forEach(function(el) { el.style.display = 'none'; });");
+        out.println("      document.querySelectorAll('.tab-link').forEach(function(el) { el.classList.remove('active'); });");
+        out.println("      var target = document.getElementById('tab-' + tabName);");
+        out.println("      if (target) target.style.display = 'block';");
+        out.println("      var btn = document.getElementById('btn-tab-' + tabName);");
+        out.println("      if (btn) btn.classList.add('active');");
+        out.println("    }");
+        out.println("    function promptReject(reqId) {");
+        out.println("      var reason = prompt('Please enter a short mandatory reason for rejecting Request #' + reqId + ':');");
+        out.println("      if (reason && reason.trim()) {");
+        out.println("        document.getElementById('reject-reason-' + reqId).value = reason.trim();");
+        out.println("        document.getElementById('reject-form-' + reqId).submit();");
+        out.println("      } else if (reason !== null) {");
+        out.println("        alert('A short reason is strictly required to reject sick leave.');");
+        out.println("      }");
+        out.println("    }");
+        out.println("    </script>");
     }
+
 
     // -------------------------------------------------------------------------
     // ADMIN DASHBOARD
@@ -1238,8 +1770,17 @@ public class WebPortalServlet extends HttpServlet {
             List<OrderItem> items = new ArrayList<>();
             items.add(new OrderItem(item.getItemId(), item.getItemName(), 1, item.getPrice(), item.getCalories()));
 
-            BaseOrder order = messService.placeOrder(session.userId, items, false, null);
-            resp.sendRedirect("/dashboard?role=student&msg=" + URLEncoder.encode("Order placed! Token: " + order.getPickupToken() + " (-" + order.getTotalAmount() + " Cr)", StandardCharsets.UTF_8));
+            String deliveryType = req.getParameter("deliveryType");
+            boolean isRoomDelivery = "ROOM_DELIVERY".equalsIgnoreCase(deliveryType);
+
+            Student student = messService.getStudentProfile(session.userId);
+            String deliveryAddress = null;
+            if (isRoomDelivery) {
+                deliveryAddress = student != null ? student.getHostelRoom() : (session.extra != null ? session.extra : "Block B - Room 304");
+            }
+
+            BaseOrder order = messService.placeOrder(session.userId, items, isRoomDelivery, deliveryAddress);
+            resp.sendRedirect("/dashboard?role=student&msg=" + URLEncoder.encode("Order placed! Token: " + order.getPickupToken() + " (" + (isRoomDelivery ? "Room Delivery" : "Cafeteria Pickup") + ", -" + order.getTotalAmount() + " Cr)", StandardCharsets.UTF_8));
         } catch (Exception e) {
             resp.sendRedirect("/dashboard?role=student&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
         }
@@ -1252,6 +1793,75 @@ public class WebPortalServlet extends HttpServlet {
             resp.sendRedirect("/dashboard?role=student&msg=" + URLEncoder.encode("Order #" + orderId + " cancelled. " + cancelled.getTotalAmount() + " credits refunded to your wallet.", StandardCharsets.UTF_8));
         } catch (Exception e) {
             resp.sendRedirect("/dashboard?role=student&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
+        }
+    }
+
+    private void handleSubmitSickLeave(HttpServletRequest req, HttpServletResponse resp, SecurityService.Session session) throws IOException {
+        try {
+            String hostelBlock = req.getParameter("hostelBlock");
+            String roomNumber = req.getParameter("roomNumber");
+            String reason = req.getParameter("reason");
+            String dateStr = req.getParameter("date");
+            String mealsNeeded = req.getParameter("mealsNeeded");
+
+            if (hostelBlock == null || hostelBlock.trim().isEmpty() ||
+                roomNumber == null || roomNumber.trim().isEmpty() ||
+                reason == null || reason.trim().isEmpty() ||
+                dateStr == null || dateStr.trim().isEmpty()) {
+                throw new IllegalArgumentException("Hostel Block, Room Number, Reason, and Date are all required.");
+            }
+
+            LocalDate date = LocalDate.parse(dateStr.trim());
+            HealthRequest hr = messService.submitHealthRequest(session.userId, hostelBlock.trim(), roomNumber.trim(), reason.trim(), date, mealsNeeded != null ? mealsNeeded.trim() : "");
+            resp.sendRedirect("/dashboard?role=student&msg=" + URLEncoder.encode("Sick leave request #" + hr.getRequestId() + " submitted to " + hostelBlock + " Warden as Pending Approval.", StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            resp.sendRedirect("/dashboard?role=student&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
+        }
+    }
+
+    private void handleReviewSickLeave(HttpServletRequest req, HttpServletResponse resp, SecurityService.Session session) throws IOException {
+        try {
+            int reqId = Integer.parseInt(req.getParameter("requestId"));
+            String decision = req.getParameter("decision");
+            boolean approve = "APPROVE".equalsIgnoreCase(decision);
+            String reason = req.getParameter("reason");
+            if (!approve && (reason == null || reason.trim().isEmpty())) {
+                throw new IllegalArgumentException("A short rejection reason is required.");
+            }
+            HealthRequest hr = messService.reviewHealthRequest(reqId, approve, approve ? "Approved for room delivery" : reason.trim(), session.name);
+            String roleParam = "warden".equalsIgnoreCase(session.role) ? "warden" : session.role;
+            resp.sendRedirect("/dashboard?role=" + roleParam + "&msg=" + URLEncoder.encode("Request #" + reqId + " " + hr.getStatus() + ". Student notified via VIT Email & Live Alert.", StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            String roleParam = "warden".equalsIgnoreCase(session.role) ? "warden" : session.role;
+            resp.sendRedirect("/dashboard?role=" + roleParam + "&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
+        }
+    }
+
+    private void handleChefSetPrep(HttpServletRequest req, HttpServletResponse resp, SecurityService.Session session) throws IOException {
+        try {
+            int orderId = Integer.parseInt(req.getParameter("orderId"));
+            int prepMinutes = Integer.parseInt(req.getParameter("prepMinutes"));
+            String chefActivity = req.getParameter("chefActivity");
+            if (chefActivity == null || chefActivity.trim().isEmpty()) {
+                chefActivity = "Chef set estimated prep time to " + prepMinutes + " mins";
+            }
+            messService.updateOrderPrepTime(orderId, prepMinutes, chefActivity.trim());
+            resp.sendRedirect("/dashboard?role=chef&msg=" + URLEncoder.encode("Order #" + orderId + " prep time set to " + prepMinutes + " mins. Student countdown updated live.", StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            resp.sendRedirect("/dashboard?role=chef&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
+        }
+    }
+
+    private void handleChefAdvanceOrder(HttpServletRequest req, HttpServletResponse resp, SecurityService.Session session) throws IOException {
+        try {
+            int orderId = Integer.parseInt(req.getParameter("orderId"));
+            String nextStatusStr = req.getParameter("nextStatus");
+            String chefActivity = req.getParameter("chefActivity");
+            OrderStatus nextStatus = OrderStatus.fromString(nextStatusStr);
+            messService.advanceOrderStatus(orderId, nextStatus, chefActivity);
+            resp.sendRedirect("/dashboard?role=chef&msg=" + URLEncoder.encode("Order #" + orderId + " advanced to " + nextStatus.getDisplayName() + ".", StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            resp.sendRedirect("/dashboard?role=chef&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
         }
     }
 
@@ -1297,18 +1907,6 @@ public class WebPortalServlet extends HttpServlet {
         String dish = req.getParameter("dish");
         String portions = req.getParameter("portions");
         resp.sendRedirect("/dashboard?role=chef&msg=" + URLEncoder.encode(portions + " portions of " + dish + " logged in daily food waste audit.", StandardCharsets.UTF_8));
-    }
-
-    private void handleReviewSickLeave(HttpServletRequest req, HttpServletResponse resp, SecurityService.Session session) throws IOException {
-        try {
-            int reqId = Integer.parseInt(req.getParameter("requestId"));
-            String decision = req.getParameter("decision");
-            boolean approve = "APPROVE".equalsIgnoreCase(decision);
-            messService.reviewHealthRequest(reqId, approve, approve ? "" : "Rejected by Warden", session.name);
-            resp.sendRedirect("/dashboard?role=warden&msg=" + URLEncoder.encode("Request #" + reqId + " marked " + decision + ".", StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            resp.sendRedirect("/dashboard?role=warden&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
-        }
     }
 
     private void handleResetCredits(HttpServletRequest req, HttpServletResponse resp, SecurityService.Session session) throws IOException {
@@ -1399,6 +1997,11 @@ public class WebPortalServlet extends HttpServlet {
                "    .dash-card { background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }\n" +
                "    .user-nav { display: flex; align-items: center; gap: 12px; }\n" +
                "    .user-badge { background: #F5F5F4; border: 1px solid #E7E5E4; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }\n" +
+               "    .tab-nav { display: flex; gap: 8px; border-bottom: 2px solid #E7E5E4; margin-bottom: 20px; }\n" +
+               "    .tab-link { padding: 10px 18px; border: none; background: none; font-size: 14px; font-weight: 600; color: #6B6560; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }\n" +
+               "    .tab-link.active { color: #FF6B35; border-bottom-color: #FF6B35; }\n" +
+               "    .warden-tab-pane { display: block; }\n" +
+               "    .countdown-box { font-size: 13px; font-weight: 700; color: #EA580C; background: #FFF7ED; padding: 6px 12px; border-radius: 8px; border: 1px solid #FED7AA; display: inline-flex; align-items: center; gap: 6px; }\n" +
                "    .stepper-row { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 0; }\n" +
                "    .step-node { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #F5F5F4; color: #78716C; }\n" +
                "    .step-node.step-active { background: #FF6B35; color: #FFFFFF; }\n" +

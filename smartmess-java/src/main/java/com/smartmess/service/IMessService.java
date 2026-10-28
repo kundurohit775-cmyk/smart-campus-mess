@@ -25,11 +25,21 @@ public interface IMessService {
     void registerStudent(Student student);
 
     BaseOrder placeOrder(int studentId, List<OrderItem> items, boolean isRoomDelivery, String roomAddress)
-            throws OutOfStockException, InsufficientCreditsException, MenuItemNotFoundException;
+            throws OutOfStockException, InsufficientCreditsException, MenuItemNotFoundException, MessException;
 
     BaseOrder cancelOrder(int orderId, int studentId) throws InvalidOrderStateException;
 
     BaseOrder updateOrderStatus(int orderId, OrderStatus newStatus);
+
+    BaseOrder updateOrderPrepTime(int orderId, int minutes, String chefActivity);
+
+    BaseOrder advanceOrderStatus(int orderId, OrderStatus nextStatus, String chefActivity);
+
+    List<BaseOrder> getActiveOrdersForStudent(int studentId);
+
+    List<BaseOrder> getOrderHistory(int studentId);
+
+    BaseOrder getOrderById(int orderId);
 
     PreOrder placePreOrder(int studentId, int itemId, int quantity, LocalDate scheduledDate)
             throws OutOfStockException, InsufficientCreditsException, MenuItemNotFoundException;
@@ -38,7 +48,15 @@ public interface IMessService {
 
     HealthRequest submitHealthRequest(int studentId, String hostel, String room, String reason, LocalDate date);
 
+    HealthRequest submitHealthRequest(int studentId, String hostel, String room, String reason, LocalDate date, String mealsNeeded);
+
     List<HealthRequest> getPendingHealthRequests();
+
+    List<HealthRequest> getHealthRequestsForStudent(int studentId);
+
+    List<HealthRequest> getHealthRequestsForHostel(String hostelBlock);
+
+    boolean hasApprovedSickLeave(int studentId, LocalDate date);
 
     HealthRequest reviewHealthRequest(int requestId, boolean approve, String rejectionReason, String wardenName);
 

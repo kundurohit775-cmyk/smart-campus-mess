@@ -76,6 +76,7 @@ public class EmbeddedServletServer {
         CreditServlet creditServlet = new CreditServlet(messService);
         AdminServlet adminServlet = new AdminServlet(messService);
         SustainabilityServlet sustainabilityServlet = new SustainabilityServlet(messService);
+        com.smartmess.servlet.LiveEventsServlet liveEventsServlet = new com.smartmess.servlet.LiveEventsServlet(messService);
         com.smartmess.web.WebPortalServlet webPortalServlet = new com.smartmess.web.WebPortalServlet(messService);
 
         // Mount Servlets on HTTP routes
@@ -96,6 +97,7 @@ public class EmbeddedServletServer {
         server.createContext("/api/java/credits", new ServletAdapterHandler(creditServlet));
         server.createContext("/api/java/admin", new ServletAdapterHandler(adminServlet));
         server.createContext("/api/java/impact", new ServletAdapterHandler(sustainabilityServlet));
+        server.createContext("/api/java/live-events", new ServletAdapterHandler(liveEventsServlet));
 
         executor = java.util.concurrent.Executors.newFixedThreadPool(4, r -> {
             Thread t = new Thread(r, "EmbeddedServletWorker");

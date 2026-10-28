@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -79,7 +80,7 @@ public class MessServiceImpl implements IMessService {
 
     private void seedDefaultState() {
         // Seed primary student
-        Student student = new Student(22, "Rohit Kundu", "rohit.kundu2022@vitstudent.ac.in", "+91 9876543210", "Block B - Room 304", 1250);
+        Student student = new Student(22, "Rohit Kundu", "rohit.kundu2022@vitstudent.ac.in", "+91 9876543210", "Block B - Room 304", 8700);
         inMemoryStudents.put(student.getId(), student);
 
         // Seed sample transactions
@@ -87,8 +88,31 @@ public class MessServiceImpl implements IMessService {
         inMemoryTransactions.add(new TransactionRecord(transactionIdSequence.incrementAndGet(), 22, -120, "DEBIT_ORDER", 8880, "Order #68 - Masala Dosa"));
         inMemoryTransactions.add(new TransactionRecord(transactionIdSequence.incrementAndGet(), 22, -180, "DEBIT_ORDER", 8700, "Order #70 - Paneer Butter Masala"));
 
-        // Seed sample health request
-        inMemoryHealthRequests.add(new HealthRequest(healthRequestIdSequence.incrementAndGet(), 22, "Rohit Kundu", "Hostel Block B", "Room 304", "Severe viral fever & prescribed bed rest", LocalDate.now()));
+        // Seed sample health request (Approved for student 22 for today -> enables room delivery)
+        HealthRequest hrApproved = new HealthRequest(healthRequestIdSequence.incrementAndGet(), 22, "Rohit Kundu", "Block B", "Room 304", "Severe viral fever & prescribed bed rest", LocalDate.now(), "All Meals (Breakfast, Lunch, Dinner)");
+        hrApproved.setStatus("APPROVED");
+        hrApproved.setWardenName("Dr. S. Raman");
+        hrApproved.setStudentEmail("rohit.kundu2022@vitstudent.ac.in");
+        hrApproved.setReviewedAt(LocalDateTime.now().minusHours(2));
+        inMemoryHealthRequests.add(hrApproved);
+
+        // Seed pending health request for Warden review demonstration (Block B)
+        HealthRequest hrPending = new HealthRequest(healthRequestIdSequence.incrementAndGet(), 23, "Aarav Sharma", "Block B", "Room 112", "Sprained ankle, unable to walk to cafeteria", LocalDate.now(), "Lunch, Dinner");
+        hrPending.setStatus("PENDING");
+        hrPending.setStudentEmail("aarav.sharma2023@vitstudent.ac.in");
+        inMemoryHealthRequests.add(hrPending);
+
+        // Seed active order for live tracking (TK-3584)
+        BaseOrder activeOrder = new DineInOrder(orderIdSequence.incrementAndGet(), 22, "Rohit Kundu");
+        activeOrder.setPickupToken("TK-3584");
+        activeOrder.setStatus(OrderStatus.PREPARING);
+        activeOrder.setEstimatedPrepMinutes(15);
+        activeOrder.setEstimatedReadyTime(LocalDateTime.now().plusMinutes(11));
+        activeOrder.setChefActivity("Chef is preparing your order");
+        activeOrder.addItem(new OrderItem(4, "Paneer Butter Masala & Roti", 1, 120, 580));
+        activeOrder.addItem(new OrderItem(10, "Fresh Lime Soda", 1, 30, 90));
+        inMemoryOrders.put(activeOrder.getOrderId(), activeOrder);
+        kitchenQueue.enqueue(activeOrder);
 
         // Seed sample pre-order
         PreOrder pre = new PreOrder(preOrderIdSequence.incrementAndGet(), 22, "Rohit Kundu", 7, "Hyderabadi Dum Biryani (Chef Special)", 1, 180, LocalDate.now().plusDays(1));
@@ -163,7 +187,7 @@ public class MessServiceImpl implements IMessService {
 
     @Override
     public synchronized BaseOrder placeOrder(int studentId, List<OrderItem> items, boolean isRoomDelivery, String roomAddress)
-            throws OutOfStockException, InsufficientCreditsException, MenuItemNotFoundException {
+            throws OutOfStockException, InsufficientCreditsException, MenuItemNotFoundException, MessException {
 
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("Cannot place an order with zero items.");
@@ -174,6 +198,9 @@ public class MessServiceImpl implements IMessService {
 
         BaseOrder order;
         if (isRoomDelivery) {
+            if (!hasApprovedSickLeave(studentId, LocalDate.now())) {
+                throw new MessException("Room delivery requires an approved sick-leave request for today's date from your hostel warden.");
+            }
             order = new RoomDeliveryOrder(generatedId, studentId, student.getName(),
                     roomAddress != null ? roomAddress : student.getRoomNumber(), 0);
         } else {
@@ -338,10 +365,17 @@ public class MessServiceImpl implements IMessService {
 
     @Override
     public synchronized HealthRequest submitHealthRequest(int studentId, String hostel, String room, String reason, LocalDate date) {
+        return submitHealthRequest(studentId, hostel, room, reason, date, "All Meals (Breakfast, Lunch, Dinner)");
+    }
+
+    @Override
+    public synchronized HealthRequest submitHealthRequest(int studentId, String hostel, String room, String reason, LocalDate date, String mealsNeeded) {
         Student s = getStudentProfile(studentId);
-        HealthRequest hr = new HealthRequest(healthRequestIdSequence.incrementAndGet(), studentId, s.getName(), hostel, room, reason, date);
+        HealthRequest hr = new HealthRequest(healthRequestIdSequence.incrementAndGet(), studentId, s.getName(), hostel, room, reason, date, mealsNeeded);
+        hr.setStudentEmail(s.getEmail());
+        hr.setStudentPhone(s.getPhone());
         inMemoryHealthRequests.add(hr);
-        asyncLogger.logAsync("HEALTH_REQUEST_SUBMITTED", "Student #" + studentId + " requested sick leave room delivery for " + hostel + " " + room);
+        asyncLogger.logAsync("HEALTH_REQUEST_SUBMITTED", "Student #" + studentId + " (" + s.getName() + ") requested sick leave room delivery for " + hostel + " " + room);
         return hr;
     }
 
@@ -351,13 +385,65 @@ public class MessServiceImpl implements IMessService {
     }
 
     @Override
+    public synchronized List<HealthRequest> getHealthRequestsForStudent(int studentId) {
+        List<HealthRequest> list = new ArrayList<>();
+        for (HealthRequest hr : inMemoryHealthRequests) {
+            if (hr.getStudentId() == studentId) list.add(hr);
+        }
+        list.sort((a, b) -> Integer.compare(b.getRequestId(), a.getRequestId()));
+        return list;
+    }
+
+    @Override
+    public synchronized List<HealthRequest> getHealthRequestsForHostel(String hostelBlock) {
+        List<HealthRequest> list = new ArrayList<>();
+        String query = hostelBlock != null ? hostelBlock.trim().toLowerCase() : "";
+        for (HealthRequest hr : inMemoryHealthRequests) {
+            if (query.isEmpty() || (hr.getHostelName() != null && hr.getHostelName().toLowerCase().contains(query))) {
+                list.add(hr);
+            }
+        }
+        list.sort((a, b) -> Integer.compare(b.getRequestId(), a.getRequestId()));
+        return list;
+    }
+
+    @Override
+    public synchronized boolean hasApprovedSickLeave(int studentId, LocalDate date) {
+        LocalDate checkDate = date != null ? date : LocalDate.now();
+        for (HealthRequest hr : inMemoryHealthRequests) {
+            if (hr.getStudentId() == studentId &&
+                "APPROVED".equalsIgnoreCase(hr.getStatus()) &&
+                checkDate.equals(hr.getRequestDate())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     public synchronized HealthRequest reviewHealthRequest(int requestId, boolean approve, String rejectionReason, String wardenName) {
         for (HealthRequest hr : inMemoryHealthRequests) {
             if (hr.getRequestId() == requestId) {
+                // Rule: Once a decision is made it cannot be changed
+                if (!"PENDING".equalsIgnoreCase(hr.getStatus())) {
+                    throw new IllegalStateException("Request #" + requestId + " has already been finalized as " + hr.getStatus() + " and cannot be modified.");
+                }
                 hr.setStatus(approve ? "APPROVED" : "REJECTED");
-                hr.setRejectionReason(rejectionReason);
+                hr.setRejectionReason(approve ? "" : rejectionReason);
                 hr.setWardenName(wardenName);
                 hr.setReviewedAt(java.time.LocalDateTime.now());
+
+                // Rule: Send the student a live notification and an email as soon as the warden decides
+                String studentMail = hr.getStudentEmail() != null ? hr.getStudentEmail() : "student@vitstudent.ac.in";
+                System.out.printf("📧 [Email & Push Notification] Dispatched to %s (%s):%n" +
+                                  "   Subject: Sick-Leave Request #%d Decision: %s%n" +
+                                  "   Hostel: %s | Room: %s | Reviewed By: Warden %s%n" +
+                                  "   Message: %s%n",
+                        hr.getStudentName(), studentMail, hr.getRequestId(), hr.getStatus(),
+                        hr.getHostelName(), hr.getRoomNumber(), wardenName,
+                        approve ? "Room delivery is now ENABLED for your account for " + hr.getRequestDate() + "."
+                                : "Request rejected. Reason: " + rejectionReason);
+
                 asyncLogger.logAsync("HEALTH_REQUEST_REVIEWED", "Request #" + requestId + " was " + hr.getStatus() + " by " + wardenName);
                 return hr;
             }
@@ -461,8 +547,83 @@ public class MessServiceImpl implements IMessService {
     }
 
     @Override
-    public List<BaseOrder> getPendingKitchenOrders() {
-        return kitchenQueue.toList();
+    public synchronized BaseOrder updateOrderPrepTime(int orderId, int minutes, String chefActivity) {
+        BaseOrder order = inMemoryOrders.get(orderId);
+        if (order != null) {
+            order.setEstimatedPrepMinutes(minutes);
+            if (chefActivity != null && !chefActivity.trim().isEmpty()) {
+                order.setChefActivity(chefActivity.trim());
+            }
+            asyncLogger.logAsync("PREP_TIME_UPDATED", "Order #" + orderId + " prep time set to " + minutes + "m. Estimated ready: " + order.getEstimatedReadyTime());
+        }
+        return order;
+    }
+
+    @Override
+    public synchronized BaseOrder advanceOrderStatus(int orderId, OrderStatus nextStatus, String chefActivity) {
+        BaseOrder order = inMemoryOrders.get(orderId);
+        if (order != null) {
+            order.setStatus(nextStatus);
+            if (chefActivity != null && !chefActivity.trim().isEmpty()) {
+                order.setChefActivity(chefActivity.trim());
+            }
+            asyncLogger.logAsync("STATUS_ADVANCED", "Order #" + orderId + " (" + order.getPickupToken() + ") is now " + nextStatus.getDisplayName() + " | Activity: " + order.getChefActivity());
+        }
+        return order;
+    }
+
+    @Override
+    public synchronized List<BaseOrder> getActiveOrdersForStudent(int studentId) {
+        List<BaseOrder> list = new ArrayList<>();
+        for (BaseOrder o : inMemoryOrders.values()) {
+            if (o.getStudentId() == studentId) {
+                if (o.getStatus() != OrderStatus.COMPLETED &&
+                    o.getStatus() != OrderStatus.CANCELLED &&
+                    o.getStatus() != OrderStatus.DELIVERED) {
+                    list.add(o);
+                }
+            }
+        }
+        list.sort((a, b) -> Integer.compare(b.getOrderId(), a.getOrderId()));
+        return list;
+    }
+
+    @Override
+    public synchronized List<BaseOrder> getOrderHistory(int studentId) {
+        List<BaseOrder> list = new ArrayList<>();
+        for (BaseOrder o : inMemoryOrders.values()) {
+            if (o.getStudentId() == studentId) {
+                list.add(o);
+            }
+        }
+        list.sort((a, b) -> Integer.compare(b.getOrderId(), a.getOrderId()));
+        return list;
+    }
+
+    @Override
+    public synchronized BaseOrder getOrderById(int orderId) {
+        return inMemoryOrders.get(orderId);
+    }
+
+    @Override
+    public synchronized List<BaseOrder> getPendingKitchenOrders() {
+        List<BaseOrder> list = new ArrayList<>();
+        for (BaseOrder o : inMemoryOrders.values()) {
+            if (o.getStatus() != OrderStatus.COMPLETED &&
+                o.getStatus() != OrderStatus.CANCELLED &&
+                o.getStatus() != OrderStatus.DELIVERED) {
+                // Rule 4: Room-delivery orders appear in the queue ONLY if approved by the warden
+                if (o instanceof RoomDeliveryOrder) {
+                    if (hasApprovedSickLeave(o.getStudentId(), o.getOrderTime().toLocalDate())) {
+                        list.add(o);
+                    }
+                } else {
+                    list.add(o);
+                }
+            }
+        }
+        list.sort(Comparator.comparing(BaseOrder::getOrderId));
+        return list;
     }
 
     @Override

@@ -354,15 +354,44 @@ public class ServletApiClient {
      */
     public JsonObject reviewSickLeaveRequest(int requestId, String decision, String reviewedBy)
             throws IOException, InterruptedException {
+        return reviewSickLeaveRequest(requestId, decision, reviewedBy, "");
+    }
+
+    public JsonObject reviewSickLeaveRequest(int requestId, String decision, String reviewedBy, String rejectionReason)
+            throws IOException, InterruptedException {
         JsonObject payload = new JsonObject();
         payload.addProperty("action", "review");
         payload.addProperty("requestId", requestId);
         payload.addProperty("decision", decision);
         payload.addProperty("reviewedBy", reviewedBy);
+        payload.addProperty("rejectionReason", rejectionReason != null ? rejectionReason : "");
 
         String jsonBody = gson.toJson(payload);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/api/java/sickleave"))
+                .timeout(Duration.ofSeconds(6))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return gson.fromJson(response.body(), JsonObject.class);
+    }
+
+    /**
+     * Calls OrderServlet: POST /api/java/order with action="set_prep_time"
+     */
+    public JsonObject updateOrderPrepTime(int orderId, int minutes, String activity) throws IOException, InterruptedException {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("action", "set_prep_time");
+        payload.addProperty("orderId", orderId);
+        payload.addProperty("prepMinutes", minutes);
+        payload.addProperty("chefActivity", activity);
+
+        String jsonBody = gson.toJson(payload);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/java/order"))
                 .timeout(Duration.ofSeconds(6))
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")

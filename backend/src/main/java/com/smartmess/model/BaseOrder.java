@@ -20,6 +20,11 @@ public abstract class BaseOrder {
     private LocalDateTime completedTime;
     private List<OrderItem> items;
 
+    // Real-Time Kitchen Workflow & Countdown fields
+    private int estimatedPrepMinutes = 15;
+    private LocalDateTime estimatedReadyTime;
+    private String chefActivity = "Order placed, waiting for chef to accept";
+
     public BaseOrder(int orderId, int studentId, String studentName) {
         this.orderId = orderId;
         this.studentId = studentId;
@@ -27,6 +32,9 @@ public abstract class BaseOrder {
         this.status = OrderStatus.PENDING;
         this.items = new ArrayList<>();
         this.orderTime = LocalDateTime.now();
+        this.estimatedPrepMinutes = 15;
+        this.estimatedReadyTime = this.orderTime.plusMinutes(15);
+        this.chefActivity = "Order placed, waiting for chef to accept";
         this.totalAmount = 0;
         this.totalCalories = 0;
     }
@@ -57,6 +65,14 @@ public abstract class BaseOrder {
      * Polymorphic description of fulfillment destination.
      */
     public abstract String getFulfillmentDescription();
+
+    public boolean isRoomDelivery() {
+        return "hostel-delivery".equalsIgnoreCase(getDeliveryType());
+    }
+
+    public String getDeliveryAddress() {
+        return "Cafeteria Pickup";
+    }
 
     public int getOrderId() {
         return orderId;
@@ -96,9 +112,55 @@ public abstract class BaseOrder {
 
     public void setStatus(OrderStatus status) {
         this.status = status;
-        if (status == OrderStatus.COMPLETED && this.completedTime == null) {
+        if ((status == OrderStatus.COMPLETED || status == OrderStatus.DELIVERED) && this.completedTime == null) {
             this.completedTime = LocalDateTime.now();
         }
+        // Auto-update chef activity text appropriately if not manually overridden
+        if (status == OrderStatus.ACCEPTED) {
+            this.chefActivity = "Order accepted, cooking starts soon";
+        } else if (status == OrderStatus.PREPARING) {
+            this.chefActivity = "Chef is preparing your order";
+        } else if (status == OrderStatus.READY) {
+            this.chefActivity = "Food is ready for pickup!";
+        } else if (status == OrderStatus.OUT_FOR_DELIVERY) {
+            this.chefActivity = "Rider dispatched, out for delivery to your room";
+        } else if (status == OrderStatus.DELIVERED) {
+            this.chefActivity = "Delivered to your hostel room. Enjoy your meal!";
+        } else if (status == OrderStatus.COMPLETED) {
+            this.chefActivity = "Order completed. Enjoy your meal!";
+        } else if (status == OrderStatus.CANCELLED) {
+            this.chefActivity = "Order cancelled by student";
+        }
+    }
+
+    public int getEstimatedPrepMinutes() {
+        return estimatedPrepMinutes;
+    }
+
+    public void setEstimatedPrepMinutes(int estimatedPrepMinutes) {
+        this.estimatedPrepMinutes = estimatedPrepMinutes;
+        LocalDateTime base = this.orderTime != null ? this.orderTime : LocalDateTime.now();
+        this.estimatedReadyTime = base.plusMinutes(estimatedPrepMinutes);
+    }
+
+    public LocalDateTime getEstimatedReadyTime() {
+        if (estimatedReadyTime == null) {
+            LocalDateTime base = this.orderTime != null ? this.orderTime : LocalDateTime.now();
+            this.estimatedReadyTime = base.plusMinutes(estimatedPrepMinutes);
+        }
+        return estimatedReadyTime;
+    }
+
+    public void setEstimatedReadyTime(LocalDateTime estimatedReadyTime) {
+        this.estimatedReadyTime = estimatedReadyTime;
+    }
+
+    public String getChefActivity() {
+        return chefActivity != null ? chefActivity : "Order placed, waiting for chef";
+    }
+
+    public void setChefActivity(String chefActivity) {
+        this.chefActivity = chefActivity;
     }
 
     public int getTotalAmount() {
@@ -123,6 +185,9 @@ public abstract class BaseOrder {
 
     public void setOrderTime(LocalDateTime orderTime) {
         this.orderTime = orderTime;
+        if (this.estimatedPrepMinutes > 0) {
+            this.estimatedReadyTime = orderTime.plusMinutes(this.estimatedPrepMinutes);
+        }
     }
 
     public LocalDateTime getCompletedTime() {

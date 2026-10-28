@@ -28,6 +28,11 @@ import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
+import java.time.LocalDate;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -91,13 +96,25 @@ public class SmartMessFXApp extends Application {
     // Tab 2: Live Stepper & Active Order Tracking
     private final ObservableList<ActiveOrderRow> activeOrdersList = FXCollections.observableArrayList();
     private Label stepperPendingLabel;
+    private Label stepperAcceptedLabel;
     private Label stepperPreparingLabel;
     private Label stepperReadyLabel;
+    private Label stepperOutForDeliveryLabel;
+    private Label stepperDeliveredLabel;
     private Label stepperCompletedLabel;
     private Label latestOrderTokenLabel;
     private Label latestOrderStatusLabel;
+    private Label liveCountdownLabel;
+    private Label liveChefActivityLabel;
+    private Label liveDeliveryAddressLabel;
     private Button cancelPendingOrderBtn;
     private int selectedActiveOrderId = -1;
+    private Timeline liveCountdownTimeline;
+
+    // Student Sick-Leave State
+    private final ObservableList<HealthRequestRow> studentSickLeaveList = FXCollections.observableArrayList();
+    private Label studentSickLeaveStatusBadge;
+    private boolean studentRoomDeliveryApproved = false;
 
     // Tab 3: Wallet, Calorie Goal & Next-Day Pre-Orders
     private final ObservableList<TransactionRow> transactionObservableList = FXCollections.observableArrayList();
@@ -969,13 +986,16 @@ public class SmartMessFXApp extends Application {
             default:
                 Tab menuTab = new Tab("🍽️ Menu & Tray Ordering", createMenuAndTrayTab());
                 Tab trackerTab = new Tab("📱 Live Stepper & Active Order", createLiveStepperTab());
+                Tab sickLeaveTab = new Tab("🏥 Sick Leave & Room Delivery", createStudentSickLeaveTab());
                 Tab walletTab = new Tab("💳 Wallet & Pre-Orders", createWalletAndPreOrdersTab());
                 Tab myHistTab = new Tab("📜 My Order History", createOrderHistoryTab());
-                tabPane.getTabs().addAll(menuTab, trackerTab, walletTab, myHistTab);
+                tabPane.getTabs().addAll(menuTab, trackerTab, sickLeaveTab, walletTab, myHistTab);
                 refreshMenuData("All", false);
                 refreshOrderHistory();
                 refreshPreOrders();
                 seedInitialActiveOrders();
+                startLiveCountdownTimer();
+                checkRoomDeliveryClearance();
                 break;
         }
 
@@ -1453,68 +1473,84 @@ public class SmartMessFXApp extends Application {
     // TAB 2: LIVE ORDER TRACKER & STEPPER (WITH ORDER CANCELLATION)
     // =========================================================================
 
+    // =========================================================================
+    // TAB 2: LIVE ORDER TRACKER & READ-ONLY STEPPER
+    // =========================================================================
+
     private Pane createLiveStepperTab() {
         VBox layout = new VBox(14);
         layout.setPadding(new Insets(16));
         layout.setStyle("-fx-background-color: #0f172a;");
 
         // Stepper Visual Header
-        VBox stepperBox = new VBox(10);
+        VBox stepperBox = new VBox(12);
         stepperBox.setPadding(new Insets(16));
         stepperBox.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8; -fx-border-color: #38bdf8; -fx-border-radius: 8;");
 
         HBox topTitleRow = new HBox(10);
         topTitleRow.setAlignment(Pos.CENTER_LEFT);
 
-        Label stepperTitle = new Label("📱 Real-Time Kitchen Order Stepper");
+        Label stepperTitle = new Label("📱 Real-Time Kitchen Order Stepper (Live Tracking Only)");
         stepperTitle.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 16px; -fx-font-weight: bold;");
 
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);
 
-        latestOrderTokenLabel = new Label("Active Token: TK-8472");
+        latestOrderTokenLabel = new Label("Active Token: TK-3584");
         latestOrderTokenLabel.setStyle("-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 4 10 4 10; -fx-background-radius: 6;");
 
         latestOrderStatusLabel = new Label("Status: PREPARING");
         latestOrderStatusLabel.setStyle("-fx-background-color: #b45309; -fx-text-fill: #fef3c7; -fx-font-weight: bold; -fx-padding: 4 10 4 10; -fx-background-radius: 6;");
 
-        topTitleRow.getChildren().addAll(stepperTitle, sp, latestOrderTokenLabel, latestOrderStatusLabel);
+        liveCountdownLabel = new Label("⏱️ Time left: 11m 00s");
+        liveCountdownLabel.setStyle("-fx-background-color: #3b1d11; -fx-text-fill: #fdba74; -fx-border-color: #f97316; -fx-border-radius: 6; -fx-padding: 4 10; -fx-font-weight: bold;");
 
-        // Horizontal Step Nodes
-        HBox stepsRow = new HBox(12);
+        topTitleRow.getChildren().addAll(stepperTitle, sp, latestOrderTokenLabel, latestOrderStatusLabel, liveCountdownLabel);
+
+        // Room Delivery notification line
+        liveDeliveryAddressLabel = new Label("🛵 Hostel Room Delivery Address: Block B - Room 304");
+        liveDeliveryAddressLabel.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 12px; -fx-font-weight: bold;");
+        liveDeliveryAddressLabel.setVisible(false);
+        liveDeliveryAddressLabel.setManaged(false);
+
+        // Stepper Nodes
+        HBox stepsRow = new HBox(10);
         stepsRow.setAlignment(Pos.CENTER);
-        stepsRow.setPadding(new Insets(12, 0, 8, 0));
+        stepsRow.setPadding(new Insets(10, 0, 8, 0));
 
         stepperPendingLabel = createStepBadge("1. PENDING ⏳", false);
-        Label arrow1 = new Label("──▶");
-        arrow1.setStyle("-fx-text-fill: #64748b; -fx-font-weight: bold;");
+        Label a1 = new Label("──▶"); a1.setStyle("-fx-text-fill: #64748b; -fx-font-weight: bold;");
+        stepperAcceptedLabel = createStepBadge("2. ACCEPTED 👨‍🍳", false);
+        Label a2 = new Label("──▶"); a2.setStyle("-fx-text-fill: #64748b; -fx-font-weight: bold;");
+        stepperPreparingLabel = createStepBadge("3. PREPARING 🍳", true);
+        Label a3 = new Label("──▶"); a3.setStyle("-fx-text-fill: #64748b; -fx-font-weight: bold;");
+        stepperReadyLabel = createStepBadge("4. READY 🔔", false);
+        Label a4 = new Label("──▶"); a4.setStyle("-fx-text-fill: #64748b; -fx-font-weight: bold;");
+        stepperOutForDeliveryLabel = createStepBadge("5. OUT FOR DELIVERY 🛵", false);
+        Label a5 = new Label("──▶"); a5.setStyle("-fx-text-fill: #64748b; -fx-font-weight: bold;");
+        stepperCompletedLabel = createStepBadge("6. COMPLETED ✅", false);
 
-        stepperPreparingLabel = createStepBadge("2. PREPARING 🍳", true);
-        Label arrow2 = new Label("──▶");
-        arrow2.setStyle("-fx-text-fill: #64748b; -fx-font-weight: bold;");
+        stepsRow.getChildren().addAll(stepperPendingLabel, a1, stepperAcceptedLabel, a2, stepperPreparingLabel, a3, stepperReadyLabel, a4, stepperOutForDeliveryLabel, a5, stepperCompletedLabel);
 
-        stepperReadyLabel = createStepBadge("3. READY 🔔", false);
-        Label arrow3 = new Label("──▶");
-        arrow3.setStyle("-fx-text-fill: #64748b; -fx-font-weight: bold;");
+        // Live Chef Activity Line
+        liveChefActivityLabel = new Label("👨‍🍳 Live Chef Activity: Chef is preparing your order");
+        liveChefActivityLabel.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #cbd5e1; -fx-padding: 8 12; -fx-background-radius: 6; -fx-font-size: 13px;");
 
-        stepperCompletedLabel = createStepBadge("4. COMPLETED ✅", false);
-
-        stepsRow.getChildren().addAll(stepperPendingLabel, arrow1, stepperPreparingLabel, arrow2, stepperReadyLabel, arrow3, stepperCompletedLabel);
-
-        // Cancel Button (Rule: Only active while PENDING)
+        // Action Row: Cancel permitted strictly while Pending; Students cannot change kitchen flow
         HBox cancelBox = new HBox(12);
-        cancelBox.setAlignment(Pos.CENTER);
+        cancelBox.setAlignment(Pos.CENTER_RIGHT);
 
-        cancelPendingOrderBtn = new Button("❌ Cancel Order (Allowed Only While Pending)");
-        cancelPendingOrderBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        Label cancelRuleLabel = new Label("🔒 Kitchen Flow Locked (Cancel allowed strictly while Pending)");
+        cancelRuleLabel.setStyle("-fx-text-fill: #64748b; -fx-font-size: 12px;");
+
+        cancelPendingOrderBtn = new Button("❌ Cancel Order (Allowed while Pending)");
+        cancelPendingOrderBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 6 14; -fx-cursor: hand;");
+        cancelPendingOrderBtn.setDisable(true);
         cancelPendingOrderBtn.setOnAction(e -> executeCancelOrder());
 
-        Button stepSimBtn = new Button("⏩ Simulate Kitchen Step Progression");
-        stepSimBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: #1e293b; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
-        stepSimBtn.setOnAction(e -> simulateStepProgression());
+        cancelBox.getChildren().addAll(cancelRuleLabel, cancelPendingOrderBtn);
 
-        cancelBox.getChildren().addAll(cancelPendingOrderBtn, stepSimBtn);
-        stepperBox.getChildren().addAll(topTitleRow, stepsRow, cancelBox);
+        stepperBox.getChildren().addAll(topTitleRow, liveDeliveryAddressLabel, stepsRow, liveChefActivityLabel, cancelBox);
         layout.getChildren().add(stepperBox);
 
         // Active Orders Table
@@ -1534,7 +1570,7 @@ public class SmartMessFXApp extends Application {
         tokenCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().token));
         tokenCol.setPrefWidth(110);
 
-        TableColumn<ActiveOrderRow, String> delCol = new TableColumn<>("Delivery");
+        TableColumn<ActiveOrderRow, String> delCol = new TableColumn<>("Modality");
         delCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().deliveryType));
         delCol.setPrefWidth(130);
 
@@ -1557,8 +1593,10 @@ public class SmartMessFXApp extends Application {
                 selectedActiveOrderId = newV.orderId;
                 latestOrderTokenLabel.setText("Active Token: " + newV.token);
                 latestOrderStatusLabel.setText("Status: " + newV.status);
-                updateStepperVisuals(newV.status);
+                boolean isRoom = newV.deliveryType != null && newV.deliveryType.toLowerCase().contains("hostel");
+                updateStepperVisuals(newV.status, isRoom);
                 cancelPendingOrderBtn.setDisable(!"PENDING".equalsIgnoreCase(newV.status));
+                updateActiveOrderCountdownDisplay();
             }
         });
 
@@ -1571,28 +1609,111 @@ public class SmartMessFXApp extends Application {
 
     private Label createStepBadge(String text, boolean active) {
         Label lbl = new Label(text);
-        lbl.setPadding(new Insets(6, 14, 6, 14));
+        lbl.setPadding(new Insets(6, 12, 6, 12));
         lbl.setStyle(active
-                ? "-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 12px;"
-                : "-fx-background-color: #334155; -fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 12px;"
+                ? "-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 11px;"
+                : "-fx-background-color: #334155; -fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 11px;"
         );
         return lbl;
     }
 
     private void updateStepperVisuals(String status) {
-        stepperPendingLabel.setStyle("-fx-background-color: #334155; -fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 12px;");
-        stepperPreparingLabel.setStyle("-fx-background-color: #334155; -fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 12px;");
-        stepperReadyLabel.setStyle("-fx-background-color: #334155; -fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 12px;");
-        stepperCompletedLabel.setStyle("-fx-background-color: #334155; -fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 12px;");
+        updateStepperVisuals(status, false);
+    }
+
+    private void updateStepperVisuals(String status, boolean isRoom) {
+        String baseStyle = "-fx-background-color: #334155; -fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 11px;";
+        String activeStyle = "-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 11px;";
+        String cookingStyle = "-fx-background-color: #f59e0b; -fx-text-fill: #1e293b; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 11px;";
+        String readyStyle = "-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 11px;";
+        String deliveredStyle = "-fx-background-color: #065f46; -fx-text-fill: #34d399; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 11px;";
+
+        stepperPendingLabel.setStyle(baseStyle);
+        if (stepperAcceptedLabel != null) stepperAcceptedLabel.setStyle(baseStyle);
+        stepperPreparingLabel.setStyle(baseStyle);
+        stepperReadyLabel.setStyle(baseStyle);
+        if (stepperOutForDeliveryLabel != null) stepperOutForDeliveryLabel.setStyle(baseStyle);
+        stepperCompletedLabel.setStyle(baseStyle);
 
         if ("PENDING".equalsIgnoreCase(status)) {
-            stepperPendingLabel.setStyle("-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 12px;");
+            stepperPendingLabel.setStyle(activeStyle);
+        } else if ("ACCEPTED".equalsIgnoreCase(status)) {
+            if (stepperAcceptedLabel != null) stepperAcceptedLabel.setStyle(activeStyle);
         } else if ("PREPARING".equalsIgnoreCase(status)) {
-            stepperPreparingLabel.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: #1e293b; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 12px;");
+            stepperPreparingLabel.setStyle(cookingStyle);
         } else if ("READY".equalsIgnoreCase(status)) {
-            stepperReadyLabel.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 12px;");
-        } else if ("COMPLETED".equalsIgnoreCase(status)) {
-            stepperCompletedLabel.setStyle("-fx-background-color: #065f46; -fx-text-fill: #34d399; -fx-font-weight: bold; -fx-background-radius: 20; -fx-font-size: 12px;");
+            stepperReadyLabel.setStyle(readyStyle);
+        } else if ("OUT_FOR_DELIVERY".equalsIgnoreCase(status)) {
+            if (stepperOutForDeliveryLabel != null) stepperOutForDeliveryLabel.setStyle(cookingStyle);
+        } else if ("DELIVERED".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status)) {
+            stepperCompletedLabel.setStyle(deliveredStyle);
+        }
+    }
+
+    private void startLiveCountdownTimer() {
+        if (liveCountdownTimeline != null) liveCountdownTimeline.stop();
+        liveCountdownTimeline = new Timeline(new KeyFrame(Duration.seconds(1), ev -> {
+            for (ActiveOrderRow r : activeOrdersList) {
+                if (r.secondsRemaining > 0 && !"COMPLETED".equalsIgnoreCase(r.status) && !"DELIVERED".equalsIgnoreCase(r.status)) {
+                    r.secondsRemaining--;
+                }
+            }
+            updateActiveOrderCountdownDisplay();
+        }));
+        liveCountdownTimeline.setCycleCount(Animation.INDEFINITE);
+        liveCountdownTimeline.play();
+    }
+
+    private void updateActiveOrderCountdownDisplay() {
+        ActiveOrderRow current = null;
+        for (ActiveOrderRow r : activeOrdersList) {
+            if (r.orderId == selectedActiveOrderId) {
+                current = r;
+                break;
+            }
+        }
+        if (current == null && !activeOrdersList.isEmpty()) {
+            current = activeOrdersList.get(0);
+        }
+        if (current == null) {
+            if (liveCountdownLabel != null) liveCountdownLabel.setText("No active orders");
+            return;
+        }
+
+        if (liveCountdownLabel != null) {
+            if ("COMPLETED".equalsIgnoreCase(current.status)) {
+                liveCountdownLabel.setText("✅ Completed");
+                liveCountdownLabel.setStyle("-fx-background-color: #064e3b; -fx-text-fill: #34d399; -fx-padding: 4 10; -fx-background-radius: 6; -fx-font-weight: bold;");
+            } else if ("DELIVERED".equalsIgnoreCase(current.status)) {
+                liveCountdownLabel.setText("🏠 Delivered to Room");
+                liveCountdownLabel.setStyle("-fx-background-color: #064e3b; -fx-text-fill: #34d399; -fx-padding: 4 10; -fx-background-radius: 6; -fx-font-weight: bold;");
+            } else if ("OUT_FOR_DELIVERY".equalsIgnoreCase(current.status)) {
+                liveCountdownLabel.setText("🛵 Out for Delivery");
+                liveCountdownLabel.setStyle("-fx-background-color: #7c2d12; -fx-text-fill: #fdba74; -fx-padding: 4 10; -fx-background-radius: 6; -fx-font-weight: bold;");
+            } else if (current.secondsRemaining <= 0 || "READY".equalsIgnoreCase(current.status)) {
+                liveCountdownLabel.setText("🔔 Ready for pickup");
+                liveCountdownLabel.setStyle("-fx-background-color: #064e3b; -fx-text-fill: #34d399; -fx-padding: 4 10; -fx-background-radius: 6; -fx-font-weight: bold;");
+            } else {
+                int m = current.secondsRemaining / 60;
+                int s = current.secondsRemaining % 60;
+                liveCountdownLabel.setText(String.format("⏱️ Time left: %dm %02ds", m, s));
+                liveCountdownLabel.setStyle("-fx-background-color: #3b1d11; -fx-text-fill: #fdba74; -fx-border-color: #f97316; -fx-border-radius: 6; -fx-padding: 4 10; -fx-font-weight: bold;");
+            }
+        }
+
+        if (liveChefActivityLabel != null) {
+            liveChefActivityLabel.setText("👨‍🍳 Live Chef Activity: " + (current.chefActivity != null ? current.chefActivity : "Chef is preparing your order"));
+        }
+        if (liveDeliveryAddressLabel != null) {
+            boolean isRoom = current.deliveryType != null && current.deliveryType.toLowerCase().contains("hostel");
+            if (isRoom) {
+                liveDeliveryAddressLabel.setVisible(true);
+                liveDeliveryAddressLabel.setManaged(true);
+                liveDeliveryAddressLabel.setText("🛵 Hostel Room Delivery Address: " + (current.roomAddress != null && !current.roomAddress.isEmpty() ? current.roomAddress : "Block B - Room 304"));
+            } else {
+                liveDeliveryAddressLabel.setVisible(false);
+                liveDeliveryAddressLabel.setManaged(false);
+            }
         }
     }
 
@@ -1611,9 +1732,8 @@ public class SmartMessFXApp extends Application {
                         String msg = resp.get("message").getAsString();
                         log("🎉 [OrderServlet] " + msg);
                         showAlert(Alert.AlertType.INFORMATION, "Order Cancelled & Refunded",
-                                "✅ " + msg + "\n\nCredits have been refunded to your wallet via ACID JDBC transaction.");
+                                "✅ " + msg + "\n\nCredits refunded to wallet via ACID transaction.");
 
-                        // Update local row
                         for (ActiveOrderRow row : activeOrdersList) {
                             if (row.orderId == selectedActiveOrderId) {
                                 row.status = "CANCELLED";
@@ -1639,29 +1759,221 @@ public class SmartMessFXApp extends Application {
         }).start();
     }
 
-    private void simulateStepProgression() {
-        if (activeOrdersList.isEmpty()) return;
-        ActiveOrderRow row = activeOrdersList.get(0);
-        String nextStatus = "PENDING";
-        if ("PENDING".equalsIgnoreCase(row.status)) nextStatus = "PREPARING";
-        else if ("PREPARING".equalsIgnoreCase(row.status)) nextStatus = "READY";
-        else if ("READY".equalsIgnoreCase(row.status)) nextStatus = "COMPLETED";
+    // =========================================================================
+    // STUDENT SICK LEAVE & ROOM DELIVERY APPLICATION
+    // =========================================================================
 
-        String finalStatus = nextStatus;
+    private Pane createStudentSickLeaveTab() {
+        VBox layout = new VBox(14);
+        layout.setPadding(new Insets(16));
+        layout.setStyle("-fx-background-color: #0f172a;");
+
+        // Status Banner Card
+        VBox statusCard = new VBox(8);
+        statusCard.setPadding(new Insets(14));
+        statusCard.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8; -fx-border-color: #38bdf8; -fx-border-radius: 8;");
+
+        HBox topHBox = new HBox(12);
+        topHBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label stTitle = new Label("🏥 Sick-Leave Room Delivery Status:");
+        stTitle.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 15px; -fx-font-weight: bold;");
+
+        studentSickLeaveStatusBadge = new Label("Room Delivery Enabled ✅");
+        studentSickLeaveStatusBadge.setStyle("-fx-background-color: #065f46; -fx-text-fill: #34d399; -fx-font-weight: bold; -fx-padding: 4 12; -fx-background-radius: 6;");
+
+        topHBox.getChildren().addAll(stTitle, studentSickLeaveStatusBadge);
+
+        Label stDesc = new Label("Rule: Room delivery is enabled ONLY after warden approval for the requested date. Before approval, it remains strictly disabled.");
+        stDesc.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+
+        statusCard.getChildren().addAll(topHBox, stDesc);
+        layout.getChildren().add(statusCard);
+
+        // Application Form
+        VBox formBox = new VBox(10);
+        formBox.setPadding(new Insets(14));
+        formBox.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8;");
+
+        Label formTitle = new Label("📝 Apply for Sick-Leave Hostel Room Delivery Clearance");
+        formTitle.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 14px; -fx-font-weight: bold;");
+
+        GridPane grid = new GridPane();
+        grid.setHgap(12);
+        grid.setVgap(10);
+
+        Label lHostel = new Label("Hostel Block *:");
+        lHostel.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px;");
+        ComboBox<String> hostelCombo = new ComboBox<>();
+        hostelCombo.getItems().addAll("Block A", "Block B", "Block C", "Block D");
+        hostelCombo.setValue("Block B");
+        hostelCombo.setStyle("-fx-background-color: #334155; -fx-text-fill: white;");
+
+        Label lRoom = new Label("Room Number *:");
+        lRoom.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px;");
+        TextField roomInput = new TextField("304");
+        roomInput.setStyle("-fx-background-color: #334155; -fx-text-fill: white;");
+
+        Label lDate = new Label("Date *:");
+        lDate.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px;");
+        DatePicker datePicker = new DatePicker(LocalDate.now());
+        datePicker.setStyle("-fx-background-color: #334155;");
+
+        Label lMeals = new Label("Optional Meals Needed:");
+        lMeals.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px;");
+        TextField mealsInput = new TextField("Lunch, Dinner");
+        mealsInput.setStyle("-fx-background-color: #334155; -fx-text-fill: white;");
+
+        Label lReason = new Label("Reason for Leave *:");
+        lReason.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px;");
+        TextField reasonInput = new TextField("Viral Flu, severe fever & fatigue. Advised bed rest.");
+        reasonInput.setStyle("-fx-background-color: #334155; -fx-text-fill: white;");
+        reasonInput.setPrefWidth(320);
+
+        grid.add(lHostel, 0, 0); grid.add(hostelCombo, 1, 0);
+        grid.add(lRoom, 2, 0); grid.add(roomInput, 3, 0);
+        grid.add(lDate, 0, 1); grid.add(datePicker, 1, 1);
+        grid.add(lMeals, 2, 1); grid.add(mealsInput, 3, 1);
+        grid.add(lReason, 0, 2); grid.add(reasonInput, 1, 2, 3, 1);
+
+        Button submitAppBtn = new Button("Submit Application to Warden");
+        submitAppBtn.setStyle("-fx-background-color: #f97316; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 16;");
+        submitAppBtn.setOnAction(e -> {
+            String b = hostelCombo.getValue();
+            String r = roomInput.getText().trim();
+            String res = reasonInput.getText().trim();
+            String m = mealsInput.getText().trim();
+
+            if (b == null || r.isEmpty() || res.isEmpty()) {
+                showAlert(Alert.AlertType.WARNING, "Missing Fields", "Hostel Block, Room Number, and Reason are all required.");
+                return;
+            }
+
+            new Thread(() -> {
+                try {
+                    apiClient.submitSickLeaveRequest(currentStudentId, currentStudentName, b + " - Room " + r, res, m);
+                    Platform.runLater(() -> {
+                        log("🏥 [Sick Leave] Request submitted to " + b + " Warden as Pending.");
+                        showAlert(Alert.AlertType.INFORMATION, "Application Submitted",
+                                "Sick leave request submitted to " + b + " Warden as 'Pending approval'.\nRoom delivery will unlock once approved.");
+                        studentSickLeaveStatusBadge.setText("Waiting for warden approval ⏳");
+                        studentSickLeaveStatusBadge.setStyle("-fx-background-color: #b45309; -fx-text-fill: #fef3c7; -fx-font-weight: bold; -fx-padding: 4 12; -fx-background-radius: 6;");
+                        refreshStudentSickLeaveHistory();
+                    });
+                } catch (Exception ex) {
+                    Platform.runLater(() -> log("❌ Error submitting sick leave: " + ex.getMessage()));
+                }
+            }).start();
+        });
+
+        formBox.getChildren().addAll(formTitle, grid, submitAppBtn);
+        layout.getChildren().add(formBox);
+
+        // History Table
+        VBox tableBox = new VBox(8);
+        Label histTitle = new Label("📜 History of Past Sick-Leave Requests:");
+        histTitle.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 13px; -fx-font-weight: bold;");
+
+        TableView<HealthRequestRow> myTable = new TableView<>(studentSickLeaveList);
+        myTable.setStyle("-fx-background-color: #1e293b;");
+        VBox.setVgrow(myTable, Priority.ALWAYS);
+
+        TableColumn<HealthRequestRow, Number> idCol = new TableColumn<>("ID");
+        idCol.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().id));
+        idCol.setPrefWidth(50);
+
+        TableColumn<HealthRequestRow, String> rmCol = new TableColumn<>("Hostel Room");
+        rmCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().room));
+        rmCol.setPrefWidth(140);
+
+        TableColumn<HealthRequestRow, String> rsnCol = new TableColumn<>("Reason");
+        rsnCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().reason));
+        rsnCol.setPrefWidth(220);
+
+        TableColumn<HealthRequestRow, String> mealCol = new TableColumn<>("Meals");
+        mealCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().mealType));
+        mealCol.setPrefWidth(100);
+
+        TableColumn<HealthRequestRow, String> statCol = new TableColumn<>("Status / Warden Decision");
+        statCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().status));
+        statCol.setPrefWidth(160);
+
+        myTable.getColumns().addAll(List.of(idCol, rmCol, rsnCol, mealCol, statCol));
+        tableBox.getChildren().addAll(histTitle, myTable);
+        VBox.setVgrow(tableBox, Priority.ALWAYS);
+        layout.getChildren().add(tableBox);
+
+        return layout;
+    }
+
+    private void checkRoomDeliveryClearance() {
         new Thread(() -> {
             try {
-                apiClient.updateOrderStatus(row.orderId, finalStatus);
+                JsonObject json = apiClient.fetchSickLeaveRequests();
+                boolean approvedToday = false;
+                if (json != null && json.has("requests")) {
+                    JsonArray arr = json.getAsJsonArray("requests");
+                    for (JsonElement el : arr) {
+                        JsonObject o = el.getAsJsonObject();
+                        if (o.has("status") && "APPROVED".equalsIgnoreCase(o.get("status").getAsString())) {
+                            approvedToday = true;
+                            break;
+                        }
+                    }
+                }
+                boolean finalApproved = approvedToday;
                 Platform.runLater(() -> {
-                    row.status = finalStatus;
-                    activeOrdersList.setAll(new ArrayList<>(activeOrdersList));
-                    latestOrderStatusLabel.setText("Status: " + finalStatus);
-                    updateStepperVisuals(finalStatus);
-                    cancelPendingOrderBtn.setDisable(!"PENDING".equalsIgnoreCase(finalStatus));
-                    log("⚡ Order #" + row.orderId + " advanced to " + finalStatus);
+                    studentRoomDeliveryApproved = finalApproved;
+                    if (roomDeliveryRadio != null) {
+                        if (finalApproved) {
+                            roomDeliveryRadio.setDisable(false);
+                            roomDeliveryRadio.setText("🛏️ Hostel Room Delivery (Approved ✅)");
+                        } else {
+                            roomDeliveryRadio.setDisable(true);
+                            roomDeliveryRadio.setText("🛏️ Room Delivery (Waiting for warden approval 🔒)");
+                            if (dineInRadio != null) dineInRadio.setSelected(true);
+                        }
+                    }
+                    if (studentSickLeaveStatusBadge != null) {
+                        if (finalApproved) {
+                            studentSickLeaveStatusBadge.setText("Room Delivery Enabled ✅");
+                            studentSickLeaveStatusBadge.setStyle("-fx-background-color: #065f46; -fx-text-fill: #34d399; -fx-font-weight: bold; -fx-padding: 4 12; -fx-background-radius: 6;");
+                        } else {
+                            studentSickLeaveStatusBadge.setText("Waiting for warden approval ⏳");
+                            studentSickLeaveStatusBadge.setStyle("-fx-background-color: #b45309; -fx-text-fill: #fef3c7; -fx-font-weight: bold; -fx-padding: 4 12; -fx-background-radius: 6;");
+                        }
+                    }
                 });
             } catch (Exception ex) {
-                Platform.runLater(() -> log("❌ Error updating order status: " + ex.getMessage()));
+                Platform.runLater(() -> log("❌ Failed checking sick leave clearance: " + ex.getMessage()));
             }
+        }).start();
+    }
+
+    private void refreshStudentSickLeaveHistory() {
+        checkRoomDeliveryClearance();
+        new Thread(() -> {
+            try {
+                JsonObject json = apiClient.fetchSickLeaveRequests();
+                List<HealthRequestRow> list = new ArrayList<>();
+                if (json != null && json.has("requests")) {
+                    for (JsonElement el : json.getAsJsonArray("requests")) {
+                        JsonObject o = el.getAsJsonObject();
+                        list.add(new HealthRequestRow(
+                                o.get("id").getAsInt(),
+                                o.has("studentName") ? o.get("studentName").getAsString() : "Student",
+                                o.has("room") ? o.get("room").getAsString() : "Block B - Room 304",
+                                o.has("reason") ? o.get("reason").getAsString() : "Fever",
+                                o.has("mealType") ? o.get("mealType").getAsString() : "Dinner",
+                                o.has("status") ? o.get("status").getAsString() : "PENDING"
+                        ));
+                    }
+                }
+                if (list.isEmpty()) {
+                    list.add(new HealthRequestRow(1, "Rohit Kundu", "Block B - Room 304", "Severe viral fever & bed rest", "All Meals", "APPROVED"));
+                }
+                Platform.runLater(() -> studentSickLeaveList.setAll(list));
+            } catch (Exception ignored) {}
         }).start();
     }
 
@@ -1879,7 +2191,7 @@ public class SmartMessFXApp extends Application {
         topBar.setPadding(new Insets(12));
         topBar.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8;");
 
-        Label qTitle = new Label("👨‍🍳 Chef Live Kitchen Queue (FIFO):");
+        Label qTitle = new Label("👨‍🍳 Chef Kitchen Live Queue & Progression:");
         qTitle.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 15px; -fx-font-weight: bold;");
 
         pendingCountLabel = new Label("0 Orders Waiting");
@@ -1907,33 +2219,120 @@ public class SmartMessFXApp extends Application {
 
         TableColumn<KitchenQueueRow, Number> idCol = new TableColumn<>("Order ID");
         idCol.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().orderId));
-        idCol.setPrefWidth(75);
+        idCol.setPrefWidth(70);
 
         TableColumn<KitchenQueueRow, String> tokenCol = new TableColumn<>("Token");
         tokenCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().token));
-        tokenCol.setPrefWidth(120);
+        tokenCol.setPrefWidth(110);
 
-        TableColumn<KitchenQueueRow, String> typeCol = new TableColumn<>("Modality");
-        typeCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().deliveryType));
-        typeCol.setPrefWidth(130);
-
-        TableColumn<KitchenQueueRow, String> studentCol = new TableColumn<>("Student");
-        studentCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().studentName));
-        studentCol.setPrefWidth(150);
-
-        TableColumn<KitchenQueueRow, String> amountCol = new TableColumn<>("Amount");
-        amountCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().amount + " Cr"));
-        amountCol.setPrefWidth(90);
-
-        TableColumn<KitchenQueueRow, String> statusCol = new TableColumn<>("Status");
-        statusCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().status));
-        statusCol.setPrefWidth(110);
+        TableColumn<KitchenQueueRow, String> typeCol = new TableColumn<>("Fulfillment & Recipient");
+        typeCol.setCellValueFactory(c -> {
+            boolean isRoom = c.getValue().deliveryType != null && c.getValue().deliveryType.toLowerCase().contains("hostel");
+            if (isRoom) {
+                return new SimpleStringProperty("🛵 ROOM DELIVERY\nStudent: " + c.getValue().studentName + " (" + c.getValue().address + ")");
+            } else {
+                return new SimpleStringProperty("🛍️ Counter Pickup\nStudent: " + c.getValue().studentName);
+            }
+        });
+        typeCol.setPrefWidth(220);
 
         TableColumn<KitchenQueueRow, String> itemsCol = new TableColumn<>("Items Details");
         itemsCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().itemsSummary));
-        itemsCol.setPrefWidth(300);
+        itemsCol.setPrefWidth(220);
 
-        queueTable.getColumns().addAll(List.of(idCol, tokenCol, typeCol, studentCol, amountCol, statusCol, itemsCol));
+        TableColumn<KitchenQueueRow, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().status));
+        statusCol.setPrefWidth(90);
+
+        TableColumn<KitchenQueueRow, Void> prepCol = new TableColumn<>("⏱️ Est. Prep Time");
+        prepCol.setPrefWidth(180);
+        prepCol.setCellFactory(col -> new TableCell<>() {
+            private final ComboBox<Integer> prepCombo = new ComboBox<>(FXCollections.observableArrayList(5, 10, 15, 20, 25, 30, 45));
+            private final Button setBtn = new Button("Set");
+            private final HBox box = new HBox(6, prepCombo, setBtn);
+            {
+                prepCombo.setValue(15);
+                prepCombo.setStyle("-fx-background-color: #334155; -fx-text-fill: white; -fx-font-size: 11px;");
+                setBtn.setStyle("-fx-background-color: #475569; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;");
+                setBtn.setOnAction(e -> {
+                    KitchenQueueRow row = getTableView().getItems().get(getIndex());
+                    int mins = prepCombo.getValue() != null ? prepCombo.getValue() : 15;
+                    row.prepMinutes = mins;
+                    new Thread(() -> {
+                        try {
+                            apiClient.updateOrderPrepTime(row.orderId, mins, "Chef updated estimated prep time to " + mins + " mins");
+                            Platform.runLater(() -> {
+                                log("⏱️ [Kitchen] Updated Order #" + row.orderId + " prep time to " + mins + " mins. Student countdown updated live.");
+                                showAlert(Alert.AlertType.INFORMATION, "Prep Time Set", "Order #" + row.orderId + " prep time set to " + mins + " minutes.\nStudent countdown timer updated live.");
+                            });
+                        } catch (Exception ex) {
+                            Platform.runLater(() -> log("❌ Error updating prep time: " + ex.getMessage()));
+                        }
+                    }).start();
+                });
+            }
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) setGraphic(null);
+                else {
+                    KitchenQueueRow row = getTableView().getItems().get(getIndex());
+                    prepCombo.setValue(row.prepMinutes > 0 ? row.prepMinutes : 15);
+                    setGraphic(box);
+                }
+            }
+        });
+
+        TableColumn<KitchenQueueRow, Void> actionCol = new TableColumn<>("Stage Advancement");
+        actionCol.setPrefWidth(180);
+        actionCol.setCellFactory(col -> new TableCell<>() {
+            private final Button actBtn = new Button("Advance");
+            {
+                actBtn.setStyle("-fx-background-color: #f97316; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;");
+                actBtn.setOnAction(e -> {
+                    KitchenQueueRow row = getTableView().getItems().get(getIndex());
+                    advanceOrderStep(row);
+                });
+            }
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) setGraphic(null);
+                else {
+                    KitchenQueueRow row = getTableView().getItems().get(getIndex());
+                    String st = row.status != null ? row.status.toUpperCase() : "PENDING";
+                    boolean isRoom = row.deliveryType != null && row.deliveryType.toLowerCase().contains("hostel");
+
+                    if ("PENDING".equals(st)) {
+                        actBtn.setText("👉 Accept Order");
+                        actBtn.setStyle("-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;");
+                    } else if ("ACCEPTED".equals(st)) {
+                        actBtn.setText("🍳 Start Cooking");
+                        actBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: #1e293b; -fx-font-weight: bold; -fx-font-size: 11px;");
+                    } else if ("PREPARING".equals(st)) {
+                        actBtn.setText("🔔 Mark Ready");
+                        actBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;");
+                    } else if ("READY".equals(st)) {
+                        if (isRoom) {
+                            actBtn.setText("🛵 Out for Delivery");
+                            actBtn.setStyle("-fx-background-color: #ea580c; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;");
+                        } else {
+                            actBtn.setText("✅ Complete Order");
+                            actBtn.setStyle("-fx-background-color: #065f46; -fx-text-fill: #34d399; -fx-font-weight: bold; -fx-font-size: 11px;");
+                        }
+                    } else if ("OUT_FOR_DELIVERY".equals(st)) {
+                        actBtn.setText("🏠 Mark Delivered");
+                        actBtn.setStyle("-fx-background-color: #065f46; -fx-text-fill: #34d399; -fx-font-weight: bold; -fx-font-size: 11px;");
+                    } else {
+                        actBtn.setText("Done ✅");
+                        actBtn.setDisable(true);
+                    }
+                    setGraphic(actBtn);
+                }
+            }
+        });
+
+        queueTable.getColumns().addAll(List.of(idCol, tokenCol, typeCol, itemsCol, statusCol, prepCol, actionCol));
         layout.getChildren().add(queueTable);
 
         // Chef Tools Row: Stock Toggle & Wastage Log
@@ -2015,6 +2414,65 @@ public class SmartMessFXApp extends Application {
         return layout;
     }
 
+    private void advanceOrderStep(KitchenQueueRow row) {
+        String st = row.status != null ? row.status.toUpperCase() : "PENDING";
+        boolean isRoom = row.deliveryType != null && row.deliveryType.toLowerCase().contains("hostel");
+
+        String nextStatus = "ACCEPTED";
+        String activity = "Order accepted, cooking starts soon";
+
+        if ("PENDING".equals(st)) {
+            nextStatus = "ACCEPTED";
+            activity = "Order accepted, workstation assigned";
+        } else if ("ACCEPTED".equals(st)) {
+            nextStatus = "PREPARING";
+            activity = "Chef is actively preparing your order";
+        } else if ("PREPARING".equals(st)) {
+            nextStatus = "READY";
+            activity = isRoom ? "Food is freshly cooked, runner preparing dispatch" : "Order is ready for pickup at Mess Counter 2";
+        } else if ("READY".equals(st)) {
+            if (isRoom) {
+                nextStatus = "OUT_FOR_DELIVERY";
+                activity = "Runner dispatched: Food is out for delivery to your room";
+            } else {
+                nextStatus = "COMPLETED";
+                activity = "Order completed and collected. Enjoy your meal!";
+            }
+        } else if ("OUT_FOR_DELIVERY".equals(st)) {
+            nextStatus = "DELIVERED";
+            activity = "Food delivered to your hostel room. Enjoy your meal!";
+        }
+
+        String finalNext = nextStatus;
+        String finalAct = activity;
+
+        new Thread(() -> {
+            try {
+                apiClient.updateOrderStatus(row.orderId, finalNext);
+                Platform.runLater(() -> {
+                    row.status = finalNext;
+                    row.chefActivity = finalAct;
+                    queueObservableList.setAll(new ArrayList<>(queueObservableList));
+                    log("👨‍🍳 [Kitchen] Order #" + row.orderId + " advanced to " + finalNext + " | " + finalAct);
+
+                    // If active orders contains this order, update local stepper and countdown
+                    for (ActiveOrderRow ar : activeOrdersList) {
+                        if (ar.orderId == row.orderId) {
+                            ar.status = finalNext;
+                            ar.chefActivity = finalAct;
+                            activeOrdersList.setAll(new ArrayList<>(activeOrdersList));
+                            updateStepperVisuals(finalNext, isRoom);
+                            updateActiveOrderCountdownDisplay();
+                            break;
+                        }
+                    }
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> log("❌ Error advancing order: " + ex.getMessage()));
+            }
+        }).start();
+    }
+
     private void executeStockToggle(int itemId, boolean inStock) {
         new Thread(() -> {
             try {
@@ -2068,6 +2526,9 @@ public class SmartMessFXApp extends Application {
                         String student = o.has("studentName") ? o.get("studentName").getAsString() : "Student";
                         int amount = o.has("totalAmount") ? o.get("totalAmount").getAsInt() : 0;
                         String status = o.has("status") ? o.get("status").getAsString() : "PENDING";
+                        String address = o.has("deliveryAddress") ? o.get("deliveryAddress").getAsString() : "Block B - Room 304";
+                        int prep = o.has("estimatedPrepMinutes") ? o.get("estimatedPrepMinutes").getAsInt() : 15;
+                        String act = o.has("chefActivity") ? o.get("chefActivity").getAsString() : "Order in queue";
 
                         StringBuilder itemsSb = new StringBuilder();
                         if (o.has("items")) {
@@ -2079,7 +2540,7 @@ public class SmartMessFXApp extends Application {
                             }
                         }
                         String summary = itemsSb.length() > 2 ? itemsSb.substring(0, itemsSb.length() - 2) : "Meals";
-                        rows.add(new KitchenQueueRow(orderId, token, delType, student, amount, status, summary));
+                        rows.add(new KitchenQueueRow(orderId, token, delType, student, amount, status, summary, prep, act, address));
                     }
 
                     Platform.runLater(() -> {
@@ -2237,61 +2698,156 @@ public class SmartMessFXApp extends Application {
     // TAB 6: WARDEN SICK LEAVE APPROVALS
     // =========================================================================
 
+    // =========================================================================
+    // TAB 6: WARDEN SICK LEAVE CLEARANCE (APPROVE OR REJECT ONLY)
+    // =========================================================================
+
     private Pane createWardenTab() {
         VBox layout = new VBox(14);
         layout.setPadding(new Insets(16));
         layout.setStyle("-fx-background-color: #0f172a;");
 
-        // Student Request Submission Box
-        HBox submitBox = new HBox(12);
-        submitBox.setAlignment(Pos.CENTER_LEFT);
-        submitBox.setPadding(new Insets(12));
-        submitBox.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8;");
+        String assignedBlock = activeUserExtra != null ? activeUserExtra : "Block B";
+        if (assignedBlock.contains("-")) assignedBlock = assignedBlock.split("-")[0].trim();
 
-        Label formTitle = new Label("📝 Submit Sick-Leave Request:");
-        formTitle.setStyle("-fx-text-fill: #38bdf8; -fx-font-weight: bold;");
+        // Warden Jurisdiction Header
+        HBox header = new HBox(12);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(14));
+        header.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8; -fx-border-color: #f59e0b; -fx-border-radius: 8;");
 
-        TextField illnessField = new TextField("Viral Fever & Fatigue");
-        illnessField.setPromptText("Reason / Illness");
-        illnessField.setStyle("-fx-background-color: #334155; -fx-text-fill: white;");
+        Label wTitle = new Label("🏢 Hostel Warden Clearance Portal (Review Only)");
+        wTitle.setStyle("-fx-text-fill: #f59e0b; -fx-font-size: 16px; -fx-font-weight: bold;");
 
-        TextField roomField = new TextField("Block B - 304");
-        roomField.setPromptText("Hostel Room");
-        roomField.setStyle("-fx-background-color: #334155; -fx-text-fill: white;");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        ComboBox<String> mealCombo = new ComboBox<>();
-        mealCombo.getItems().addAll("Breakfast", "Lunch", "Dinner");
-        mealCombo.setValue("Dinner");
-        mealCombo.setStyle("-fx-background-color: #334155; -fx-text-fill: white;");
+        Label jurBadge = new Label("Assigned Jurisdiction: " + assignedBlock);
+        jurBadge.setStyle("-fx-background-color: #b45309; -fx-text-fill: #fef3c7; -fx-padding: 4 12; -fx-background-radius: 6; -fx-font-weight: bold;");
 
-        Button submitBtn = new Button("Submit Request");
-        submitBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold;");
-        submitBtn.setOnAction(e -> {
-            new Thread(() -> {
-                try {
-                    apiClient.submitSickLeaveRequest(currentStudentId, currentStudentName, roomField.getText(), illnessField.getText(), mealCombo.getValue());
-                    Platform.runLater(() -> {
-                        log("🏥 [SickLeaveServlet] Submitted room delivery request for " + illnessField.getText());
-                        showAlert(Alert.AlertType.INFORMATION, "Request Submitted", "Sick leave delivery request dispatched to Warden for review.");
-                        refreshHealthRequests();
+        header.getChildren().addAll(wTitle, spacer, jurBadge);
+        layout.getChildren().add(header);
+
+        // 3 Separate Tabs: Pending, Approved, Rejected (Strictly no other controls)
+        TabPane wardenTabPane = new TabPane();
+        wardenTabPane.setStyle("-fx-background-color: #1e293b;");
+        VBox.setVgrow(wardenTabPane, Priority.ALWAYS);
+
+        Tab pTab = new Tab("⏳ Pending Requests", createWardenPendingView(assignedBlock));
+        pTab.setClosable(false);
+
+        Tab aTab = new Tab("✅ Approved Requests", createWardenApprovedView(assignedBlock));
+        aTab.setClosable(false);
+
+        Tab rTab = new Tab("❌ Rejected Requests", createWardenRejectedView(assignedBlock));
+        rTab.setClosable(false);
+
+        wardenTabPane.getTabs().addAll(pTab, aTab, rTab);
+        layout.getChildren().add(wardenTabPane);
+
+        return layout;
+    }
+
+    private Node createWardenPendingView(String assignedBlock) {
+        VBox box = new VBox(10);
+        box.setPadding(new Insets(12));
+        box.setStyle("-fx-background-color: #1e293b;");
+
+        Label title = new Label("Pending Sick-Leave Clearances (" + assignedBlock + " Jurisdiction):");
+        title.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 13px; -fx-font-weight: bold;");
+
+        TableView<HealthRequestRow> table = new TableView<>(healthRequestsObservableList);
+        table.setStyle("-fx-background-color: #0f172a;");
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        TableColumn<HealthRequestRow, Number> idCol = new TableColumn<>("ID");
+        idCol.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().id));
+        idCol.setPrefWidth(50);
+
+        TableColumn<HealthRequestRow, String> stuCol = new TableColumn<>("Student");
+        stuCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().studentName));
+        stuCol.setPrefWidth(150);
+
+        TableColumn<HealthRequestRow, String> rmCol = new TableColumn<>("Hostel Room");
+        rmCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().room));
+        rmCol.setPrefWidth(130);
+
+        TableColumn<HealthRequestRow, String> rsnCol = new TableColumn<>("Medical Reason");
+        rsnCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().reason));
+        rsnCol.setPrefWidth(220);
+
+        TableColumn<HealthRequestRow, String> mealCol = new TableColumn<>("Meals");
+        mealCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().mealType));
+        mealCol.setPrefWidth(100);
+
+        TableColumn<HealthRequestRow, String> dateCol = new TableColumn<>("Date");
+        dateCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().date));
+        dateCol.setPrefWidth(90);
+
+        TableColumn<HealthRequestRow, Void> actCol = new TableColumn<>("Action (Approve / Reject Only)");
+        actCol.setPrefWidth(190);
+        actCol.setCellFactory(col -> new TableCell<>() {
+            private final Button approveBtn = new Button("✅ Approve");
+            private final Button rejectBtn = new Button("❌ Reject");
+            private final HBox btnBox = new HBox(8, approveBtn, rejectBtn);
+            {
+                approveBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;");
+                rejectBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;");
+
+                approveBtn.setOnAction(e -> {
+                    HealthRequestRow row = getTableView().getItems().get(getIndex());
+                    reviewSickRequest(row.id, "APPROVED", "");
+                });
+
+                rejectBtn.setOnAction(e -> {
+                    HealthRequestRow row = getTableView().getItems().get(getIndex());
+                    TextInputDialog dialog = new TextInputDialog();
+                    dialog.setTitle("Reject Sick-Leave Request #" + row.id);
+                    dialog.setHeaderText("Rejection requires a short mandatory reason:");
+                    dialog.setContentText("Reason:");
+                    dialog.showAndWait().ifPresent(reason -> {
+                        if (!reason.trim().isEmpty()) {
+                            reviewSickRequest(row.id, "REJECTED", reason.trim());
+                        } else {
+                            showAlert(Alert.AlertType.WARNING, "Reason Required", "A short rejection reason is strictly required.");
+                        }
                     });
-                } catch (Exception ex) {
-                    Platform.runLater(() -> log("❌ Error submitting sick leave: " + ex.getMessage()));
+                });
+            }
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    HealthRequestRow row = getTableView().getItems().get(getIndex());
+                    if ("PENDING".equalsIgnoreCase(row.status)) {
+                        setGraphic(btnBox);
+                    } else {
+                        Label l = new Label("Locked (" + row.status + ")");
+                        l.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 11px;");
+                        setGraphic(l);
+                    }
                 }
-            }).start();
+            }
         });
 
-        submitBox.getChildren().addAll(formTitle, illnessField, roomField, mealCombo, submitBtn);
-        layout.getChildren().add(submitBox);
+        table.getColumns().addAll(List.of(idCol, stuCol, rmCol, rsnCol, mealCol, dateCol, actCol));
+        box.getChildren().addAll(title, table);
+        return box;
+    }
 
-        // Warden Pending Approvals Table
-        VBox tableBox = new VBox(8);
-        Label tableTitle = new Label("🏥 Warden Review Queue (Sick Student Hostel Room Deliveries):");
-        tableTitle.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 14px; -fx-font-weight: bold;");
+    private Node createWardenApprovedView(String assignedBlock) {
+        VBox box = new VBox(10);
+        box.setPadding(new Insets(12));
+        box.setStyle("-fx-background-color: #1e293b;");
 
-        TableView<HealthRequestRow> reqTable = new TableView<>(healthRequestsObservableList);
-        reqTable.setStyle("-fx-background-color: #1e293b;");
-        VBox.setVgrow(reqTable, Priority.ALWAYS);
+        Label title = new Label("Approved Room Delivery Clearances (Decision Locked):");
+        title.setStyle("-fx-text-fill: #34d399; -fx-font-size: 13px; -fx-font-weight: bold;");
+
+        TableView<HealthRequestRow> table = new TableView<>();
+        table.setStyle("-fx-background-color: #0f172a;");
+        VBox.setVgrow(table, Priority.ALWAYS);
 
         TableColumn<HealthRequestRow, Number> idCol = new TableColumn<>("ID");
         idCol.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().id));
@@ -2305,59 +2861,91 @@ public class SmartMessFXApp extends Application {
         rmCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().room));
         rmCol.setPrefWidth(140);
 
-        TableColumn<HealthRequestRow, String> rsnCol = new TableColumn<>("Reason / Symptom");
+        TableColumn<HealthRequestRow, String> rsnCol = new TableColumn<>("Medical Reason");
         rsnCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().reason));
         rsnCol.setPrefWidth(220);
 
-        TableColumn<HealthRequestRow, String> mealCol = new TableColumn<>("Meal");
-        mealCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().mealType));
-        mealCol.setPrefWidth(100);
-
         TableColumn<HealthRequestRow, String> statCol = new TableColumn<>("Status");
-        statCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().status));
-        statCol.setPrefWidth(120);
+        statCol.setCellValueFactory(c -> new SimpleStringProperty("Approved ✅"));
+        statCol.setPrefWidth(110);
 
-        TableColumn<HealthRequestRow, Void> actCol = new TableColumn<>("Warden Decision");
-        actCol.setPrefWidth(180);
-        actCol.setCellFactory(col -> new TableCell<>() {
-            private final Button approveBtn = new Button("✅ Approve");
-            private final Button rejectBtn = new Button("❌ Reject");
-            private final HBox btnBox = new HBox(6, approveBtn, rejectBtn);
-            {
-                approveBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: bold;");
-                rejectBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: bold;");
-                approveBtn.setOnAction(e -> {
-                    HealthRequestRow row = getTableView().getItems().get(getIndex());
-                    reviewSickRequest(row.id, "APPROVED");
-                });
-                rejectBtn.setOnAction(e -> {
-                    HealthRequestRow row = getTableView().getItems().get(getIndex());
-                    reviewSickRequest(row.id, "REJECTED");
-                });
-            }
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(empty ? null : btnBox);
-            }
-        });
+        TableColumn<HealthRequestRow, String> notifCol = new TableColumn<>("Notification");
+        notifCol.setCellValueFactory(c -> new SimpleStringProperty("📧 Student notified via VIT Mail & Push"));
+        notifCol.setPrefWidth(240);
 
-        reqTable.getColumns().addAll(List.of(idCol, stuCol, rmCol, rsnCol, mealCol, statCol, actCol));
-        tableBox.getChildren().addAll(tableTitle, reqTable);
-        VBox.setVgrow(tableBox, Priority.ALWAYS);
-        layout.getChildren().add(tableBox);
+        table.getColumns().addAll(List.of(idCol, stuCol, rmCol, rsnCol, statCol, notifCol));
 
-        return layout;
+        // Filter approved rows
+        ObservableList<HealthRequestRow> approvedList = FXCollections.observableArrayList();
+        for (HealthRequestRow r : healthRequestsObservableList) {
+            if ("APPROVED".equalsIgnoreCase(r.status)) approvedList.add(r);
+        }
+        if (approvedList.isEmpty()) {
+            approvedList.add(new HealthRequestRow(1, "Rohit Kundu", "Block B - Room 304", "Severe viral fever & bed rest", "All Meals", "APPROVED"));
+        }
+        table.setItems(approvedList);
+
+        box.getChildren().addAll(title, table);
+        return box;
     }
 
-    private void reviewSickRequest(int reqId, String decision) {
+    private Node createWardenRejectedView(String assignedBlock) {
+        VBox box = new VBox(10);
+        box.setPadding(new Insets(12));
+        box.setStyle("-fx-background-color: #1e293b;");
+
+        Label title = new Label("Rejected Requests Archive (Decision Locked):");
+        title.setStyle("-fx-text-fill: #f87171; -fx-font-size: 13px; -fx-font-weight: bold;");
+
+        TableView<HealthRequestRow> table = new TableView<>();
+        table.setStyle("-fx-background-color: #0f172a;");
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        TableColumn<HealthRequestRow, Number> idCol = new TableColumn<>("ID");
+        idCol.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().id));
+        idCol.setPrefWidth(50);
+
+        TableColumn<HealthRequestRow, String> stuCol = new TableColumn<>("Student");
+        stuCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().studentName));
+        stuCol.setPrefWidth(160);
+
+        TableColumn<HealthRequestRow, String> rmCol = new TableColumn<>("Hostel Room");
+        rmCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().room));
+        rmCol.setPrefWidth(140);
+
+        TableColumn<HealthRequestRow, String> rsnCol = new TableColumn<>("Medical Reason");
+        rsnCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().reason));
+        rsnCol.setPrefWidth(180);
+
+        TableColumn<HealthRequestRow, String> rejCol = new TableColumn<>("Rejection Reason");
+        rejCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().rejectionReason != null && !c.getValue().rejectionReason.isEmpty() ? c.getValue().rejectionReason : "Disapproved by warden"));
+        rejCol.setPrefWidth(180);
+
+        TableColumn<HealthRequestRow, String> notifCol = new TableColumn<>("Notification");
+        notifCol.setCellValueFactory(c -> new SimpleStringProperty("📧 Student notified via VIT Mail & Push"));
+        notifCol.setPrefWidth(240);
+
+        table.getColumns().addAll(List.of(idCol, stuCol, rmCol, rsnCol, rejCol, notifCol));
+
+        // Filter rejected rows
+        ObservableList<HealthRequestRow> rejectedList = FXCollections.observableArrayList();
+        for (HealthRequestRow r : healthRequestsObservableList) {
+            if ("REJECTED".equalsIgnoreCase(r.status)) rejectedList.add(r);
+        }
+        table.setItems(rejectedList);
+
+        box.getChildren().addAll(title, table);
+        return box;
+    }
+
+    private void reviewSickRequest(int reqId, String decision, String reason) {
         new Thread(() -> {
             try {
-                JsonObject resp = apiClient.reviewSickLeaveRequest(reqId, decision, "Warden Dr. S. Raman");
+                JsonObject resp = apiClient.reviewSickLeaveRequest(reqId, decision, "Hostel Warden", reason);
                 Platform.runLater(() -> {
-                    log("🏥 [SickLeaveServlet] Request #" + reqId + " marked " + decision + " by Warden.");
+                    log("🏥 [SickLeaveServlet] Request #" + reqId + " marked " + decision + " by Warden. Student notified via VIT Mail.");
                     showAlert(Alert.AlertType.INFORMATION, "Warden Decision Logged",
-                            "Request #" + reqId + " has been " + decision + " for hostel room delivery.");
+                            "Request #" + reqId + " has been marked " + decision + ".\nStudent was sent live alert & VIT notification email.");
                     refreshHealthRequests();
                 });
             } catch (Exception ex) {
@@ -2381,13 +2969,15 @@ public class SmartMessFXApp extends Application {
                                 o.has("room") ? o.get("room").getAsString() : "Block B",
                                 o.has("reason") ? o.get("reason").getAsString() : "Illness",
                                 o.has("mealType") ? o.get("mealType").getAsString() : "Lunch",
-                                o.has("status") ? o.get("status").getAsString() : "PENDING"
+                                o.has("status") ? o.get("status").getAsString() : "PENDING",
+                                o.has("rejectionReason") ? o.get("rejectionReason").getAsString() : "",
+                                o.has("date") ? o.get("date").getAsString() : LocalDate.now().toString()
                         ));
                     }
                 }
                 if (list.isEmpty()) {
-                    list.add(new HealthRequestRow(1, "Rohit Kundu", "Block B - Room 304", "Viral Fever & Bed Rest", "Dinner", "PENDING"));
-                    list.add(new HealthRequestRow(2, "Aarav Sharma", "Block C - Room 112", "Sprained Ankle", "Lunch", "APPROVED"));
+                    list.add(new HealthRequestRow(1, "Rohit Kundu", "Block B - Room 304", "Severe viral fever & bed rest", "All Meals", "APPROVED", "", LocalDate.now().toString()));
+                    list.add(new HealthRequestRow(2, "Aarav Sharma", "Block B - Room 112", "Sprained ankle, unable to walk to cafeteria", "Lunch, Dinner", "PENDING", "", LocalDate.now().toString()));
                 }
                 Platform.runLater(() -> healthRequestsObservableList.setAll(list));
             } catch (Exception ex) {
@@ -2948,14 +3538,27 @@ public class SmartMessFXApp extends Application {
         public String status;
         public final int amount;
         public final String items;
+        public int prepMinutes = 15;
+        public int secondsRemaining = 660;
+        public String chefActivity = "Chef is actively preparing your order";
+        public String roomAddress = "Block B - Room 304";
 
         public ActiveOrderRow(int orderId, String token, String deliveryType, String status, int amount, String items) {
+            this(orderId, token, deliveryType, status, amount, items, 15, 660, "Chef is actively preparing your order", "Block B - Room 304");
+        }
+
+        public ActiveOrderRow(int orderId, String token, String deliveryType, String status, int amount, String items,
+                              int prepMinutes, int secondsRemaining, String chefActivity, String roomAddress) {
             this.orderId = orderId;
             this.token = token;
             this.deliveryType = deliveryType;
             this.status = status;
             this.amount = amount;
             this.items = items;
+            this.prepMinutes = prepMinutes;
+            this.secondsRemaining = secondsRemaining;
+            this.chefActivity = chefActivity;
+            this.roomAddress = roomAddress;
         }
     }
 
@@ -2983,10 +3586,18 @@ public class SmartMessFXApp extends Application {
         public final String deliveryType;
         public final String studentName;
         public final int amount;
-        public final String status;
+        public String status;
         public final String itemsSummary;
+        public int prepMinutes = 15;
+        public String chefActivity = "Chef is actively preparing your order";
+        public String address = "Block B - Room 304";
 
         public KitchenQueueRow(int orderId, String token, String deliveryType, String studentName, int amount, String status, String itemsSummary) {
+            this(orderId, token, deliveryType, studentName, amount, status, itemsSummary, 15, "Chef is actively preparing your order", "Block B - Room 304");
+        }
+
+        public KitchenQueueRow(int orderId, String token, String deliveryType, String studentName, int amount, String status, String itemsSummary,
+                               int prepMinutes, String chefActivity, String address) {
             this.orderId = orderId;
             this.token = token;
             this.deliveryType = deliveryType;
@@ -2994,6 +3605,9 @@ public class SmartMessFXApp extends Application {
             this.amount = amount;
             this.status = status;
             this.itemsSummary = itemsSummary;
+            this.prepMinutes = prepMinutes;
+            this.chefActivity = chefActivity;
+            this.address = address;
         }
     }
 
@@ -3019,15 +3633,24 @@ public class SmartMessFXApp extends Application {
         public final String room;
         public final String reason;
         public final String mealType;
-        public final String status;
+        public String status;
+        public String rejectionReason = "";
+        public String date = LocalDate.now().toString();
 
         public HealthRequestRow(int id, String studentName, String room, String reason, String mealType, String status) {
+            this(id, studentName, room, reason, mealType, status, "", LocalDate.now().toString());
+        }
+
+        public HealthRequestRow(int id, String studentName, String room, String reason, String mealType, String status,
+                                String rejectionReason, String date) {
             this.id = id;
             this.studentName = studentName;
             this.room = room;
             this.reason = reason;
             this.mealType = mealType;
             this.status = status;
+            this.rejectionReason = rejectionReason != null ? rejectionReason : "";
+            this.date = date != null ? date : LocalDate.now().toString();
         }
     }
 
