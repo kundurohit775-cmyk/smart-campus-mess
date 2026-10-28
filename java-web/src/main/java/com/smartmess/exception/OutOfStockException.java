@@ -10,6 +10,14 @@ public class OutOfStockException extends MessException {
     private final int requestedQuantity;
     private final int availableQuantity;
 
+    public OutOfStockException(String message) {
+        super(message);
+        this.itemId = 0;
+        this.itemName = "Item";
+        this.requestedQuantity = 0;
+        this.availableQuantity = 0;
+    }
+
     public OutOfStockException(int itemId, String itemName, int requestedQuantity, int availableQuantity) {
         super(String.format("Item '%s' (ID #%d) is out of stock! Requested: %d, Available: %d",
                 itemName, itemId, requestedQuantity, availableQuantity));

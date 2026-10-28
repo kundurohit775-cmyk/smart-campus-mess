@@ -9,6 +9,10 @@ public class RoomDeliveryOrder extends BaseOrder {
     private String deliveryAddress;
     private int healthRequestId;
 
+    public RoomDeliveryOrder(int orderId, int studentId, String studentName, String deliveryAddress) {
+        this(orderId, studentId, studentName, deliveryAddress, 0);
+    }
+
     public RoomDeliveryOrder(int orderId, int studentId, String studentName, String deliveryAddress, int healthRequestId) {
         super(orderId, studentId, studentName);
         this.deliveryAddress = deliveryAddress;
@@ -45,7 +49,12 @@ public class RoomDeliveryOrder extends BaseOrder {
     }
 
     @Override
+    public boolean isRoomDelivery() {
+        return true;
+    }
+
+    @Override
     public String getFulfillmentDescription() {
-        return "Room Delivery to: " + deliveryAddress;
+        return "Hostel Room Delivery to " + (deliveryAddress != null ? deliveryAddress : "Room");
     }
 }

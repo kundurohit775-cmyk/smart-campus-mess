@@ -1,8 +1,11 @@
 package com.smartmess.model;
 
+import java.time.LocalDateTime;
+
 /**
  * Demonstrates OOP: Encapsulation and Base Model for SmartMess catalog.
- * Represents a standard cafeteria dish with pricing, nutrition, and portion weights.
+ * Represents a standard cafeteria dish with pricing, nutrition, description,
+ * imagery, low-stock threshold monitoring, and archival state preservation.
  */
 public class MenuItem {
     private int itemId;
@@ -13,13 +16,28 @@ public class MenuItem {
     private int availableQuantity;
     private double portionWeightKg;
     private boolean active;
+    private String description;
+    private String imageUrl;
+    private int lowStockThreshold;
+    private boolean archived;
+    private LocalDateTime lastStockUpdated;
 
     public MenuItem() {
         this.portionWeightKg = 0.450;
         this.active = true;
+        this.lowStockThreshold = 15;
+        this.archived = false;
+        this.lastStockUpdated = LocalDateTime.now();
+        this.description = "Freshly prepared campus delicacy.";
+        this.imageUrl = "";
     }
 
     public MenuItem(int itemId, String itemName, String category, int price, Integer calories, int availableQuantity) {
+        this(itemId, itemName, category, price, calories, availableQuantity, "Freshly prepared campus delicacy.", "", 15);
+    }
+
+    public MenuItem(int itemId, String itemName, String category, int price, Integer calories,
+                    int availableQuantity, String description, String imageUrl, int lowStockThreshold) {
         this.itemId = itemId;
         this.itemName = itemName;
         this.category = category;
@@ -28,6 +46,11 @@ public class MenuItem {
         this.availableQuantity = availableQuantity;
         this.portionWeightKg = 0.450;
         this.active = true;
+        this.description = description != null ? description : "Freshly prepared campus delicacy.";
+        this.imageUrl = imageUrl != null ? imageUrl : "";
+        this.lowStockThreshold = lowStockThreshold > 0 ? lowStockThreshold : 15;
+        this.archived = false;
+        this.lastStockUpdated = LocalDateTime.now();
     }
 
     public int getItemId() {
@@ -36,6 +59,31 @@ public class MenuItem {
 
     public void setItemId(int itemId) {
         this.itemId = itemId;
+    }
+
+    public int getId() {
+        return itemId;
+    }
+
+    public void setId(int id) {
+        this.itemId = id;
+    }
+
+    public String getName() {
+        return itemName;
+    }
+
+    public void setName(String name) {
+        this.itemName = name;
+    }
+
+    public int getStock() {
+        return availableQuantity;
+    }
+
+    public void setStock(int stock) {
+        this.availableQuantity = stock;
+        this.lastStockUpdated = LocalDateTime.now();
     }
 
     public String getItemName() {
@@ -76,6 +124,7 @@ public class MenuItem {
 
     public void setAvailableQuantity(int availableQuantity) {
         this.availableQuantity = availableQuantity;
+        this.lastStockUpdated = LocalDateTime.now();
     }
 
     public double getPortionWeightKg() {
@@ -87,11 +136,62 @@ public class MenuItem {
     }
 
     public boolean isActive() {
-        return active;
+        return active && !archived;
     }
 
     public void setActive(boolean active) {
         this.active = active;
+        this.lastStockUpdated = LocalDateTime.now();
+    }
+
+    public String getDescription() {
+        return description != null && !description.isEmpty() ? description : "Freshly prepared campus delicacy.";
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl != null ? imageUrl : "";
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public int getLowStockThreshold() {
+        return lowStockThreshold > 0 ? lowStockThreshold : 15;
+    }
+
+    public void setLowStockThreshold(int lowStockThreshold) {
+        this.lowStockThreshold = lowStockThreshold;
+    }
+
+    public boolean isLowStock() {
+        return this.availableQuantity <= this.lowStockThreshold && this.availableQuantity > 0;
+    }
+
+    public boolean isSoldOut() {
+        return !active || this.availableQuantity <= 0;
+    }
+
+    public boolean isArchived() {
+        return archived;
+    }
+
+    public void setArchived(boolean archived) {
+        this.archived = archived;
+        if (archived) this.active = false;
+        this.lastStockUpdated = LocalDateTime.now();
+    }
+
+    public LocalDateTime getLastStockUpdated() {
+        return lastStockUpdated != null ? lastStockUpdated : LocalDateTime.now();
+    }
+
+    public void setLastStockUpdated(LocalDateTime lastStockUpdated) {
+        this.lastStockUpdated = lastStockUpdated;
     }
 
     public boolean isHealthy() {

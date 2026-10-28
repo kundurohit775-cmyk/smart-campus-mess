@@ -7,6 +7,11 @@ package com.smartmess.exception;
 public class MenuItemNotFoundException extends MessException {
     private final int itemId;
 
+    public MenuItemNotFoundException(String message) {
+        super(message);
+        this.itemId = 0;
+    }
+
     public MenuItemNotFoundException(int itemId) {
         super(String.format("Menu item with ID #%d was not found in the cafeteria catalog.", itemId));
         this.itemId = itemId;

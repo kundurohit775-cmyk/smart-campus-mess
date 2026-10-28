@@ -81,6 +81,8 @@ public class EmbeddedServletServer {
 
         // Mount Servlets on HTTP routes
         server.createContext("/", new ServletAdapterHandler(webPortalServlet));
+        server.createContext("/css", new ServletAdapterHandler(webPortalServlet));
+        server.createContext("/developer-diagnostics", new ServletAdapterHandler(webPortalServlet));
         server.createContext("/login", new ServletAdapterHandler(webPortalServlet));
         server.createContext("/register", new ServletAdapterHandler(webPortalServlet));
         server.createContext("/forgot-password", new ServletAdapterHandler(webPortalServlet));

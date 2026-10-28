@@ -21,8 +21,9 @@ import java.util.Map;
  * Server-Sent Events (SSE) and Live Data Gateway for SmartMess.
  * Streams real-time updates with automatic reconnect for:
  * - Student live food tracking stepper, prep time countdown, and chef activity
- * - Warden sick-leave approvals
+ * - Warden sick-leave approvals & pending counts for their hostel block
  * - Chef incoming kitchen orders
+ * - Admin real-time monitoring
  */
 public class LiveEventsServlet extends HttpServlet {
 
@@ -85,12 +86,23 @@ public class LiveEventsServlet extends HttpServlet {
 
         if (hostelBlockParam != null && !hostelBlockParam.isEmpty()) {
             List<HealthRequest> wardenRequests = messService.getHealthRequestsForHostel(hostelBlockParam);
+            int pendingCount = 0;
+            for (HealthRequest hr : wardenRequests) {
+                if ("PENDING".equalsIgnoreCase(hr.getStatus())) pendingCount++;
+            }
             snapshot.put("wardenRequests", wardenRequests);
+            snapshot.put("pendingCount", pendingCount);
         }
 
         if ("chef".equalsIgnoreCase(roleParam) || (studentIdParam == null && hostelBlockParam == null)) {
             List<BaseOrder> kitchenQueue = messService.getPendingKitchenOrders();
             snapshot.put("kitchenQueue", kitchenQueue);
+        }
+
+        if ("admin".equalsIgnoreCase(roleParam)) {
+            snapshot.put("totalStudents", messService.getAllStudents().size());
+            snapshot.put("lowStockCount", messService.getLowStockItems().size());
+            snapshot.put("pendingLeavesCount", messService.getPendingHealthRequests().size());
         }
 
         return snapshot;

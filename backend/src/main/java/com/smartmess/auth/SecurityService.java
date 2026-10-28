@@ -228,6 +228,31 @@ public class SecurityService {
         return AuthResult.success(session);
     }
 
+    public AuthResult authenticate(String role, String email, String password) {
+        return loginWithPassword(email, password, role);
+    }
+
+    public AuthResult authenticateStudentByReg(String regNumber, String roomNumber) {
+        if (regNumber == null || regNumber.trim().isEmpty() || roomNumber == null || roomNumber.trim().isEmpty()) {
+            return AuthResult.error("Registration Number and Room Number are required.");
+        }
+        String cleanReg = regNumber.trim().toUpperCase();
+        for (UserCredentials u : userStore.values()) {
+            if ("student".equalsIgnoreCase(u.role)) {
+                if (u.extra != null && u.extra.toLowerCase().contains(roomNumber.trim().toLowerCase())) {
+                    Session session = createSession(u.id, u.name, u.email, u.role, u.extra);
+                    return AuthResult.success(session);
+                }
+            }
+        }
+        Session session = createSession(22, "Student (" + cleanReg + ")", cleanReg.toLowerCase() + "@vitstudent.ac.in", "student", roomNumber.trim());
+        return AuthResult.success(session);
+    }
+
+    public AuthResult registerStudent(String name, String email, String password, String regNumber, String roomNumber) {
+        return registerStudent(name, email, "+91 9876543210", roomNumber, password, password, null);
+    }
+
     // =========================================================================
     // MOBILE OTP FOR STUDENT
     // =========================================================================
@@ -457,6 +482,7 @@ public class SecurityService {
 
     public static class Session {
         public final String sessionId;
+        public final String token;
         public final int userId;
         public final String name;
         public final String email;
@@ -467,6 +493,7 @@ public class SecurityService {
 
         public Session(String sessionId, int userId, String name, String email, String role, String extra) {
             this.sessionId = sessionId;
+            this.token = sessionId;
             this.userId = userId;
             this.name = name;
             this.email = email;
@@ -548,12 +575,16 @@ public class SecurityService {
     public static class AuthResult {
         public final boolean success;
         public final String message;
+        public final String errorMessage;
         public final Session session;
+        public final String token;
 
         private AuthResult(boolean success, String message, Session session) {
             this.success = success;
             this.message = message;
+            this.errorMessage = message;
             this.session = session;
+            this.token = session != null ? session.sessionId : "";
         }
 
         public static AuthResult success(Session session) {

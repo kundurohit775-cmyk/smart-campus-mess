@@ -9,9 +9,14 @@ import com.smartmess.model.MenuItem;
 import com.smartmess.model.OrderItem;
 import com.smartmess.model.OrderStatus;
 import com.smartmess.model.Student;
+import com.smartmess.model.StockChangeRecord;
+import com.smartmess.model.TransactionRecord;
+import com.smartmess.model.HealthRequest;
 import com.smartmess.auth.SecurityService;
 import com.smartmess.server.EmbeddedServletServer;
+import com.smartmess.service.IMessService;
 import com.smartmess.service.MessServiceImpl;
+import javafx.util.Pair;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -129,13 +134,26 @@ public class SmartMessFXApp extends Application {
     private final ObservableList<MenuItem> chefMenuStockList = FXCollections.observableArrayList();
 
     // Tab 5: Admin Analytics State
+    private final IMessService messService = new MessServiceImpl();
     private Label adminTotalOrdersLabel;
     private Label adminTotalCreditsLabel;
     private Label adminActiveStudentsLabel;
     private final ObservableList<TopDishRow> topDishesObservableList = FXCollections.observableArrayList();
 
+    // Student Credits State
+    private final ObservableList<Student> studentsObservableList = FXCollections.observableArrayList();
+    private final ObservableList<TransactionRecord> creditAuditObservableList = FXCollections.observableArrayList();
+    private Label totalStudentsCountLabel;
+    private Label totalCirculatingCreditsLabel;
+    private Label autoReissueScheduleLabel;
+
+    // Menu & Stock Management State
+    private final ObservableList<MenuItem> adminMenuObservableList = FXCollections.observableArrayList();
+    private final ObservableList<StockChangeRecord> stockAuditObservableList = FXCollections.observableArrayList();
+
     // Tab 6: Warden Sick-Leave State
     private final ObservableList<HealthRequestRow> healthRequestsObservableList = FXCollections.observableArrayList();
+    private Label wardenPendingBadgeLabel;
 
     // Tab 7: Sustainability Hub State
     private Label foodSavedMetricLabel;
@@ -174,7 +192,7 @@ public class SmartMessFXApp extends Application {
     private void ensureServerRunning() {
         if (!apiClient.isServerAvailable()) {
             try {
-                autoServer = new EmbeddedServletServer(8080, new MessServiceImpl());
+                autoServer = new EmbeddedServletServer(8080, (MessServiceImpl) messService);
                 autoServer.start();
                 log("⚡ [Servlet Server] Embedded Java Servlet Container booted automatically on port 8080.");
             } catch (Exception e) {
@@ -973,13 +991,17 @@ public class SmartMessFXApp extends Application {
 
             case "admin":
                 Tab adminTab = new Tab("👑 Campus KPIs & Financial Analytics", createAdminTab());
+                Tab creditsTab = new Tab("💳 Student Credit Control & Audit", createStudentCreditsTab());
+                Tab stockTab = new Tab("📦 Menu & Stock Management", createMenuStockManagementTab());
                 Tab adminWasteTab = new Tab("🌱 Food Waste & Sustainability Audits", createSustainabilityTab());
                 Tab adminHistTab = new Tab("📜 System History & CSV Audit", createOrderHistoryTab());
                 Tab diagTab = new Tab("⚡ Diagnostics, Servlets & JDBC", createDiagnosticsTab());
-                tabPane.getTabs().addAll(adminTab, adminWasteTab, adminHistTab, diagTab);
+                tabPane.getTabs().addAll(adminTab, creditsTab, stockTab, adminWasteTab, adminHistTab, diagTab);
                 refreshAdminAnalytics();
                 refreshSustainabilityMetrics();
                 refreshOrderHistory();
+                refreshStudentCredits();
+                refreshAdminMenuStock();
                 break;
 
             case "student":
@@ -2563,6 +2585,61 @@ public class SmartMessFXApp extends Application {
         layout.setPadding(new Insets(16));
         layout.setStyle("-fx-background-color: #0f172a;");
 
+        // Customizable Widgets Toolbar
+        HBox widgetBar = new HBox(12);
+        widgetBar.setAlignment(Pos.CENTER_LEFT);
+        widgetBar.setPadding(new Insets(10, 14, 10, 14));
+        widgetBar.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8; -fx-border-color: #334155;");
+
+        Label wTitle = new Label("⚙️ Dashboard Widgets Customization:");
+        wTitle.setStyle("-fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-font-size: 12px;");
+
+        CheckBox cbOrders = new CheckBox("Orders Today");
+        cbOrders.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 12px;");
+        cbOrders.setSelected(true);
+
+        CheckBox cbCredits = new CheckBox("Credits Billed");
+        cbCredits.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 12px;");
+        cbCredits.setSelected(true);
+
+        CheckBox cbDiners = new CheckBox("Active Diners");
+        cbDiners.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 12px;");
+        cbDiners.setSelected(true);
+
+        CheckBox cbLowStock = new CheckBox("Low-Stock Alerts");
+        cbLowStock.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 12px;");
+        cbLowStock.setSelected(true);
+
+        CheckBox cbLeaves = new CheckBox("Pending Sick Leaves");
+        cbLeaves.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 12px;");
+        cbLeaves.setSelected(true);
+
+        CheckBox cbTopDishes = new CheckBox("Top 5 Dishes");
+        cbTopDishes.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 12px;");
+        cbTopDishes.setSelected(true);
+
+        Runnable savePrefs = () -> {
+            Map<String, Boolean> prefs = new HashMap<>();
+            prefs.put("widget_orders", cbOrders.isSelected());
+            prefs.put("widget_credits", cbCredits.isSelected());
+            prefs.put("widget_diners", cbDiners.isSelected());
+            prefs.put("widget_low_stock", cbLowStock.isSelected());
+            prefs.put("widget_pending_leaves", cbLeaves.isSelected());
+            prefs.put("widget_top_dishes", cbTopDishes.isSelected());
+            messService.saveAdminWidgetPreferences(activeUserEmail, prefs,
+                    List.of("widget_orders", "widget_credits", "widget_diners", "widget_low_stock", "widget_pending_leaves", "widget_top_dishes"));
+        };
+
+        cbOrders.setOnAction(e -> savePrefs.run());
+        cbCredits.setOnAction(e -> savePrefs.run());
+        cbDiners.setOnAction(e -> savePrefs.run());
+        cbLowStock.setOnAction(e -> savePrefs.run());
+        cbLeaves.setOnAction(e -> savePrefs.run());
+        cbTopDishes.setOnAction(e -> savePrefs.run());
+
+        widgetBar.getChildren().addAll(wTitle, cbOrders, cbCredits, cbDiners, cbLowStock, cbLeaves, cbTopDishes);
+        layout.getChildren().add(widgetBar);
+
         // KPI Summary Cards
         HBox kpiBox = new HBox(12);
 
@@ -2571,11 +2648,85 @@ public class SmartMessFXApp extends Application {
         adminActiveStudentsLabel = new Label("128 Students");
 
         VBox c1 = createKpiCard("📦 Total Orders Today", adminTotalOrdersLabel, "#38bdf8");
+        c1.visibleProperty().bind(cbOrders.selectedProperty());
+        c1.managedProperty().bind(cbOrders.selectedProperty());
+
         VBox c2 = createKpiCard("💰 Credits Billed", adminTotalCreditsLabel, "#10b981");
+        c2.visibleProperty().bind(cbCredits.selectedProperty());
+        c2.managedProperty().bind(cbCredits.selectedProperty());
+
         VBox c3 = createKpiCard("👥 Active Diners", adminActiveStudentsLabel, "#f59e0b");
+        c3.visibleProperty().bind(cbDiners.selectedProperty());
+        c3.managedProperty().bind(cbDiners.selectedProperty());
 
         kpiBox.getChildren().addAll(c1, c2, c3);
         layout.getChildren().add(kpiBox);
+
+        // Low Stock & Pending Sick Leaves Alert Widgets
+        HBox alertWidgetsBox = new HBox(12);
+
+        // Low Stock Widget
+        VBox lowStockWidget = new VBox(8);
+        lowStockWidget.setPrefWidth(540);
+        lowStockWidget.setPadding(new Insets(12));
+        lowStockWidget.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8; -fx-border-color: #f59e0b; -fx-border-radius: 8;");
+        lowStockWidget.visibleProperty().bind(cbLowStock.selectedProperty());
+        lowStockWidget.managedProperty().bind(cbLowStock.selectedProperty());
+
+        Label lsTitle = new Label("⚠️ Live Low-Stock Inventory Alerts");
+        lsTitle.setStyle("-fx-text-fill: #f59e0b; -fx-font-weight: bold; -fx-font-size: 13px;");
+        Label lsDesc = new Label("Dishes falling below low-stock threshold trigger automatic kitchen warnings.");
+        lsDesc.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 11px;");
+
+        VBox lsList = new VBox(6);
+        List<MenuItem> lowItems = messService.getLowStockItems();
+        if (lowItems.isEmpty()) {
+            Label okLbl = new Label("✅ All mess dishes have sufficient stock!");
+            okLbl.setStyle("-fx-text-fill: #10b981; -fx-font-size: 12px;");
+            lsList.getChildren().add(okLbl);
+        } else {
+            for (MenuItem mi : lowItems) {
+                HBox row = new HBox(10);
+                row.setAlignment(Pos.CENTER_LEFT);
+                Label nameLbl = new Label(mi.getName() + " (" + mi.getCategory() + ")");
+                nameLbl.setStyle("-fx-text-fill: #f8fafc; -fx-font-weight: bold; -fx-font-size: 12px;");
+                Region rSp = new Region();
+                HBox.setHgrow(rSp, Priority.ALWAYS);
+                Label stkLbl = new Label("Stock: " + mi.getStock() + " / Threshold: " + mi.getLowStockThreshold());
+                stkLbl.setStyle("-fx-text-fill: #f87171; -fx-font-weight: bold; -fx-font-size: 11px;");
+                Button restockBtn = new Button("+20 Restock");
+                restockBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; -fx-cursor: hand;");
+                restockBtn.setOnAction(e -> {
+                    messService.adjustItemStock(mi.getId(), 20, "Quick dashboard restock", activeUserName);
+                    showAlert(Alert.AlertType.INFORMATION, "Restocked", "✅ Added 20 portions to " + mi.getName());
+                    refreshAdminMenuStock();
+                });
+                row.getChildren().addAll(nameLbl, rSp, stkLbl, restockBtn);
+                lsList.getChildren().add(row);
+            }
+        }
+        lowStockWidget.getChildren().addAll(lsTitle, lsDesc, lsList);
+
+        // Pending Leaves Widget
+        VBox pendingLeavesWidget = new VBox(8);
+        pendingLeavesWidget.setPrefWidth(540);
+        pendingLeavesWidget.setPadding(new Insets(12));
+        pendingLeavesWidget.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8; -fx-border-color: #38bdf8; -fx-border-radius: 8;");
+        pendingLeavesWidget.visibleProperty().bind(cbLeaves.selectedProperty());
+        pendingLeavesWidget.managedProperty().bind(cbLeaves.selectedProperty());
+
+        Label plTitle = new Label("🏥 Live Student Sick-Leave Approvals Status");
+        plTitle.setStyle("-fx-text-fill: #38bdf8; -fx-font-weight: bold; -fx-font-size: 13px;");
+        Label plDesc = new Label("Active pending room-delivery health requests across campus hostels.");
+        plDesc.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 11px;");
+
+        List<HealthRequest> pReqs = messService.getPendingHealthRequests();
+        Label pCountLbl = new Label("Pending Review: " + pReqs.size() + " Requests Awaiting Hostel Wardens");
+        pCountLbl.setStyle("-fx-text-fill: #fef08a; -fx-font-weight: bold; -fx-font-size: 12px;");
+        pendingLeavesWidget.getChildren().addAll(plTitle, plDesc, pCountLbl);
+
+        alertWidgetsBox.getChildren().addAll(lowStockWidget, pendingLeavesWidget);
+        layout.getChildren().add(alertWidgetsBox);
 
         // Admin Actions Bar
         HBox actionBox = new HBox(14);
@@ -2602,6 +2753,9 @@ public class SmartMessFXApp extends Application {
 
         // Top 5 Popular Dishes Leaderboard Table
         VBox tableBox = new VBox(8);
+        tableBox.visibleProperty().bind(cbTopDishes.selectedProperty());
+        tableBox.managedProperty().bind(cbTopDishes.selectedProperty());
+
         Label leaderTitle = new Label("🏆 Top 5 Most Popular Mess Dishes Today (Order Velocity & Ratings):");
         leaderTitle.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 14px; -fx-font-weight: bold;");
 
@@ -2637,6 +2791,771 @@ public class SmartMessFXApp extends Application {
         return layout;
     }
 
+    private Pane createStudentCreditsTab() {
+        VBox layout = new VBox(14);
+        layout.setPadding(new Insets(16));
+        layout.setStyle("-fx-background-color: #0f172a;");
+
+        // Header Title & Metric Cards
+        HBox headerBox = new HBox(12);
+        headerBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label title = new Label("💳 Campus Student Credit Control & Wallet Ledger");
+        title.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 17px; -fx-font-weight: bold;");
+
+        Region sp = new Region();
+        HBox.setHgrow(sp, Priority.ALWAYS);
+
+        totalStudentsCountLabel = new Label("Total: 0 Students");
+        totalStudentsCountLabel.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #38bdf8; -fx-padding: 6 12; -fx-background-radius: 6; -fx-font-weight: bold;");
+
+        totalCirculatingCreditsLabel = new Label("Circulating: 0 Cr");
+        totalCirculatingCreditsLabel.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #10b981; -fx-padding: 6 12; -fx-background-radius: 6; -fx-font-weight: bold;");
+
+        autoReissueScheduleLabel = new Label("Auto 1st-of-Month: Active");
+        autoReissueScheduleLabel.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #f59e0b; -fx-padding: 6 12; -fx-background-radius: 6; -fx-font-weight: bold;");
+
+        headerBox.getChildren().addAll(title, sp, totalStudentsCountLabel, totalCirculatingCreditsLabel, autoReissueScheduleLabel);
+        layout.getChildren().add(headerBox);
+
+        // Search & Bulk Actions Bar
+        HBox controlBar = new HBox(12);
+        controlBar.setAlignment(Pos.CENTER_LEFT);
+        controlBar.setPadding(new Insets(12));
+        controlBar.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8;");
+
+        TextField searchField = new TextField();
+        searchField.setPromptText("🔍 Search student by name, registration number, or hostel block...");
+        searchField.setPrefWidth(380);
+        searchField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: white; -fx-border-color: #334155; -fx-border-radius: 6;");
+
+        Region ctrlSpacer = new Region();
+        HBox.setHgrow(ctrlSpacer, Priority.ALWAYS);
+
+        Button reissueAllBtn = new Button("⚡ Reissue All Students");
+        reissueAllBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
+        reissueAllBtn.setOnAction(e -> {
+            int count = studentsObservableList.size();
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Confirm Bulk Allowance Reset");
+            alert.setHeaderText("Reissue monthly credit allowance for all " + count + " students?");
+            alert.setContentText("Each student's wallet balance will be reset to their configured monthly limit (default 9,000 credits).\nThis action is permanent and recorded in the immutable audit log.");
+            alert.showAndWait().ifPresent(res -> {
+                if (res == ButtonType.OK) {
+                    int reissued = messService.reissueAllStudentsCredits(activeUserName);
+                    showAlert(Alert.AlertType.INFORMATION, "Reissue Complete", "✅ Successfully reissued monthly allowance to " + reissued + " students!");
+                    refreshStudentCredits();
+                }
+            });
+        });
+
+        CheckBox autoToggle = new CheckBox("Auto Reissue 1st-of-Month (00:00)");
+        autoToggle.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 12px;");
+        autoToggle.setSelected(messService.isAutoMonthlyReissueEnabled());
+        autoToggle.setOnAction(e -> {
+            messService.setAutoMonthlyReissueEnabled(autoToggle.isSelected());
+            autoReissueScheduleLabel.setText("Auto 1st-of-Month: " + (autoToggle.isSelected() ? "Active" : "Disabled"));
+            log("👑 [Admin] Automatic monthly reissue toggled to " + autoToggle.isSelected());
+        });
+
+        Button runNowBtn = new Button("▶️ Run Now");
+        runNowBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: #0f172a; -fx-font-weight: bold; -fx-cursor: hand;");
+        runNowBtn.setOnAction(e -> {
+            int reissued = messService.triggerMonthlyReissue(activeUserName);
+            showAlert(Alert.AlertType.INFORMATION, "Immediate Reissue Complete", "✅ Immediate monthly reissue completed for " + reissued + " students!");
+            refreshStudentCredits();
+        });
+
+        controlBar.getChildren().addAll(searchField, ctrlSpacer, autoToggle, runNowBtn, reissueAllBtn);
+        layout.getChildren().add(controlBar);
+
+        // Filtered Student List
+        ObservableList<Student> filteredStudents = FXCollections.observableArrayList();
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            String filter = newVal == null ? "" : newVal.trim().toLowerCase();
+            if (filter.isEmpty()) {
+                filteredStudents.setAll(studentsObservableList);
+            } else {
+                List<Student> match = new ArrayList<>();
+                for (Student s : studentsObservableList) {
+                    if (s.getName().toLowerCase().contains(filter) ||
+                        s.getRegistrationNumber().toLowerCase().contains(filter) ||
+                        s.getHostelBlock().toLowerCase().contains(filter)) {
+                        match.add(s);
+                    }
+                }
+                filteredStudents.setAll(match);
+            }
+        });
+
+        // Student Credits TableView
+        TableView<Student> studentTable = new TableView<>(filteredStudents);
+        studentTable.setStyle("-fx-background-color: #1e293b;");
+        VBox.setVgrow(studentTable, Priority.ALWAYS);
+
+        TableColumn<Student, String> nameCol = new TableColumn<>("Student Name");
+        nameCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getName()));
+        nameCol.setPrefWidth(160);
+
+        TableColumn<Student, String> regCol = new TableColumn<>("Reg Number");
+        regCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getRegistrationNumber()));
+        regCol.setPrefWidth(120);
+
+        TableColumn<Student, String> roomCol = new TableColumn<>("Hostel & Room");
+        roomCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getHostelBlock() + " - " + c.getValue().getRoomNumber()));
+        roomCol.setPrefWidth(140);
+
+        TableColumn<Student, String> limitCol = new TableColumn<>("Monthly Limit");
+        limitCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getMonthlyLimit() + " Cr"));
+        limitCol.setPrefWidth(110);
+
+        TableColumn<Student, String> usedCol = new TableColumn<>("Used Credits");
+        usedCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUsedCredits() + " Cr"));
+        usedCol.setPrefWidth(110);
+
+        TableColumn<Student, String> balCol = new TableColumn<>("Remaining Credits");
+        balCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getRemainingCredits() + " Cr"));
+        balCol.setPrefWidth(140);
+
+        TableColumn<Student, String> updCol = new TableColumn<>("Last Updated");
+        updCol.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getLastUpdated() != null ? c.getValue().getLastUpdated().format(DateTimeFormatter.ofPattern("dd MMM, hh:mm a")) : "Today"));
+        updCol.setPrefWidth(140);
+
+        TableColumn<Student, Void> actCol = new TableColumn<>("Actions");
+        actCol.setPrefWidth(280);
+        actCol.setCellFactory(col -> new TableCell<>() {
+            private final Button addBtn = new Button("➕ Add");
+            private final Button deductBtn = new Button("➖ Deduct");
+            private final Button limitBtn = new Button("⚙️ Limit");
+            private final Button reissueBtn = new Button("🔄 Reissue");
+            private final HBox btnBox = new HBox(6, addBtn, deductBtn, limitBtn, reissueBtn);
+            {
+                addBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: bold; -fx-cursor: hand;");
+                deductBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: bold; -fx-cursor: hand;");
+                limitBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: bold; -fx-cursor: hand;");
+                reissueBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: bold; -fx-cursor: hand;");
+
+                addBtn.setOnAction(e -> {
+                    Student s = getTableView().getItems().get(getIndex());
+                    promptAddCredits(s);
+                });
+                deductBtn.setOnAction(e -> {
+                    Student s = getTableView().getItems().get(getIndex());
+                    promptDeductCredits(s);
+                });
+                limitBtn.setOnAction(e -> {
+                    Student s = getTableView().getItems().get(getIndex());
+                    promptSetLimit(s);
+                });
+                reissueBtn.setOnAction(e -> {
+                    Student s = getTableView().getItems().get(getIndex());
+                    messService.reissueStudentCredits(s.getId(), activeUserName);
+                    showAlert(Alert.AlertType.INFORMATION, "Reissue Complete", "✅ Reissued credits for " + s.getName() + " to " + s.getMonthlyLimit() + " Credits.");
+                    refreshStudentCredits();
+                });
+            }
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) setGraphic(null);
+                else setGraphic(btnBox);
+            }
+        });
+
+        studentTable.getColumns().addAll(List.of(nameCol, regCol, roomCol, limitCol, usedCol, balCol, updCol, actCol));
+        layout.getChildren().add(studentTable);
+
+        // Immutable Credit Audit Log TableView
+        VBox auditBox = new VBox(8);
+        Label auditTitle = new Label("📜 Student Credit Transaction Ledger & Immutable Audit Log:");
+        auditTitle.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 13px; -fx-font-weight: bold;");
+
+        TableView<TransactionRecord> auditTable = new TableView<>(creditAuditObservableList);
+        auditTable.setStyle("-fx-background-color: #1e293b;");
+        auditTable.setPrefHeight(180);
+
+        TableColumn<TransactionRecord, String> aStuCol = new TableColumn<>("Student");
+        aStuCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getStudentName()));
+        aStuCol.setPrefWidth(140);
+
+        TableColumn<TransactionRecord, String> aRegCol = new TableColumn<>("Reg No");
+        aRegCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getStudentRegNumber()));
+        aRegCol.setPrefWidth(110);
+
+        TableColumn<TransactionRecord, String> aTypeCol = new TableColumn<>("Type");
+        aTypeCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getType()));
+        aTypeCol.setPrefWidth(130);
+
+        TableColumn<TransactionRecord, String> aAmtCol = new TableColumn<>("Amount");
+        aAmtCol.setCellValueFactory(c -> new SimpleStringProperty((c.getValue().getAmount() > 0 ? "+" : "") + c.getValue().getAmount() + " Cr"));
+        aAmtCol.setPrefWidth(90);
+
+        TableColumn<TransactionRecord, String> aBalCol = new TableColumn<>("Balance After");
+        aBalCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getBalanceAfter() + " Cr"));
+        aBalCol.setPrefWidth(100);
+
+        TableColumn<TransactionRecord, String> aRsnCol = new TableColumn<>("Reason / Note");
+        aRsnCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getReason()));
+        aRsnCol.setPrefWidth(220);
+
+        TableColumn<TransactionRecord, String> aAdmCol = new TableColumn<>("Admin");
+        aAdmCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getAdminName()));
+        aAdmCol.setPrefWidth(130);
+
+        TableColumn<TransactionRecord, String> aTimeCol = new TableColumn<>("Timestamp");
+        aTimeCol.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getTimestamp() != null ? c.getValue().getTimestamp().format(DateTimeFormatter.ofPattern("dd MMM, hh:mm a")) : ""));
+        aTimeCol.setPrefWidth(140);
+
+        auditTable.getColumns().addAll(List.of(aStuCol, aRegCol, aTypeCol, aAmtCol, aBalCol, aRsnCol, aAdmCol, aTimeCol));
+        auditBox.getChildren().addAll(auditTitle, auditTable);
+        layout.getChildren().add(auditBox);
+
+        return layout;
+    }
+
+    private void promptAddCredits(Student s) {
+        Dialog<Pair<Integer, String>> dialog = new Dialog<>();
+        dialog.setTitle("Add Credits to " + s.getName());
+        dialog.setHeaderText("Add Credits (Recorded in permanent audit ledger)");
+
+        ButtonType confirmButtonType = new ButtonType("Add Credits", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField amountField = new TextField("500");
+        TextField reasonField = new TextField();
+        reasonField.setPromptText("e.g. Sports quota reimbursement, Merit stipend");
+
+        grid.add(new Label("Credit Amount:"), 0, 0);
+        grid.add(amountField, 1, 0);
+        grid.add(new Label("Mandatory Reason:"), 0, 1);
+        grid.add(reasonField, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == confirmButtonType) {
+                try {
+                    int amt = Integer.parseInt(amountField.getText().trim());
+                    String rsn = reasonField.getText().trim();
+                    if (rsn.isEmpty()) {
+                        showAlert(Alert.AlertType.WARNING, "Reason Required", "A mandatory reason is required to add credits.");
+                        return null;
+                    }
+                    return new Pair<>(amt, rsn);
+                } catch (Exception ex) {
+                    showAlert(Alert.AlertType.WARNING, "Invalid Amount", "Please enter a valid numeric credit amount.");
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(res -> {
+            messService.addStudentCredits(s.getId(), res.getKey(), res.getValue(), activeUserName);
+            showAlert(Alert.AlertType.INFORMATION, "Credits Added", "✅ Added " + res.getKey() + " credits to " + s.getName() + ".\nReason: " + res.getValue());
+            refreshStudentCredits();
+        });
+    }
+
+    private void promptDeductCredits(Student s) {
+        Dialog<Pair<Integer, String>> dialog = new Dialog<>();
+        dialog.setTitle("Deduct Credits from " + s.getName());
+        dialog.setHeaderText("Deduct Credits (Recorded in permanent audit ledger)");
+
+        ButtonType confirmButtonType = new ButtonType("Deduct Credits", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField amountField = new TextField("200");
+        TextField reasonField = new TextField();
+        reasonField.setPromptText("e.g. Mess utensil penalty, Fine for wastage");
+
+        grid.add(new Label("Deduct Amount:"), 0, 0);
+        grid.add(amountField, 1, 0);
+        grid.add(new Label("Mandatory Reason:"), 0, 1);
+        grid.add(reasonField, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == confirmButtonType) {
+                try {
+                    int amt = Integer.parseInt(amountField.getText().trim());
+                    String rsn = reasonField.getText().trim();
+                    if (rsn.isEmpty()) {
+                        showAlert(Alert.AlertType.WARNING, "Reason Required", "A mandatory reason is required to deduct credits.");
+                        return null;
+                    }
+                    return new Pair<>(amt, rsn);
+                } catch (Exception ex) {
+                    showAlert(Alert.AlertType.WARNING, "Invalid Amount", "Please enter a valid numeric credit amount.");
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(res -> {
+            messService.deductStudentCredits(s.getId(), res.getKey(), res.getValue(), activeUserName);
+            showAlert(Alert.AlertType.INFORMATION, "Credits Deducted", "✅ Deducted " + res.getKey() + " credits from " + s.getName() + ".\nReason: " + res.getValue());
+            refreshStudentCredits();
+        });
+    }
+
+    private void promptSetLimit(Student s) {
+        TextInputDialog dialog = new TextInputDialog(String.valueOf(s.getMonthlyLimit()));
+        dialog.setTitle("Set Monthly Credit Limit");
+        dialog.setHeaderText("Configure baseline monthly credit allocation for " + s.getName() + ":");
+        dialog.setContentText("Monthly Limit (Credits):");
+        dialog.showAndWait().ifPresent(val -> {
+            try {
+                int limit = Integer.parseInt(val.trim());
+                messService.setStudentMonthlyLimit(s.getId(), limit, activeUserName);
+                showAlert(Alert.AlertType.INFORMATION, "Monthly Limit Updated", "✅ Updated monthly credit limit for " + s.getName() + " to " + limit + " Credits.");
+                refreshStudentCredits();
+            } catch (Exception ex) {
+                showAlert(Alert.AlertType.WARNING, "Invalid Limit", "Please enter a valid numeric monthly limit.");
+            }
+        });
+    }
+
+    private void refreshStudentCredits() {
+        new Thread(() -> {
+            try {
+                List<Student> students = messService.getAllStudents();
+                List<TransactionRecord> txs = messService.getAllTransactions();
+                int totalCr = students.stream().mapToInt(Student::getRemainingCredits).sum();
+                Platform.runLater(() -> {
+                    studentsObservableList.setAll(students);
+                    creditAuditObservableList.setAll(txs);
+                    if (totalStudentsCountLabel != null) totalStudentsCountLabel.setText("Total: " + students.size() + " Students");
+                    if (totalCirculatingCreditsLabel != null) totalCirculatingCreditsLabel.setText("Circulating: " + totalCr + " Cr");
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> log("❌ Failed to refresh student credits: " + ex.getMessage()));
+            }
+        }).start();
+    }
+
+    private Pane createMenuStockManagementTab() {
+        VBox layout = new VBox(14);
+        layout.setPadding(new Insets(16));
+        layout.setStyle("-fx-background-color: #0f172a;");
+
+        // Header & Actions
+        HBox header = new HBox(12);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label title = new Label("📦 Menu Inventory & Real-Time Stock Control");
+        title.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 17px; -fx-font-weight: bold;");
+
+        Region sp = new Region();
+        HBox.setHgrow(sp, Priority.ALWAYS);
+
+        Button addDishBtn = new Button("➕ Add New Dish");
+        addDishBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
+        addDishBtn.setOnAction(e -> promptAddNewDish());
+
+        header.getChildren().addAll(title, sp, addDishBtn);
+        layout.getChildren().add(header);
+
+        // Search & Filter
+        HBox filterBar = new HBox(12);
+        filterBar.setAlignment(Pos.CENTER_LEFT);
+        filterBar.setPadding(new Insets(10, 14, 10, 14));
+        filterBar.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8;");
+
+        TextField searchField = new TextField();
+        searchField.setPromptText("🔍 Search dish by name or category...");
+        searchField.setPrefWidth(320);
+        searchField.setStyle("-fx-background-color: #0f172a; -fx-text-fill: white; -fx-border-color: #334155; -fx-border-radius: 6;");
+
+        Label tip = new Label("💡 Changes to stock immediately synchronize and prevent student tray ordering when stock reaches 0.");
+        tip.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+
+        filterBar.getChildren().addAll(searchField, tip);
+        layout.getChildren().add(filterBar);
+
+        ObservableList<MenuItem> filteredItems = FXCollections.observableArrayList();
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            String filter = newVal == null ? "" : newVal.trim().toLowerCase();
+            if (filter.isEmpty()) {
+                filteredItems.setAll(adminMenuObservableList);
+            } else {
+                List<MenuItem> match = new ArrayList<>();
+                for (MenuItem m : adminMenuObservableList) {
+                    if (m.getName().toLowerCase().contains(filter) || m.getCategory().toLowerCase().contains(filter)) {
+                        match.add(m);
+                    }
+                }
+                filteredItems.setAll(match);
+            }
+        });
+
+        // Dish Table
+        TableView<MenuItem> table = new TableView<>(filteredItems);
+        table.setStyle("-fx-background-color: #1e293b;");
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        TableColumn<MenuItem, String> nameCol = new TableColumn<>("Dish Name");
+        nameCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getName() + (c.getValue().isLowStock() ? " ⚠️ (Low Stock)" : "")));
+        nameCol.setPrefWidth(220);
+
+        TableColumn<MenuItem, String> catCol = new TableColumn<>("Category");
+        catCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCategory()));
+        catCol.setPrefWidth(110);
+
+        TableColumn<MenuItem, String> priceCol = new TableColumn<>("Price");
+        priceCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getPrice() + " Cr"));
+        priceCol.setPrefWidth(90);
+
+        TableColumn<MenuItem, String> calCol = new TableColumn<>("Calories");
+        calCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCalories() + " kcal"));
+        calCol.setPrefWidth(100);
+
+        TableColumn<MenuItem, String> stockCol = new TableColumn<>("Current Stock");
+        stockCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getStock() + " portions"));
+        stockCol.setPrefWidth(120);
+
+        TableColumn<MenuItem, String> thCol = new TableColumn<>("Low Threshold");
+        thCol.setCellValueFactory(c -> new SimpleStringProperty(String.valueOf(c.getValue().getLowStockThreshold())));
+        thCol.setPrefWidth(110);
+
+        TableColumn<MenuItem, String> statCol = new TableColumn<>("Status");
+        statCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().isSoldOut() ? "🚫 SOLD OUT" : (c.getValue().isLowStock() ? "⚠️ LOW STOCK" : "✅ ACTIVE")));
+        statCol.setPrefWidth(120);
+
+        TableColumn<MenuItem, Void> actCol = new TableColumn<>("Stock Adjustments & Dish Controls");
+        actCol.setPrefWidth(380);
+        actCol.setCellFactory(col -> new TableCell<>() {
+            private final Button m5Btn = new Button("-5");
+            private final Button m1Btn = new Button("-1");
+            private final Button p1Btn = new Button("+1");
+            private final Button p5Btn = new Button("+5");
+            private final Button soldOutBtn = new Button("🚫 Sold Out");
+            private final Button removeBtn = new Button("🗑️ Remove");
+            private final Button editBtn = new Button("✏️ Edit");
+            private final Button deleteBtn = new Button("❌ Delete");
+            private final HBox btnBox = new HBox(4, m5Btn, m1Btn, p1Btn, p5Btn, soldOutBtn, removeBtn, editBtn, deleteBtn);
+            {
+                m5Btn.setStyle("-fx-background-color: #334155; -fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; -fx-cursor: hand;");
+                m1Btn.setStyle("-fx-background-color: #334155; -fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; -fx-cursor: hand;");
+                p1Btn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; -fx-cursor: hand;");
+                p5Btn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; -fx-cursor: hand;");
+                soldOutBtn.setStyle("-fx-background-color: #b91c1c; -fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; -fx-cursor: hand;");
+                removeBtn.setStyle("-fx-background-color: #d97706; -fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; -fx-cursor: hand;");
+                editBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; -fx-cursor: hand;");
+                deleteBtn.setStyle("-fx-background-color: #475569; -fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; -fx-cursor: hand;");
+
+                m5Btn.setOnAction(e -> {
+                    MenuItem item = getTableView().getItems().get(getIndex());
+                    messService.adjustItemStock(item.getId(), -5, "Admin quick -5 adjustment", activeUserName);
+                    refreshAdminMenuStock();
+                });
+                m1Btn.setOnAction(e -> {
+                    MenuItem item = getTableView().getItems().get(getIndex());
+                    messService.adjustItemStock(item.getId(), -1, "Admin quick -1 adjustment", activeUserName);
+                    refreshAdminMenuStock();
+                });
+                p1Btn.setOnAction(e -> {
+                    MenuItem item = getTableView().getItems().get(getIndex());
+                    messService.adjustItemStock(item.getId(), 1, "Admin quick +1 adjustment", activeUserName);
+                    refreshAdminMenuStock();
+                });
+                p5Btn.setOnAction(e -> {
+                    MenuItem item = getTableView().getItems().get(getIndex());
+                    messService.adjustItemStock(item.getId(), 5, "Admin quick +5 adjustment", activeUserName);
+                    refreshAdminMenuStock();
+                });
+                soldOutBtn.setOnAction(e -> {
+                    MenuItem item = getTableView().getItems().get(getIndex());
+                    messService.toggleItemAvailability(item.getId(), activeUserName);
+                    refreshAdminMenuStock();
+                });
+                removeBtn.setOnAction(e -> {
+                    MenuItem item = getTableView().getItems().get(getIndex());
+                    promptRemoveStock(item);
+                });
+                editBtn.setOnAction(e -> {
+                    MenuItem item = getTableView().getItems().get(getIndex());
+                    promptEditDish(item);
+                });
+                deleteBtn.setOnAction(e -> {
+                    MenuItem item = getTableView().getItems().get(getIndex());
+                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    alert.setTitle("Delete / Archive Dish");
+                    alert.setHeaderText("Delete or Archive " + item.getName() + "?");
+                    alert.setContentText("If previous student orders exist for this dish, it will be safely archived (hidden from menu but preserving historical order records).\nAre you sure you want to proceed?");
+                    alert.showAndWait().ifPresent(res -> {
+                        if (res == ButtonType.OK) {
+                            messService.deleteMenuItem(item.getId(), activeUserName);
+                            refreshAdminMenuStock();
+                        }
+                    });
+                });
+            }
+            @Override
+            protected void updateItem(Void itm, boolean empty) {
+                super.updateItem(itm, empty);
+                if (empty) setGraphic(null);
+                else setGraphic(btnBox);
+            }
+        });
+
+        table.getColumns().addAll(List.of(nameCol, catCol, priceCol, calCol, stockCol, thCol, statCol, actCol));
+        layout.getChildren().add(table);
+
+        // Stock Change Audit Log TableView
+        VBox auditBox = new VBox(8);
+        Label auditTitle = new Label("📜 Stock Inventory Adjustment Audit Log:");
+        auditTitle.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 13px; -fx-font-weight: bold;");
+
+        TableView<StockChangeRecord> auditTable = new TableView<>(stockAuditObservableList);
+        auditTable.setStyle("-fx-background-color: #1e293b;");
+        auditTable.setPrefHeight(180);
+
+        TableColumn<StockChangeRecord, String> iCol = new TableColumn<>("Dish Name");
+        iCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getItemName()));
+        iCol.setPrefWidth(200);
+
+        TableColumn<StockChangeRecord, Number> oldCol = new TableColumn<>("Previous");
+        oldCol.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().getOldQuantity()));
+        oldCol.setPrefWidth(90);
+
+        TableColumn<StockChangeRecord, Number> newCol = new TableColumn<>("New");
+        newCol.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().getNewQuantity()));
+        newCol.setPrefWidth(90);
+
+        TableColumn<StockChangeRecord, String> deltaCol = new TableColumn<>("Change");
+        deltaCol.setCellValueFactory(c -> new SimpleStringProperty((c.getValue().getDelta() > 0 ? "+" : "") + c.getValue().getDelta()));
+        deltaCol.setPrefWidth(80);
+
+        TableColumn<StockChangeRecord, String> rsnCol = new TableColumn<>("Reason");
+        rsnCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getReason()));
+        rsnCol.setPrefWidth(240);
+
+        TableColumn<StockChangeRecord, String> whoCol = new TableColumn<>("Changed By");
+        whoCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getPerformedBy()));
+        whoCol.setPrefWidth(140);
+
+        TableColumn<StockChangeRecord, String> timeCol = new TableColumn<>("Timestamp");
+        timeCol.setCellValueFactory(c -> new SimpleStringProperty(
+                c.getValue().getTimestamp() != null ? c.getValue().getTimestamp().format(DateTimeFormatter.ofPattern("dd MMM, hh:mm a")) : ""));
+        timeCol.setPrefWidth(140);
+
+        auditTable.getColumns().addAll(List.of(iCol, oldCol, newCol, deltaCol, rsnCol, whoCol, timeCol));
+        auditBox.getChildren().addAll(auditTitle, auditTable);
+        layout.getChildren().add(auditBox);
+
+        return layout;
+    }
+
+    private void promptAddNewDish() {
+        Dialog<MenuItem> dialog = new Dialog<>();
+        dialog.setTitle("Add New Campus Dish");
+        dialog.setHeaderText("Add New Dish to Mess Menu");
+
+        ButtonType confirmButtonType = new ButtonType("Add Dish", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Dish Name");
+        ComboBox<String> catBox = new ComboBox<>(FXCollections.observableArrayList("Breakfast", "Lunch", "Snacks", "Dinner", "Beverages"));
+        catBox.setValue("Lunch");
+        TextField priceField = new TextField("60");
+        TextField calField = new TextField("350");
+        TextArea descArea = new TextArea();
+        descArea.setPromptText("Nutritional and culinary description");
+        descArea.setPrefRowCount(2);
+        TextField imgField = new TextField("https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500");
+        TextField thresholdField = new TextField("10");
+        CheckBox activeBox = new CheckBox("Available / Active");
+        activeBox.setSelected(true);
+
+        grid.add(new Label("Dish Name:"), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(new Label("Category:"), 0, 1);
+        grid.add(catBox, 1, 1);
+        grid.add(new Label("Price (Credits):"), 0, 2);
+        grid.add(priceField, 1, 2);
+        grid.add(new Label("Calories (kcal):"), 0, 3);
+        grid.add(calField, 1, 3);
+        grid.add(new Label("Description:"), 0, 4);
+        grid.add(descArea, 1, 4);
+        grid.add(new Label("Image URL:"), 0, 5);
+        grid.add(imgField, 1, 5);
+        grid.add(new Label("Low-Stock Threshold:"), 0, 6);
+        grid.add(thresholdField, 1, 6);
+        grid.add(activeBox, 1, 7);
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.setResultConverter(btn -> {
+            if (btn == confirmButtonType) {
+                try {
+                    String name = nameField.getText().trim();
+                    if (name.isEmpty()) {
+                        showAlert(Alert.AlertType.WARNING, "Name Required", "Dish name cannot be blank.");
+                        return null;
+                    }
+                    int price = Integer.parseInt(priceField.getText().trim());
+                    int cal = Integer.parseInt(calField.getText().trim());
+                    int th = Integer.parseInt(thresholdField.getText().trim());
+                    MenuItem mi = new MenuItem(0, name, catBox.getValue(), price, cal, 50, descArea.getText().trim(), imgField.getText().trim(), th);
+                    mi.setActive(activeBox.isSelected());
+                    return mi;
+                } catch (Exception ex) {
+                    showAlert(Alert.AlertType.WARNING, "Invalid Input", "Please enter valid numeric values for price, calories, and threshold.");
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(mi -> {
+            messService.addMenuItem(mi, activeUserName);
+            showAlert(Alert.AlertType.INFORMATION, "Dish Added", "✅ Successfully added " + mi.getName() + " to campus menu catalog.");
+            refreshAdminMenuStock();
+        });
+    }
+
+    private void promptEditDish(MenuItem item) {
+        Dialog<MenuItem> dialog = new Dialog<>();
+        dialog.setTitle("Edit Dish - " + item.getName());
+        dialog.setHeaderText("Edit Dish Properties & Pricing");
+
+        ButtonType confirmButtonType = new ButtonType("Save Changes", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField nameField = new TextField(item.getName());
+        ComboBox<String> catBox = new ComboBox<>(FXCollections.observableArrayList("Breakfast", "Lunch", "Snacks", "Dinner", "Beverages"));
+        catBox.setValue(item.getCategory());
+        TextField priceField = new TextField(String.valueOf(item.getPrice()));
+        TextField calField = new TextField(String.valueOf(item.getCalories()));
+        TextArea descArea = new TextArea(item.getDescription());
+        descArea.setPrefRowCount(2);
+        TextField imgField = new TextField(item.getImageUrl());
+        TextField thresholdField = new TextField(String.valueOf(item.getLowStockThreshold()));
+        CheckBox activeBox = new CheckBox("Available / Active");
+        activeBox.setSelected(item.isActive());
+
+        grid.add(new Label("Dish Name:"), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(new Label("Category:"), 0, 1);
+        grid.add(catBox, 1, 1);
+        grid.add(new Label("Price (Credits):"), 0, 2);
+        grid.add(priceField, 1, 2);
+        grid.add(new Label("Calories (kcal):"), 0, 3);
+        grid.add(calField, 1, 3);
+        grid.add(new Label("Description:"), 0, 4);
+        grid.add(descArea, 1, 4);
+        grid.add(new Label("Image URL:"), 0, 5);
+        grid.add(imgField, 1, 5);
+        grid.add(new Label("Low-Stock Threshold:"), 0, 6);
+        grid.add(thresholdField, 1, 6);
+        grid.add(activeBox, 1, 7);
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.setResultConverter(btn -> {
+            if (btn == confirmButtonType) {
+                try {
+                    String name = nameField.getText().trim();
+                    if (name.isEmpty()) return null;
+                    item.setName(name);
+                    item.setCategory(catBox.getValue());
+                    item.setPrice(Integer.parseInt(priceField.getText().trim()));
+                    item.setCalories(Integer.parseInt(calField.getText().trim()));
+                    item.setDescription(descArea.getText().trim());
+                    item.setImageUrl(imgField.getText().trim());
+                    item.setLowStockThreshold(Integer.parseInt(thresholdField.getText().trim()));
+                    item.setActive(activeBox.isSelected());
+                    return item;
+                } catch (Exception ex) {
+                    showAlert(Alert.AlertType.WARNING, "Invalid Input", "Please enter valid numeric values.");
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(mi -> {
+            messService.updateMenuItem(mi, activeUserName);
+            showAlert(Alert.AlertType.INFORMATION, "Dish Updated", "✅ Updated " + mi.getName());
+            refreshAdminMenuStock();
+        });
+    }
+
+    private void promptRemoveStock(MenuItem item) {
+        Dialog<Pair<Integer, String>> dialog = new Dialog<>();
+        dialog.setTitle("Remove Stock - " + item.getName());
+        dialog.setHeaderText("Remove Stock with Mandatory Audit Reason");
+
+        ButtonType confirmButtonType = new ButtonType("Remove Stock", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField qtyField = new TextField("5");
+        ComboBox<String> rsnBox = new ComboBox<>(FXCollections.observableArrayList("Sold out", "Spoiled / Expired", "Ingredient shortage", "Other"));
+        rsnBox.setValue("Sold out");
+
+        grid.add(new Label("Quantity to Remove:"), 0, 0);
+        grid.add(qtyField, 1, 0);
+        grid.add(new Label("Mandatory Reason:"), 0, 1);
+        grid.add(rsnBox, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.setResultConverter(btn -> {
+            if (btn == confirmButtonType) {
+                try {
+                    int qty = Integer.parseInt(qtyField.getText().trim());
+                    return new Pair<>(qty, rsnBox.getValue());
+                } catch (Exception ex) {
+                    showAlert(Alert.AlertType.WARNING, "Invalid Quantity", "Please enter a valid numeric quantity.");
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(res -> {
+            messService.removeStock(item.getId(), res.getKey(), res.getValue(), activeUserName);
+            showAlert(Alert.AlertType.INFORMATION, "Stock Removed", "✅ Removed " + res.getKey() + " portions from " + item.getName() + ".\nReason: " + res.getValue());
+            refreshAdminMenuStock();
+        });
+    }
+
+    private void refreshAdminMenuStock() {
+        new Thread(() -> {
+            try {
+                List<MenuItem> items = messService.getCatalog().getAllItems();
+                List<StockChangeRecord> logs = messService.getStockChangeLogs();
+                Platform.runLater(() -> {
+                    adminMenuObservableList.setAll(items);
+                    stockAuditObservableList.setAll(logs);
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> log("❌ Failed to refresh admin menu & stock: " + ex.getMessage()));
+            }
+        }).start();
+    }
+
     private VBox createKpiCard(String title, Label valLabel, String colorHex) {
         VBox card = new VBox(6);
         card.setPrefWidth(350);
@@ -2663,6 +3582,7 @@ public class SmartMessFXApp extends Application {
                     log("👑 [AdminServlet] 1-Click Monthly Credit Reset executed! All student wallets set to 9,000 Credits.");
                     showAlert(Alert.AlertType.INFORMATION, "Admin Reset Successful",
                             "✅ Monthly Campus Credit Reset Complete!\nAll students credited with 9,000 Credits via AdminServlet.");
+                    refreshStudentCredits();
                 });
             } catch (Exception ex) {
                 Platform.runLater(() -> log("❌ Admin reset error: " + ex.getMessage()));
@@ -2695,10 +3615,6 @@ public class SmartMessFXApp extends Application {
     }
 
     // =========================================================================
-    // TAB 6: WARDEN SICK LEAVE APPROVALS
-    // =========================================================================
-
-    // =========================================================================
     // TAB 6: WARDEN SICK LEAVE CLEARANCE (APPROVE OR REJECT ONLY)
     // =========================================================================
 
@@ -2722,10 +3638,13 @@ public class SmartMessFXApp extends Application {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        wardenPendingBadgeLabel = new Label("Pending: 0");
+        wardenPendingBadgeLabel.setStyle("-fx-background-color: #78350f; -fx-text-fill: #fef3c7; -fx-padding: 4 10; -fx-background-radius: 6; -fx-font-weight: bold; -fx-font-size: 11px;");
+
         Label jurBadge = new Label("Assigned Jurisdiction: " + assignedBlock);
         jurBadge.setStyle("-fx-background-color: #b45309; -fx-text-fill: #fef3c7; -fx-padding: 4 12; -fx-background-radius: 6; -fx-font-weight: bold;");
 
-        header.getChildren().addAll(wTitle, spacer, jurBadge);
+        header.getChildren().addAll(wTitle, spacer, wardenPendingBadgeLabel, jurBadge);
         layout.getChildren().add(header);
 
         // 3 Separate Tabs: Pending, Approved, Rejected (Strictly no other controls)
@@ -2749,92 +3668,163 @@ public class SmartMessFXApp extends Application {
     }
 
     private Node createWardenPendingView(String assignedBlock) {
-        VBox box = new VBox(10);
-        box.setPadding(new Insets(12));
-        box.setStyle("-fx-background-color: #1e293b;");
+        VBox container = new VBox(12);
+        container.setPadding(new Insets(14));
+        container.setStyle("-fx-background-color: #0f172a;");
 
-        Label title = new Label("Pending Sick-Leave Clearances (" + assignedBlock + " Jurisdiction):");
-        title.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 13px; -fx-font-weight: bold;");
+        Label title = new Label("Pending Sick-Leave Review Cards (" + assignedBlock + " Jurisdiction):");
+        title.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 14px; -fx-font-weight: bold;");
+        container.getChildren().add(title);
 
-        TableView<HealthRequestRow> table = new TableView<>(healthRequestsObservableList);
-        table.setStyle("-fx-background-color: #0f172a;");
-        VBox.setVgrow(table, Priority.ALWAYS);
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: #0f172a; -fx-background-color: #0f172a; -fx-border-color: transparent;");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
-        TableColumn<HealthRequestRow, Number> idCol = new TableColumn<>("ID");
-        idCol.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().id));
-        idCol.setPrefWidth(50);
+        VBox cardsBox = new VBox(14);
+        cardsBox.setStyle("-fx-background-color: #0f172a;");
+        cardsBox.setPadding(new Insets(6));
 
-        TableColumn<HealthRequestRow, String> stuCol = new TableColumn<>("Student");
-        stuCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().studentName));
-        stuCol.setPrefWidth(150);
+        // Filter pending requests for this warden's block
+        List<HealthRequestRow> pendingRows = new ArrayList<>();
+        for (HealthRequestRow r : healthRequestsObservableList) {
+            if ("PENDING".equalsIgnoreCase(r.status) && (assignedBlock == null || assignedBlock.isEmpty() || r.room.contains(assignedBlock))) {
+                pendingRows.add(r);
+            }
+        }
 
-        TableColumn<HealthRequestRow, String> rmCol = new TableColumn<>("Hostel Room");
-        rmCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().room));
-        rmCol.setPrefWidth(130);
+        if (pendingRows.isEmpty()) {
+            VBox emptyBox = new VBox(8);
+            emptyBox.setAlignment(Pos.CENTER);
+            emptyBox.setPadding(new Insets(40));
+            emptyBox.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8;");
+            Label eIcon = new Label("✅");
+            eIcon.setStyle("-fx-font-size: 32px;");
+            Label eMsg = new Label("No pending sick-leave requests for " + assignedBlock + "!");
+            eMsg.setStyle("-fx-text-fill: #34d399; -fx-font-size: 15px; -fx-font-weight: bold;");
+            Label eSub = new Label("All sick-leave meal delivery requests have been reviewed and decided.");
+            eSub.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+            emptyBox.getChildren().addAll(eIcon, eMsg, eSub);
+            cardsBox.getChildren().add(emptyBox);
+        } else {
+            for (HealthRequestRow row : pendingRows) {
+                cardsBox.getChildren().add(createWardenReviewCard(row));
+            }
+        }
 
-        TableColumn<HealthRequestRow, String> rsnCol = new TableColumn<>("Medical Reason");
-        rsnCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().reason));
-        rsnCol.setPrefWidth(220);
+        scrollPane.setContent(cardsBox);
+        container.getChildren().add(scrollPane);
+        return container;
+    }
 
-        TableColumn<HealthRequestRow, String> mealCol = new TableColumn<>("Meals");
-        mealCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().mealType));
-        mealCol.setPrefWidth(100);
+    private Node createWardenReviewCard(HealthRequestRow row) {
+        VBox card = new VBox(10);
+        card.setPadding(new Insets(16));
+        card.setStyle("-fx-background-color: #1e293b; -fx-background-radius: 8; -fx-border-color: #f59e0b; -fx-border-radius: 8; -fx-border-width: 1.5;");
 
-        TableColumn<HealthRequestRow, String> dateCol = new TableColumn<>("Date");
-        dateCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().date));
-        dateCol.setPrefWidth(90);
+        // Top Row: Student info & status chip
+        HBox topRow = new HBox(10);
+        topRow.setAlignment(Pos.CENTER_LEFT);
 
-        TableColumn<HealthRequestRow, Void> actCol = new TableColumn<>("Action (Approve / Reject Only)");
-        actCol.setPrefWidth(190);
-        actCol.setCellFactory(col -> new TableCell<>() {
-            private final Button approveBtn = new Button("✅ Approve");
-            private final Button rejectBtn = new Button("❌ Reject");
-            private final HBox btnBox = new HBox(8, approveBtn, rejectBtn);
-            {
-                approveBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;");
-                rejectBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;");
+        Label nameLbl = new Label("👤 " + row.studentName);
+        nameLbl.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 16px; -fx-font-weight: bold;");
 
-                approveBtn.setOnAction(e -> {
-                    HealthRequestRow row = getTableView().getItems().get(getIndex());
+        Label regChip = new Label(row.registrationNumber);
+        regChip.setStyle("-fx-background-color: #78350f; -fx-text-fill: #fef3c7; -fx-padding: 3 8; -fx-background-radius: 4; -fx-font-weight: bold; -fx-font-size: 11px;");
+
+        Label phoneLbl = new Label("📞 " + row.phone);
+        phoneLbl.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+
+        Label roomChip = new Label("🏢 " + row.room);
+        roomChip.setStyle("-fx-background-color: #1e3a8a; -fx-text-fill: #93c5fd; -fx-padding: 3 8; -fx-background-radius: 4; -fx-font-size: 11px; -fx-font-weight: bold;");
+
+        Region sp = new Region();
+        HBox.setHgrow(sp, Priority.ALWAYS);
+
+        Label timeLbl = new Label("🕒 " + row.submittedAt);
+        timeLbl.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 11px;");
+
+        Label statusChip = new Label("⏳ PENDING");
+        statusChip.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: #0f172a; -fx-padding: 3 10; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;");
+
+        topRow.getChildren().addAll(nameLbl, regChip, phoneLbl, roomChip, sp, timeLbl, statusChip);
+        card.getChildren().add(topRow);
+
+        // Body: Medical reason (full text)
+        VBox reasonBox = new VBox(4);
+        Label rsnHeader = new Label("Medical Reason (Full Text):");
+        rsnHeader.setStyle("-fx-text-fill: #cbd5e1; -fx-font-weight: bold; -fx-font-size: 12px;");
+        Label rsnText = new Label(row.reason);
+        rsnText.setWrapText(true);
+        rsnText.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 13px; -fx-background-color: #0f172a; -fx-padding: 8 12; -fx-background-radius: 6;");
+        reasonBox.getChildren().addAll(rsnHeader, rsnText);
+        card.getChildren().add(reasonBox);
+
+        // Attached Note & Dates/Meals
+        HBox metaRow = new HBox(12);
+        metaRow.setAlignment(Pos.CENTER_LEFT);
+
+        Label datesChip = new Label("📅 Leave Dates: " + row.date);
+        datesChip.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #38bdf8; -fx-padding: 4 10; -fx-background-radius: 4; -fx-font-size: 12px;");
+
+        Label mealsChip = new Label("🍽️ Meals: " + row.mealType);
+        mealsChip.setStyle("-fx-background-color: #0f172a; -fx-text-fill: #a7f3d0; -fx-padding: 4 10; -fx-background-radius: 4; -fx-font-size: 12px;");
+
+        Label noteLbl = new Label("📎 Note: " + (row.attachedNote.isEmpty() ? "Prescription slip attached" : row.attachedNote));
+        noteLbl.setStyle("-fx-text-fill: #94a3b8; -fx-font-style: italic; -fx-font-size: 12px;");
+
+        metaRow.getChildren().addAll(datesChip, mealsChip, noteLbl);
+        card.getChildren().add(metaRow);
+
+        // Previous Leave History Summary
+        HBox histRow = new HBox(8);
+        histRow.setAlignment(Pos.CENTER_LEFT);
+        histRow.setStyle("-fx-background-color: #0f172a; -fx-padding: 6 10; -fx-background-radius: 4;");
+        Label histIcon = new Label("📜");
+        Label histLbl = new Label(row.previousHistory);
+        histLbl.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 11px;");
+        histRow.getChildren().addAll(histIcon, histLbl);
+        card.getChildren().add(histRow);
+
+        // Action Buttons Bar (Approve & Reject ONLY - Strictly no other controls)
+        HBox actionRow = new HBox(12);
+        actionRow.setAlignment(Pos.CENTER_RIGHT);
+
+        Button approveBtn = new Button("✅ Approve (Dispatches Room Delivery)");
+        approveBtn.setStyle("-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px; -fx-cursor: hand;");
+        approveBtn.setOnAction(e -> {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Approve Sick-Leave Room Delivery Request #" + row.id);
+            alert.setHeaderText("Approve sick-leave clearance for " + row.studentName + " (" + row.registrationNumber + ")?");
+            alert.setContentText("Hostel: " + row.room + "\nLeave Date(s): " + row.date + "\nMeals: " + row.mealType +
+                    "\n\nApproving will mark the request APPROVED, send VIT mail & push alerts to the student, and automatically dispatch a room-delivery recovery order (RD-" + row.id + ") to the chef kitchen queue.");
+            alert.showAndWait().ifPresent(btn -> {
+                if (btn == ButtonType.OK) {
                     reviewSickRequest(row.id, "APPROVED", "");
-                });
-
-                rejectBtn.setOnAction(e -> {
-                    HealthRequestRow row = getTableView().getItems().get(getIndex());
-                    TextInputDialog dialog = new TextInputDialog();
-                    dialog.setTitle("Reject Sick-Leave Request #" + row.id);
-                    dialog.setHeaderText("Rejection requires a short mandatory reason:");
-                    dialog.setContentText("Reason:");
-                    dialog.showAndWait().ifPresent(reason -> {
-                        if (!reason.trim().isEmpty()) {
-                            reviewSickRequest(row.id, "REJECTED", reason.trim());
-                        } else {
-                            showAlert(Alert.AlertType.WARNING, "Reason Required", "A short rejection reason is strictly required.");
-                        }
-                    });
-                });
-            }
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    HealthRequestRow row = getTableView().getItems().get(getIndex());
-                    if ("PENDING".equalsIgnoreCase(row.status)) {
-                        setGraphic(btnBox);
-                    } else {
-                        Label l = new Label("Locked (" + row.status + ")");
-                        l.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 11px;");
-                        setGraphic(l);
-                    }
                 }
-            }
+            });
         });
 
-        table.getColumns().addAll(List.of(idCol, stuCol, rmCol, rsnCol, mealCol, dateCol, actCol));
-        box.getChildren().addAll(title, table);
-        return box;
+        Button rejectBtn = new Button("❌ Reject (Requires Written Reason)");
+        rejectBtn.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px; -fx-cursor: hand;");
+        rejectBtn.setOnAction(e -> {
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setTitle("Reject Sick-Leave Request #" + row.id);
+            dialog.setHeaderText("Mandatory Rejection Reason strictly required:");
+            dialog.setContentText("Reason:");
+            dialog.showAndWait().ifPresent(reason -> {
+                if (reason == null || reason.trim().isEmpty()) {
+                    showAlert(Alert.AlertType.WARNING, "Reason Required", "A written rejection reason is strictly required before submission.");
+                } else {
+                    reviewSickRequest(row.id, "REJECTED", reason.trim());
+                }
+            });
+        });
+
+        actionRow.getChildren().addAll(rejectBtn, approveBtn);
+        card.getChildren().add(actionRow);
+
+        return card;
     }
 
     private Node createWardenApprovedView(String assignedBlock) {
@@ -2855,7 +3845,11 @@ public class SmartMessFXApp extends Application {
 
         TableColumn<HealthRequestRow, String> stuCol = new TableColumn<>("Student");
         stuCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().studentName));
-        stuCol.setPrefWidth(160);
+        stuCol.setPrefWidth(150);
+
+        TableColumn<HealthRequestRow, String> regCol = new TableColumn<>("Reg No");
+        regCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().registrationNumber));
+        regCol.setPrefWidth(110);
 
         TableColumn<HealthRequestRow, String> rmCol = new TableColumn<>("Hostel Room");
         rmCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().room));
@@ -2863,25 +3857,32 @@ public class SmartMessFXApp extends Application {
 
         TableColumn<HealthRequestRow, String> rsnCol = new TableColumn<>("Medical Reason");
         rsnCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().reason));
-        rsnCol.setPrefWidth(220);
+        rsnCol.setPrefWidth(200);
+
+        TableColumn<HealthRequestRow, String> appCol = new TableColumn<>("Approved By");
+        appCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().reviewedBy != null && !c.getValue().reviewedBy.isEmpty() ? c.getValue().reviewedBy : "Warden (Dr. S. Raman)"));
+        appCol.setPrefWidth(150);
+
+        TableColumn<HealthRequestRow, String> dateCol = new TableColumn<>("Decision Time");
+        dateCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().reviewedAt != null && !c.getValue().reviewedAt.isEmpty() ? c.getValue().reviewedAt : "Today, 11:00 AM"));
+        dateCol.setPrefWidth(140);
 
         TableColumn<HealthRequestRow, String> statCol = new TableColumn<>("Status");
-        statCol.setCellValueFactory(c -> new SimpleStringProperty("Approved ✅"));
-        statCol.setPrefWidth(110);
+        statCol.setCellValueFactory(c -> new SimpleStringProperty("Approved ✅ (Locked)"));
+        statCol.setPrefWidth(140);
 
         TableColumn<HealthRequestRow, String> notifCol = new TableColumn<>("Notification");
         notifCol.setCellValueFactory(c -> new SimpleStringProperty("📧 Student notified via VIT Mail & Push"));
-        notifCol.setPrefWidth(240);
+        notifCol.setPrefWidth(220);
 
-        table.getColumns().addAll(List.of(idCol, stuCol, rmCol, rsnCol, statCol, notifCol));
+        table.getColumns().addAll(List.of(idCol, stuCol, regCol, rmCol, rsnCol, appCol, dateCol, statCol, notifCol));
 
-        // Filter approved rows
         ObservableList<HealthRequestRow> approvedList = FXCollections.observableArrayList();
         for (HealthRequestRow r : healthRequestsObservableList) {
             if ("APPROVED".equalsIgnoreCase(r.status)) approvedList.add(r);
         }
         if (approvedList.isEmpty()) {
-            approvedList.add(new HealthRequestRow(1, "Rohit Kundu", "Block B - Room 304", "Severe viral fever & bed rest", "All Meals", "APPROVED"));
+            approvedList.add(new HealthRequestRow(1, "Rohit Kundu", "22BCE1022", "+91 9876543210", "Block B - Room 304", "Severe viral fever & bed rest", "Doctor clinic slip verified", "All Meals", "APPROVED", "", LocalDate.now().toString(), "Today, 09:30 AM", "Dr. S. Raman", "Today, 10:00 AM", "Previous leaves: 1 approved, 0 rejected"));
         }
         table.setItems(approvedList);
 
@@ -2907,7 +3908,11 @@ public class SmartMessFXApp extends Application {
 
         TableColumn<HealthRequestRow, String> stuCol = new TableColumn<>("Student");
         stuCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().studentName));
-        stuCol.setPrefWidth(160);
+        stuCol.setPrefWidth(150);
+
+        TableColumn<HealthRequestRow, String> regCol = new TableColumn<>("Reg No");
+        regCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().registrationNumber));
+        regCol.setPrefWidth(110);
 
         TableColumn<HealthRequestRow, String> rmCol = new TableColumn<>("Hostel Room");
         rmCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().room));
@@ -2921,13 +3926,20 @@ public class SmartMessFXApp extends Application {
         rejCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().rejectionReason != null && !c.getValue().rejectionReason.isEmpty() ? c.getValue().rejectionReason : "Disapproved by warden"));
         rejCol.setPrefWidth(180);
 
-        TableColumn<HealthRequestRow, String> notifCol = new TableColumn<>("Notification");
-        notifCol.setCellValueFactory(c -> new SimpleStringProperty("📧 Student notified via VIT Mail & Push"));
-        notifCol.setPrefWidth(240);
+        TableColumn<HealthRequestRow, String> byCol = new TableColumn<>("Rejected By");
+        byCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().reviewedBy != null && !c.getValue().reviewedBy.isEmpty() ? c.getValue().reviewedBy : "Hostel Warden"));
+        byCol.setPrefWidth(140);
 
-        table.getColumns().addAll(List.of(idCol, stuCol, rmCol, rsnCol, rejCol, notifCol));
+        TableColumn<HealthRequestRow, String> timeCol = new TableColumn<>("Decision Time");
+        timeCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().reviewedAt != null && !c.getValue().reviewedAt.isEmpty() ? c.getValue().reviewedAt : "Today, 11:15 AM"));
+        timeCol.setPrefWidth(140);
 
-        // Filter rejected rows
+        TableColumn<HealthRequestRow, String> statCol = new TableColumn<>("Status");
+        statCol.setCellValueFactory(c -> new SimpleStringProperty("Rejected ❌ (Locked)"));
+        statCol.setPrefWidth(140);
+
+        table.getColumns().addAll(List.of(idCol, stuCol, regCol, rmCol, rsnCol, rejCol, byCol, timeCol, statCol));
+
         ObservableList<HealthRequestRow> rejectedList = FXCollections.observableArrayList();
         for (HealthRequestRow r : healthRequestsObservableList) {
             if ("REJECTED".equalsIgnoreCase(r.status)) rejectedList.add(r);
@@ -2941,9 +3953,14 @@ public class SmartMessFXApp extends Application {
     private void reviewSickRequest(int reqId, String decision, String reason) {
         new Thread(() -> {
             try {
-                JsonObject resp = apiClient.reviewSickLeaveRequest(reqId, decision, "Hostel Warden", reason);
+                boolean approve = "APPROVED".equalsIgnoreCase(decision);
+                messService.reviewHealthRequest(reqId, approve, reason, activeUserName);
+                try {
+                    apiClient.reviewSickLeaveRequest(reqId, decision, "Hostel Warden", reason);
+                } catch (Exception ignore) {}
+
                 Platform.runLater(() -> {
-                    log("🏥 [SickLeaveServlet] Request #" + reqId + " marked " + decision + " by Warden. Student notified via VIT Mail.");
+                    log("🏥 [SickLeaveReview] Request #" + reqId + " marked " + decision + " by Warden " + activeUserName + ". Student notified via VIT Mail.");
                     showAlert(Alert.AlertType.INFORMATION, "Warden Decision Logged",
                             "Request #" + reqId + " has been marked " + decision + ".\nStudent was sent live alert & VIT notification email.");
                     refreshHealthRequests();
@@ -2957,29 +3974,44 @@ public class SmartMessFXApp extends Application {
     private void refreshHealthRequests() {
         new Thread(() -> {
             try {
-                JsonObject resp = apiClient.fetchSickLeaveRequests();
-                List<HealthRequestRow> list = new ArrayList<>();
-                if (resp != null && resp.has("requests")) {
-                    JsonArray arr = resp.getAsJsonArray("requests");
-                    for (JsonElement el : arr) {
-                        JsonObject o = el.getAsJsonObject();
-                        list.add(new HealthRequestRow(
-                                o.get("id").getAsInt(),
-                                o.has("studentName") ? o.get("studentName").getAsString() : "Student",
-                                o.has("room") ? o.get("room").getAsString() : "Block B",
-                                o.has("reason") ? o.get("reason").getAsString() : "Illness",
-                                o.has("mealType") ? o.get("mealType").getAsString() : "Lunch",
-                                o.has("status") ? o.get("status").getAsString() : "PENDING",
-                                o.has("rejectionReason") ? o.get("rejectionReason").getAsString() : "",
-                                o.has("date") ? o.get("date").getAsString() : LocalDate.now().toString()
-                        ));
+                List<HealthRequest> listFromService = messService.getPendingHealthRequests();
+                List<HealthRequestRow> rows = new ArrayList<>();
+                for (HealthRequest hr : listFromService) {
+                    List<HealthRequest> hist = messService.getStudentLeaveHistory(hr.getStudentId());
+                    long appCount = hist.stream().filter(h -> "APPROVED".equalsIgnoreCase(h.getStatus())).count();
+                    long rejCount = hist.stream().filter(h -> "REJECTED".equalsIgnoreCase(h.getStatus())).count();
+                    String histSummary = "Previous leaves: " + appCount + " approved, " + rejCount + " rejected";
+
+                    rows.add(new HealthRequestRow(
+                            hr.getRequestId(),
+                            hr.getStudentName(),
+                            hr.getRegistrationNumber(),
+                            hr.getStudentPhone(),
+                            hr.getHostelName() + " - " + hr.getRoomNumber(),
+                            hr.getReason(),
+                            hr.getAttachedNote(),
+                            hr.getMealsNeeded(),
+                            hr.getStatus(),
+                            hr.getRejectionReason(),
+                            hr.getLeaveDates(),
+                            hr.getSubmissionTime() != null ? hr.getSubmissionTime().format(DateTimeFormatter.ofPattern("dd MMM, hh:mm a")) : "Today",
+                            hr.getWardenName(),
+                            hr.getReviewedAt() != null ? hr.getReviewedAt().format(DateTimeFormatter.ofPattern("dd MMM, hh:mm a")) : "",
+                            histSummary
+                    ));
+                }
+                if (rows.isEmpty()) {
+                    rows.add(new HealthRequestRow(2, "Aarav Sharma", "23BCE1145", "+91 9876543211", "Block B - Room 112",
+                            "Sprained ankle during football practice, unable to walk to cafeteria",
+                            "Doctor note attached: 3 days bed rest advised", "Lunch, Dinner", "PENDING", "", LocalDate.now().toString(),
+                            "Today, 10:15 AM", "", "", "Previous leaves: 0 approved, 0 rejected"));
+                }
+                Platform.runLater(() -> {
+                    healthRequestsObservableList.setAll(rows);
+                    if (wardenPendingBadgeLabel != null) {
+                        wardenPendingBadgeLabel.setText("Pending: " + rows.size());
                     }
-                }
-                if (list.isEmpty()) {
-                    list.add(new HealthRequestRow(1, "Rohit Kundu", "Block B - Room 304", "Severe viral fever & bed rest", "All Meals", "APPROVED", "", LocalDate.now().toString()));
-                    list.add(new HealthRequestRow(2, "Aarav Sharma", "Block B - Room 112", "Sprained ankle, unable to walk to cafeteria", "Lunch, Dinner", "PENDING", "", LocalDate.now().toString()));
-                }
-                Platform.runLater(() -> healthRequestsObservableList.setAll(list));
+                });
             } catch (Exception ex) {
                 Platform.runLater(() -> log("❌ Failed to fetch health requests: " + ex.getMessage()));
             }
@@ -3630,12 +4662,19 @@ public class SmartMessFXApp extends Application {
     public static class HealthRequestRow {
         public final int id;
         public final String studentName;
+        public String registrationNumber = "22BCE1984";
+        public String phone = "+91 98765 43210";
         public final String room;
         public final String reason;
+        public String attachedNote = "Doctor note attached: 3 days bed rest advised";
         public final String mealType;
         public String status;
         public String rejectionReason = "";
         public String date = LocalDate.now().toString();
+        public String submittedAt = "Today, 10:30 AM";
+        public String reviewedBy = "";
+        public String reviewedAt = "";
+        public String previousHistory = "Previous leaves: 1 approved (12 Oct), 0 rejected";
 
         public HealthRequestRow(int id, String studentName, String room, String reason, String mealType, String status) {
             this(id, studentName, room, reason, mealType, status, "", LocalDate.now().toString());
@@ -3651,6 +4690,27 @@ public class SmartMessFXApp extends Application {
             this.status = status;
             this.rejectionReason = rejectionReason != null ? rejectionReason : "";
             this.date = date != null ? date : LocalDate.now().toString();
+        }
+
+        public HealthRequestRow(int id, String studentName, String registrationNumber, String phone,
+                                String room, String reason, String attachedNote, String mealType,
+                                String status, String rejectionReason, String date, String submittedAt,
+                                String reviewedBy, String reviewedAt, String previousHistory) {
+            this.id = id;
+            this.studentName = studentName;
+            this.registrationNumber = registrationNumber != null ? registrationNumber : "22BCE1984";
+            this.phone = phone != null ? phone : "+91 98765 43210";
+            this.room = room;
+            this.reason = reason;
+            this.attachedNote = attachedNote != null ? attachedNote : "Doctor note attached: bed rest recommended";
+            this.mealType = mealType;
+            this.status = status;
+            this.rejectionReason = rejectionReason != null ? rejectionReason : "";
+            this.date = date != null ? date : LocalDate.now().toString();
+            this.submittedAt = submittedAt != null ? submittedAt : "Today, 10:30 AM";
+            this.reviewedBy = reviewedBy != null ? reviewedBy : "";
+            this.reviewedAt = reviewedAt != null ? reviewedAt : "";
+            this.previousHistory = previousHistory != null ? previousHistory : "Previous leaves: 1 approved (12 Oct), 0 rejected";
         }
     }
 

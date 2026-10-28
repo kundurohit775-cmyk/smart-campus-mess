@@ -9,6 +9,13 @@ public class InsufficientCreditsException extends MessException {
     private final int requiredCredits;
     private final int availableCredits;
 
+    public InsufficientCreditsException(String message) {
+        super(message);
+        this.studentId = 0;
+        this.requiredCredits = 0;
+        this.availableCredits = 0;
+    }
+
     public InsufficientCreditsException(int studentId, int requiredCredits, int availableCredits) {
         super(String.format("Insufficient mess credits for student ID #%d. Required: %d Cr, Available: %d Cr (Shortfall: %d Cr)",
                 studentId, requiredCredits, availableCredits, (requiredCredits - availableCredits)));
