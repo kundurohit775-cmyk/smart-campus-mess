@@ -72,22 +72,51 @@ public class CreditServlet extends HttpServlet {
 
         Map<String, Object> responseData = new HashMap<>();
         try {
-            JsonObject json = gson.fromJson(sb.toString(), JsonObject.class);
-            int studentId = json.has("studentId") ? json.get("studentId").getAsInt() : 22;
+            int studentId = 22;
+            int amount = 0;
+            Integer goal = null;
+            Boolean healthMode = null;
 
-            if (json.has("topupAmount")) {
-                int amount = json.get("topupAmount").getAsInt();
+            if (sb.length() > 0) {
+                try {
+                    JsonObject json = gson.fromJson(sb.toString(), JsonObject.class);
+                    if (json != null) {
+                        if (json.has("studentId")) studentId = json.get("studentId").getAsInt();
+                        if (json.has("topupAmount")) amount = json.get("topupAmount").getAsInt();
+                        else if (json.has("amount")) amount = json.get("amount").getAsInt();
+                        if (json.has("dailyCalorieGoal")) goal = json.get("dailyCalorieGoal").getAsInt();
+                        if (json.has("healthMode")) healthMode = json.get("healthMode").getAsBoolean();
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            if (req.getParameter("studentId") != null && !req.getParameter("studentId").isEmpty()) {
+                try { studentId = Integer.parseInt(req.getParameter("studentId")); } catch (Exception ignored) {}
+            }
+            if (req.getParameter("topupAmount") != null && !req.getParameter("topupAmount").isEmpty()) {
+                try { amount = Integer.parseInt(req.getParameter("topupAmount")); } catch (Exception ignored) {}
+            } else if (req.getParameter("amount") != null && !req.getParameter("amount").isEmpty()) {
+                try { amount = Integer.parseInt(req.getParameter("amount")); } catch (Exception ignored) {}
+            }
+
+            if (amount > 0) {
                 messService.topUpCredits(studentId, amount);
+                Student s = messService.getStudentProfile(studentId);
                 responseData.put("success", true);
-                responseData.put("message", "Successfully added " + amount + " Credits via Razorpay payment simulation.");
-            } else if (json.has("dailyCalorieGoal")) {
-                int goal = json.get("dailyCalorieGoal").getAsInt();
-                boolean healthMode = json.has("healthMode") && json.get("healthMode").getAsBoolean();
+                responseData.put("studentId", studentId);
+                responseData.put("amountAdded", amount);
+                responseData.put("remainingCredits", s.getRemainingCredits());
+                responseData.put("message", "Successfully added " + amount + " Credits via Razorpay payment simulation. New Balance: " + s.getRemainingCredits() + " Cr.");
+            } else if (goal != null) {
                 Student s = messService.getStudentProfile(studentId);
                 s.setDailyCalorieGoal(goal);
-                s.setHealthModeEnabled(healthMode);
+                if (healthMode != null) s.setHealthModeEnabled(healthMode);
                 responseData.put("success", true);
                 responseData.put("message", "Calorie goal updated to " + goal + " kcal.");
+            } else {
+                Student s = messService.getStudentProfile(studentId);
+                responseData.put("success", true);
+                responseData.put("remainingCredits", s.getRemainingCredits());
             }
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);

@@ -84,6 +84,10 @@ public class MenuCatalog {
         return new ArrayList<>(menuList);
     }
 
+    public List<MenuItem> getAll() {
+        return getAllItems();
+    }
+
     /**
      * Filter dishes by category using Collections and Streams.
      */

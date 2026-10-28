@@ -91,6 +91,8 @@ public interface IMessService {
 
     List<PreOrder> getPreOrders(int studentId);
 
+    List<SpecialMenuItem> getPreOrderCatalog();
+
     HealthRequest submitHealthRequest(int studentId, String hostel, String room, String reason, LocalDate date);
 
     HealthRequest submitHealthRequest(int studentId, String hostel, String room, String reason, LocalDate date, String mealsNeeded);

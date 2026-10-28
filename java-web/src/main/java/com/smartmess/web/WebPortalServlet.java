@@ -1,6 +1,7 @@
 package com.smartmess.web;
 
 import com.smartmess.auth.SecurityService;
+import com.smartmess.exception.InsufficientCreditsException;
 import com.smartmess.exception.InvalidOrderStateException;
 import com.smartmess.exception.MessException;
 import com.smartmess.exception.OutOfStockException;
@@ -746,7 +747,7 @@ public class WebPortalServlet extends HttpServlet {
             } else if ("chef".equalsIgnoreCase(role)) {
                 renderChefDashboard(out, session);
             } else if ("warden".equalsIgnoreCase(role)) {
-                renderWardenDashboard(out, session);
+                renderWardenDashboard(out, session, activeTab);
             } else if ("admin".equalsIgnoreCase(role)) {
                 renderAdminDashboard(out, session, activeTab);
             }
@@ -780,8 +781,12 @@ public class WebPortalServlet extends HttpServlet {
         HealthRequest todaySickReq = null;
         for (HealthRequest hr : mySickRequests) {
             if (today.equals(hr.getDate())) {
-                todaySickReq = hr;
-                break;
+                if ("APPROVED".equalsIgnoreCase(hr.getStatus())) {
+                    todaySickReq = hr;
+                    break;
+                } else if (todaySickReq == null) {
+                    todaySickReq = hr;
+                }
             }
         }
 
@@ -1044,18 +1049,84 @@ public class WebPortalServlet extends HttpServlet {
         out.println("      </div>");
         out.println("    </div>");
 
-        // 3. NEXT-DAY SPECIAL PRE-ORDER BANNER
-        out.println("    <div class='dash-card' style='border:1px solid #F59E0B; background:#FFFDF7;'>");
-        out.println("      <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;'>");
+        // 3. NEXT-DAY SPECIAL PRE-ORDERS HUB (ZERO FOOD WASTE DINING)
+        List<SpecialMenuItem> preOrderCatalog = messService.getPreOrderCatalog();
+        List<PreOrder> myPreOrders = messService.getPreOrders(session.userId);
+
+        out.println("    <div class='dash-card' style='border: 2px solid #F59E0B; background: linear-gradient(135deg, #FFFDF7 0%, #FEF3C7 100%); margin-top:20px;'>");
+        out.println("      <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;'>");
         out.println("        <div>");
-        out.println("          <h3 style='margin:0; font-size:16px; color:#B45309;'>⭐ Tomorrow's Chef Special: Royal Biryani (Zero Waste Hub)</h3>");
-        out.println("          <p style='margin:4px 0 0; font-size:13px; color:#92400E;'>Book before 22:00 tonight to guarantee your reserved meal portion.</p>");
+        out.println("          <span class='badge badge-orange' style='font-size:12px; font-weight:800;'>🌱 Zero Food Waste Initiative</span>");
+        out.println("          <h3 style='margin:6px 0 2px; font-size:19px; font-weight:800; color:#92400E;'>⭐ Next-Day Chef Special Pre-Orders Hub</h3>");
+        out.println("          <p style='margin:0; font-size:13px; color:#78350F;'>Pre-order today to reserve tomorrow's exclusive chef-crafted portions. Guaranteed meal &amp; zero waste!</p>");
         out.println("        </div>");
-        out.println("        <form method='POST' action='/action/book-preorder' style='margin:0;'>");
-        out.println("          <input type='hidden' name='itemId' value='12'>");
-        out.println("          <input type='hidden' name='dishName' value='Chef Weekend Royal Biryani'>");
-        out.println("          <button type='submit' class='btn btn-orange'>Book Pre-Order (200 Cr)</button>");
-        out.println("        </form>");
+        out.println("        <span class='badge' style='background:#FDE68A; color:#92400E; font-size:13px; padding:6px 14px; font-weight:700;'>📅 Scheduled for Tomorrow (" + today.plusDays(1) + ")</span>");
+        out.println("      </div>");
+
+        // Special Dishes Grid
+        out.println("      <div style='display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:18px; margin-bottom:20px;'>");
+        for (SpecialMenuItem special : preOrderCatalog) {
+            int remainingStock = special.getRemainingSpecialStock();
+            String img = (special.getImageUrl() != null && !special.getImageUrl().trim().isEmpty())
+                    ? special.getImageUrl().trim() : "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&auto=format&fit=crop&q=80";
+            out.println("        <div style='background:white; border-radius:12px; border:1px solid #FCD34D; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex; flex-direction:column; justify-content:space-between;'>");
+            out.println("          <div style='position:relative; height:160px; overflow:hidden;'>");
+            out.println("            <img src='" + escapeHtml(img) + "' alt='" + escapeHtml(special.getItemName()) + "' style='width:100%; height:100%; object-fit:cover;'>");
+            out.println("            <span class='badge badge-orange' style='position:absolute; top:10px; left:10px;'>⭐ Chef Special</span>");
+            out.println("            <span class='badge " + (remainingStock > 5 ? "badge-green" : "badge-red") + "' style='position:absolute; top:10px; right:10px; font-weight:700;'>" + remainingStock + " Portions Left</span>");
+            out.println("          </div>");
+            out.println("          <div style='padding:16px; flex-grow:1; display:flex; flex-direction:column; justify-content:space-between;'>");
+            out.println("            <div>");
+            out.println("              <div style='display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;'>");
+            out.println("                <h4 style='margin:0; font-size:16px; font-weight:800; color:#1E293B;'>" + escapeHtml(special.getItemName()) + "</h4>");
+            out.println("                <span style='font-size:16px; font-weight:800; color:#D97706;'>" + special.getPrice() + " Cr</span>");
+            out.println("              </div>");
+            out.println("              <p style='margin:0 0 10px; font-size:13px; color:#64748B; line-height:1.4;'>" + escapeHtml(special.getDescription()) + "</p>");
+            out.println("              <div style='font-size:12px; color:#78350F; background:#FFFBEB; padding:6px 10px; border-radius:6px; margin-bottom:12px;'>");
+            out.println("                🔥 <strong>" + special.getCalories() + " kcal</strong> • 🕒 Window: Tomorrow 19:30 - 20:30 • Counter Pickup");
+            out.println("              </div>");
+            out.println("            </div>");
+            out.println("            <form method='POST' action='/action/book-preorder' style='margin:0; display:flex; gap:10px; align-items:center;'>");
+            out.println("              <input type='hidden' name='itemId' value='" + special.getItemId() + "'>");
+            out.println("              <input type='number' name='quantity' value='1' min='1' max='" + Math.max(1, remainingStock) + "' style='width:60px; padding:8px; border:1px solid #CBD5E1; border-radius:6px; font-weight:700; text-align:center;'>");
+            if (remainingStock > 0) {
+                out.println("              <button type='submit' class='btn btn-orange' style='flex-grow:1; font-weight:700;'>⭐ Book Pre-Order (" + special.getPrice() + " Cr)</button>");
+            } else {
+                out.println("              <button type='button' class='btn' style='flex-grow:1; background:#CBD5E1; color:#64748B; cursor:not-allowed;' disabled>Sold Out</button>");
+            }
+            out.println("            </form>");
+            out.println("          </div>");
+            out.println("        </div>");
+        }
+        out.println("      </div>");
+
+        // My Booked Pre-Orders Table
+        out.println("      <div style='background:white; border-radius:10px; padding:16px; border:1px solid #FCD34D;'>");
+        out.println("        <h4 style='margin:0 0 12px; font-size:15px; font-weight:700; color:#1E293B;'>📜 My Booked Pre-Orders (" + myPreOrders.size() + ")</h4>");
+        if (myPreOrders.isEmpty()) {
+            out.println("        <p style='margin:0; font-size:13px; color:#6B6560;'>You haven't booked any next-day special meals yet. Reserve above to guarantee your portion!</p>");
+        } else {
+            out.println("        <div class='data-table-wrapper'>");
+            out.println("          <table class='data-table'>");
+            out.println("            <thead>");
+            out.println("              <tr><th>Pre-Order Token</th><th>Special Dish</th><th>Scheduled Date</th><th>Qty</th><th>Total Credits</th><th>Pickup Window</th><th>Status</th></tr>");
+            out.println("            </thead>");
+            out.println("            <tbody>");
+            for (PreOrder po : myPreOrders) {
+                out.println("              <tr>");
+                out.println("                <td><span class='badge badge-orange' style='font-weight:800; font-size:13px;'>" + escapeHtml(po.getPickupToken()) + "</span></td>");
+                out.println("                <td><strong>" + escapeHtml(po.getItemName()) + "</strong></td>");
+                out.println("                <td>" + po.getScheduledDate() + "</td>");
+                out.println("                <td>" + po.getQuantity() + " portion(s)</td>");
+                out.println("                <td><strong>" + po.getTotalAmount() + " Cr</strong></td>");
+                out.println("                <td>Tomorrow 19:30 - 20:30 (Counter)</td>");
+                out.println("                <td><span class='badge badge-green'>Confirmed ✅</span></td>");
+                out.println("              </tr>");
+            }
+            out.println("            </tbody>");
+            out.println("          </table>");
+            out.println("        </div>");
+        }
         out.println("      </div>");
         out.println("    </div>");
 
@@ -1154,12 +1225,27 @@ public class WebPortalServlet extends HttpServlet {
         out.println("        </div>");
 
         out.println("        <form method='POST' action='/action/order' id='tray-checkout-form' class='tray-footer'>");
+        out.println("          <input type='hidden' name='items' id='checkout-items' value=''>");
         out.println("          <input type='hidden' name='itemId' id='checkout-item-id' value=''>");
         out.println("          <input type='hidden' name='quantity' id='checkout-quantity' value='1'>");
-
-        out.println("          <div class='tray-total-row'>");
-        out.println("            <span>Total Credits</span>");
-        out.println("            <span style='color:#10b981;' id='tray-total-amount'>0 Cr</span>");
+        out.println("");
+        out.println("          <!-- Live Balance Deduction Breakdown -->");
+        out.println("          <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px; margin-bottom:14px;'>");
+        out.println("            <div style='display:flex; justify-content:space-between; font-size:13px; color:#64748B; margin-bottom:6px;'>");
+        out.println("              <span>Wallet Balance:</span>");
+        out.println("              <span style='font-weight:700; color:#1E293B;' id='tray-wallet-balance'>" + String.format("%,d", credits) + " Cr</span>");
+        out.println("            </div>");
+        out.println("            <div style='display:flex; justify-content:space-between; font-size:13px; color:#EF4444; margin-bottom:6px;'>");
+        out.println("              <span>Tray Subtotal:</span>");
+        out.println("              <span style='font-weight:700;' id='tray-subtotal-amount'>- 0 Cr</span>");
+        out.println("            </div>");
+        out.println("            <div style='display:flex; justify-content:space-between; font-size:14px; font-weight:800; border-top:1px dashed #CBD5E1; padding-top:6px;'>");
+        out.println("              <span>Projected Balance:</span>");
+        out.println("              <span style='color:#10B981;' id='tray-remaining-balance'>" + String.format("%,d", credits) + " Cr</span>");
+        out.println("            </div>");
+        out.println("            <div id='tray-balance-warning' style='display:none; color:#DC2626; font-size:12px; font-weight:700; margin-top:6px;'>");
+        out.println("              ⚠️ Insufficient credits! Please remove items or top up your wallet.");
+        out.println("            </div>");
         out.println("          </div>");
 
         out.println("          <div style='margin-bottom:16px;'>");
@@ -1194,22 +1280,39 @@ public class WebPortalServlet extends HttpServlet {
 
         // 6. ORDER HISTORY TABLE
         List<BaseOrder> history = messService.getOrderHistory(session.userId);
-        out.println("    <div class='dash-card'>");
-        out.println("      <h3 style='margin:0 0 14px; font-size:17px; font-weight:700;'>📜 My Food Order History</h3>");
+        out.println("    <div class='dash-card' style='margin-top:20px;'>");
+        out.println("      <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;'>");
+        out.println("        <div>");
+        out.println("          <h3 style='margin:0; font-size:17px; font-weight:700;'>📜 My Food Order History (" + history.size() + ")</h3>");
+        out.println("          <p style='margin:2px 0 0; font-size:12px; color:#6B6560;'>Updated live immediately upon placing each order.</p>");
+        out.println("        </div>");
+        out.println("        <a href='/api/java/history?studentId=" + session.userId + "&format=csv' class='btn btn-sm' style='background:#F1F5F9; color:#1E293B; border:1px solid #CBD5E1;'>📥 Download Order Ledger CSV</a>");
+        out.println("      </div>");
         out.println("      <div class='data-table-wrapper'>");
         out.println("        <table class='data-table'>");
         out.println("          <thead>");
-        out.println("            <tr><th>Order ID</th><th>Token</th><th>Modality</th><th>Amount</th><th>Status</th><th>Placed At</th></tr>");
+        out.println("            <tr><th>Order ID</th><th>Token</th><th>Modality</th><th>Dishes Ordered</th><th>Total Amount</th><th>Status</th><th>Placed At</th></tr>");
         out.println("          </thead>");
         out.println("          <tbody>");
         if (history.isEmpty()) {
-            out.println("            <tr><td colspan='6' style='text-align:center; color:#6B6560;'>No past orders recorded yet.</td></tr>");
+            out.println("            <tr><td colspan='7' style='text-align:center; padding:24px; color:#6B6560;'>No past orders recorded yet. Place an order above to see your order history!</td></tr>");
         } else {
             for (BaseOrder ho : history) {
+                StringBuilder dishSummary = new StringBuilder();
+                if (ho.getItems() != null && !ho.getItems().isEmpty()) {
+                    for (int i = 0; i < ho.getItems().size(); i++) {
+                        OrderItem it = ho.getItems().get(i);
+                        if (i > 0) dishSummary.append(", ");
+                        dishSummary.append(it.getQuantity()).append("x ").append(escapeHtml(it.getItemName()));
+                    }
+                } else {
+                    dishSummary.append("Standard Meal");
+                }
                 out.println("            <tr>");
                 out.println("              <td>#" + ho.getOrderId() + "</td>");
-                out.println("              <td><span class='badge badge-orange'><strong>" + escapeHtml(ho.getPickupToken()) + "</strong></span></td>");
+                out.println("              <td><span class='badge badge-orange' style='font-weight:800; font-size:13px;'><strong>" + escapeHtml(ho.getPickupToken()) + "</strong></span></td>");
                 out.println("              <td>" + (ho.isRoomDelivery() ? "🚚 Room Delivery (" + escapeHtml(ho.getDeliveryAddress()) + ")" : "🛍️ Cafeteria Pickup") + "</td>");
+                out.println("              <td>" + dishSummary + "</td>");
                 out.println("              <td><strong>" + ho.getTotalAmount() + " Cr</strong></td>");
                 out.println("              <td><span class='badge " + (ho.getStatus() == OrderStatus.COMPLETED || ho.getStatus() == OrderStatus.DELIVERED ? "badge-green" : "badge-orange") + "'>" + ho.getStatus().getDisplayName() + "</span></td>");
                 out.println("              <td>" + ho.getOrderTime() + "</td>");
@@ -1221,51 +1324,134 @@ public class WebPortalServlet extends HttpServlet {
         out.println("      </div>");
         out.println("    </div>");
 
-        // 7. INLINE REAL-TIME COUNTDOWN, TRAY LOGIC & SSE RECONNECT SCRIPT
+        // 7. INLINE REAL-TIME COUNTDOWN, MULTI-ITEM TRAY LOGIC & SSE RECONNECT SCRIPT
         out.println("    <script>");
-        out.println("    var trayItem = null;");
+        out.println("    var studentWalletBalance = " + credits + ";");
+        out.println("    var tray = {}; // key: itemId, value: { id, name, price, qty }");
+        out.println("");
         out.println("    function addToTray(id, name, price) {");
-        out.println("      trayItem = { id: id, name: name, price: price, qty: 1 };");
+        out.println("      if (tray[id]) {");
+        out.println("        tray[id].qty += 1;");
+        out.println("      } else {");
+        out.println("        tray[id] = { id: id, name: name, price: price, qty: 1 };");
+        out.println("      }");
         out.println("      renderTray();");
         out.println("      toggleTray(true);");
         out.println("      showToast('✅ Added ' + name + ' to your food tray!');");
         out.println("    }");
-        out.println("    function updateTrayQty(delta) {");
-        out.println("      if (!trayItem) return;");
-        out.println("      trayItem.qty = Math.max(0, trayItem.qty + delta);");
-        out.println("      if (trayItem.qty === 0) trayItem = null;");
+        out.println("");
+        out.println("    function updateTrayQty(id, delta) {");
+        out.println("      if (!tray[id]) return;");
+        out.println("      tray[id].qty += delta;");
+        out.println("      if (tray[id].qty <= 0) {");
+        out.println("        delete tray[id];");
+        out.println("      }");
         out.println("      renderTray();");
         out.println("    }");
+        out.println("");
+        out.println("    function removeTrayItem(id) {");
+        out.println("      delete tray[id];");
+        out.println("      renderTray();");
+        out.println("    }");
+        out.println("");
+        out.println("    function clearTray() {");
+        out.println("      tray = {};");
+        out.println("      renderTray();");
+        out.println("    }");
+        out.println("");
         out.println("    function renderTray() {");
         out.println("      var list = document.getElementById('tray-items-list');");
         out.println("      var submitBtn = document.getElementById('tray-submit-btn');");
-        out.println("      var totalEl = document.getElementById('tray-total-amount');");
+        out.println("      var walletEl = document.getElementById('tray-wallet-balance');");
+        out.println("      var subtotalEl = document.getElementById('tray-subtotal-amount');");
+        out.println("      var remainingEl = document.getElementById('tray-remaining-balance');");
+        out.println("      var warnEl = document.getElementById('tray-balance-warning');");
         out.println("      var floatCount = document.getElementById('floating-tray-count');");
+        out.println("      var itemsInput = document.getElementById('checkout-items');");
         out.println("      var itemInput = document.getElementById('checkout-item-id');");
         out.println("      var qtyInput = document.getElementById('checkout-quantity');");
-        out.println("      if (!trayItem) {");
-        out.println("        list.innerHTML = '<div style=\"text-align:center; padding:40px 20px; color:#6B6560;\">Your tray is empty. Click <strong>+ Add to Tray</strong> on any dish!</div>';");
+        out.println("");
+        out.println("      var keys = Object.keys(tray);");
+        out.println("      var totalQty = 0;");
+        out.println("      var subtotal = 0;");
+        out.println("");
+        out.println("      if (keys.length === 0) {");
+        out.println("        list.innerHTML = '<div style=\"text-align:center; padding:40px 20px; color:#6B6560;\">Your tray is empty. Click <strong>+ Add to Tray</strong> on any delicious meal!</div>';");
         out.println("        submitBtn.disabled = true;");
-        out.println("        totalEl.innerText = '0 Cr';");
-        out.println("        floatCount.innerText = '0';");
-        out.println("        itemInput.value = '';");
-        out.println("        qtyInput.value = '0';");
+        out.println("        if (subtotalEl) subtotalEl.innerText = '- 0 Cr';");
+        out.println("        if (remainingEl) {");
+        out.println("          remainingEl.innerText = studentWalletBalance.toLocaleString() + ' Cr';");
+        out.println("          remainingEl.style.color = '#10B981';");
+        out.println("        }");
+        out.println("        if (warnEl) warnEl.style.display = 'none';");
+        out.println("        if (floatCount) floatCount.innerText = '0';");
+        out.println("        if (itemsInput) itemsInput.value = '';");
+        out.println("        if (itemInput) itemInput.value = '';");
+        out.println("        if (qtyInput) qtyInput.value = '0';");
         out.println("        return;");
         out.println("      }");
-        out.println("      var subtotal = trayItem.price * trayItem.qty;");
-        out.println("      list.innerHTML = '<div class=\"tray-item-row\">' +");
-        out.println("        '<div><div style=\"font-weight:700;\">' + trayItem.name + '</div><div style=\"font-size:12px; color:#6B6560;\">' + trayItem.price + ' Cr each</div></div>' +");
-        out.println("        '<div class=\"tray-qty-ctrl\">' +");
-        out.println("          '<button type=\"button\" class=\"tray-qty-btn\" onclick=\"updateTrayQty(-1)\">-</button>' +");
-        out.println("          '<span class=\"tray-qty-val\">' + trayItem.qty + '</span>' +");
-        out.println("          '<button type=\"button\" class=\"tray-qty-btn\" onclick=\"updateTrayQty(1)\">+</button>' +");
-        out.println("        '</div>' +");
-        out.println("      '</div>';");
-        out.println("      totalEl.innerText = subtotal + ' Cr';");
-        out.println("      floatCount.innerText = trayItem.qty;");
-        out.println("      submitBtn.disabled = false;");
-        out.println("      itemInput.value = trayItem.id;");
-        out.println("      qtyInput.value = trayItem.qty;");
+        out.println("");
+        out.println("      var html = '';");
+        out.println("      var itemPairs = [];");
+        out.println("      var firstId = '';");
+        out.println("      var firstQty = 1;");
+        out.println("");
+        out.println("      for (var i = 0; i < keys.length; i++) {");
+        out.println("        var k = keys[i];");
+        out.println("        var it = tray[k];");
+        out.println("        totalQty += it.qty;");
+        out.println("        var itemTotal = it.price * it.qty;");
+        out.println("        subtotal += itemTotal;");
+        out.println("        itemPairs.push(it.id + ':' + it.qty);");
+        out.println("        if (i === 0) {");
+        out.println("          firstId = it.id;");
+        out.println("          firstQty = it.qty;");
+        out.println("        }");
+        out.println("");
+        out.println("        html += '<div class=\"tray-item-row\" style=\"display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #F1F5F9;\">' +");
+        out.println("          '<div>' +");
+        out.println("            '<div style=\"font-weight:700; font-size:14px; color:#1E293B;\">' + it.name + '</div>' +");
+        out.println("            '<div style=\"font-size:12px; color:#64748B;\">' + it.price + ' Cr each • <strong>' + itemTotal + ' Cr</strong></div>' +");
+        out.println("          '</div>' +");
+        out.println("          '<div style=\"display:flex; align-items:center; gap:8px;\">' +");
+        out.println("            '<div class=\"tray-qty-ctrl\" style=\"display:inline-flex; align-items:center; background:#F1F5F9; border-radius:6px; padding:2px;\">' +");
+        out.println("              '<button type=\"button\" class=\"tray-qty-btn\" style=\"border:none; background:transparent; width:26px; height:26px; cursor:pointer; font-weight:700;\" onclick=\"updateTrayQty(' + it.id + ', -1)\">-</button>' +");
+        out.println("              '<span class=\"tray-qty-val\" style=\"min-width:20px; text-align:center; font-weight:700; font-size:13px;\">' + it.qty + '</span>' +");
+        out.println("              '<button type=\"button\" class=\"tray-qty-btn\" style=\"border:none; background:transparent; width:26px; height:26px; cursor:pointer; font-weight:700;\" onclick=\"updateTrayQty(' + it.id + ', 1)\">+</button>' +");
+        out.println("            '</div>' +");
+        out.println("            '<button type=\"button\" onclick=\"removeTrayItem(' + it.id + ')\" title=\"Remove item\" style=\"border:none; background:transparent; color:#EF4444; cursor:pointer; font-size:15px; padding:2px 4px;\">🗑️</button>' +");
+        out.println("          '</div>' +");
+        out.println("        '</div>';");
+        out.println("      }");
+        out.println("");
+        out.println("      list.innerHTML = html;");
+        out.println("      if (floatCount) floatCount.innerText = totalQty;");
+        out.println("      if (subtotalEl) subtotalEl.innerText = '- ' + subtotal.toLocaleString() + ' Cr';");
+        out.println("");
+        out.println("      var projectedRemaining = studentWalletBalance - subtotal;");
+        out.println("      if (remainingEl) {");
+        out.println("        remainingEl.innerText = projectedRemaining.toLocaleString() + ' Cr';");
+        out.println("        if (projectedRemaining >= 0) {");
+        out.println("          remainingEl.style.color = '#10B981';");
+        out.println("        } else {");
+        out.println("          remainingEl.style.color = '#DC2626';");
+        out.println("        }");
+        out.println("      }");
+        out.println("");
+        out.println("      if (itemsInput) itemsInput.value = itemPairs.join(',');");
+        out.println("      if (itemInput) itemInput.value = firstId;");
+        out.println("      if (qtyInput) qtyInput.value = firstQty;");
+        out.println("");
+        out.println("      if (projectedRemaining < 0) {");
+        out.println("        submitBtn.disabled = true;");
+        out.println("        if (warnEl) {");
+        out.println("          warnEl.style.display = 'block';");
+        out.println("          warnEl.innerText = '⚠️ Insufficient credits! Total order: ' + subtotal + ' Cr, Available wallet: ' + studentWalletBalance + ' Cr.';");
+        out.println("        }");
+        out.println("      } else {");
+        out.println("        submitBtn.disabled = false;");
+        out.println("        if (warnEl) warnEl.style.display = 'none';");
+        out.println("      }");
         out.println("    }");
         out.println("    function toggleTray(open) {");
         out.println("      var root = document.getElementById('tray-panel-root');");
@@ -1350,11 +1536,16 @@ public class WebPortalServlet extends HttpServlet {
     // WARDEN PORTAL: LEAVE REVIEW CARDS, APPROVE/REJECT ONLY & REAL-TIME SSE
     // -------------------------------------------------------------------------
 
-    private void renderWardenDashboard(PrintWriter out, SecurityService.Session session) {
+    private void renderWardenDashboard(PrintWriter out, SecurityService.Session session, String activeWardenTab) {
         String assignedBlock = session.extra != null ? session.extra : "Block B";
         if (assignedBlock.contains("-")) {
             assignedBlock = assignedBlock.split("-")[0].trim();
         }
+
+        String active = (activeWardenTab != null && !activeWardenTab.isEmpty()) ? activeWardenTab.toLowerCase() : "pending";
+        boolean isApproved = "approved".equals(active);
+        boolean isRejected = "rejected".equals(active);
+        boolean isPending = !isApproved && !isRejected;
 
         List<HealthRequest> blockRequests = messService.getHealthRequestsForHostel(assignedBlock);
 
@@ -1384,13 +1575,13 @@ public class WebPortalServlet extends HttpServlet {
 
         // Tab Navigation
         out.println("    <div class='category-chips' style='margin-bottom:20px;'>");
-        out.println("      <button type='button' class='chip-btn active' id='btn-warden-pending' onclick='showWardenTab(\"pending\")'>⏳ Pending Requests (" + pending.size() + ")</button>");
-        out.println("      <button type='button' class='chip-btn' id='btn-warden-approved' onclick='showWardenTab(\"approved\")'>✅ Approved Requests (" + approved.size() + ")</button>");
-        out.println("      <button type='button' class='chip-btn' id='btn-warden-rejected' onclick='showWardenTab(\"rejected\")'>❌ Rejected Requests (" + rejected.size() + ")</button>");
+        out.println("      <button type='button' class='chip-btn " + (isPending ? "active" : "") + "' id='btn-warden-pending' onclick='showWardenTab(\"pending\")'>⏳ Pending Requests (" + pending.size() + ")</button>");
+        out.println("      <button type='button' class='chip-btn " + (isApproved ? "active" : "") + "' id='btn-warden-approved' onclick='showWardenTab(\"approved\")'>✅ Approved Requests (" + approved.size() + ")</button>");
+        out.println("      <button type='button' class='chip-btn " + (isRejected ? "active" : "") + "' id='btn-warden-rejected' onclick='showWardenTab(\"rejected\")'>❌ Rejected Requests (" + rejected.size() + ")</button>");
         out.println("    </div>");
 
         // TAB 1: PENDING LEAVE REQUESTS (REVIEW CARDS)
-        out.println("    <div id='tab-warden-pending' class='warden-tab-pane'>");
+        out.println("    <div id='tab-warden-pending' class='warden-tab-pane' style='display:" + (isPending ? "block" : "none") + ";'>");
         if (pending.isEmpty()) {
             out.println("      <div class='dash-card' style='text-align:center; padding:36px 20px;'>");
             out.println("        <div style='font-size:32px;'>☕</div>");
@@ -1451,7 +1642,7 @@ public class WebPortalServlet extends HttpServlet {
         out.println("    </div>");
 
         // TAB 2: APPROVED LEAVE REQUESTS (LOCKED ARCHIVE)
-        out.println("    <div id='tab-warden-approved' class='warden-tab-pane' style='display:none;'>");
+        out.println("    <div id='tab-warden-approved' class='warden-tab-pane' style='display:" + (isApproved ? "block" : "none") + ";'>");
         out.println("      <div class='dash-card'>");
         out.println("        <h3 style='margin:0 0 14px; font-size:16px;'>Approved Sick-Leave Clearances (" + approved.size() + ")</h3>");
         out.println("        <div class='data-table-wrapper'>");
@@ -1483,7 +1674,7 @@ public class WebPortalServlet extends HttpServlet {
         out.println("    </div>");
 
         // TAB 3: REJECTED LEAVE REQUESTS (LOCKED ARCHIVE WITH WRITTEN REASON)
-        out.println("    <div id='tab-warden-rejected' class='warden-tab-pane' style='display:none;'>");
+        out.println("    <div id='tab-warden-rejected' class='warden-tab-pane' style='display:" + (isRejected ? "block" : "none") + ";'>");
         out.println("      <div class='dash-card'>");
         out.println("        <h3 style='margin:0 0 14px; font-size:16px;'>Rejected Sick-Leave Applications (" + rejected.size() + ")</h3>");
         out.println("        <div class='data-table-wrapper'>");
@@ -2366,7 +2557,9 @@ public class WebPortalServlet extends HttpServlet {
         String roomNumber = req.getParameter("roomNumber");
         String password = req.getParameter("password");
 
-        SecurityService.AuthResult result = securityService.registerStudent(name, email, password, regNumber, roomNumber);
+        String phone = req.getParameter("phone");
+        if (phone == null || phone.trim().isEmpty()) phone = "+91 9876543210";
+        SecurityService.AuthResult result = securityService.registerStudent(name, email, phone, roomNumber, password, password, messService);
         if (result.success) {
             resp.sendRedirect("/login?role=student&msg=" + URLEncoder.encode("Account registered successfully! Please sign in.", StandardCharsets.UTF_8));
         } else {
@@ -2392,27 +2585,57 @@ public class WebPortalServlet extends HttpServlet {
 
     private void handleStudentOrder(HttpServletRequest req, HttpServletResponse resp, SecurityService.Session session) throws IOException {
         try {
-            int itemId = Integer.parseInt(req.getParameter("itemId"));
-            int qty = 1;
-            try { qty = Integer.parseInt(req.getParameter("quantity")); } catch (Exception ignored) {}
-            if (qty <= 0) qty = 1;
-
             String deliveryType = req.getParameter("deliveryType");
             boolean isRoom = "ROOM_DELIVERY".equalsIgnoreCase(deliveryType);
-
             Student student = messService.getStudentProfile(session.userId);
-            MenuItem item = messService.getCatalog().findById(itemId);
-            if (item == null) {
-                resp.sendRedirect("/dashboard?role=student&error=" + URLEncoder.encode("Item not found.", StandardCharsets.UTF_8));
+            String roomAddr = student != null ? student.getHostelRoom() : "Block B - Room 304";
+
+            List<OrderItem> items = new ArrayList<>();
+            String itemsParam = req.getParameter("items");
+            if (itemsParam != null && !itemsParam.trim().isEmpty()) {
+                String[] pairs = itemsParam.split(",");
+                for (String pair : pairs) {
+                    String[] parts = pair.trim().split(":");
+                    if (parts.length == 2) {
+                        try {
+                            int id = Integer.parseInt(parts[0].trim());
+                            int q = Integer.parseInt(parts[1].trim());
+                            if (q > 0) {
+                                MenuItem mi = messService.getCatalog().findById(id);
+                                if (mi != null) {
+                                    items.add(new OrderItem(mi.getItemId(), mi.getItemName(), q, mi.getPrice(), mi.getCalories()));
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+
+            if (items.isEmpty()) {
+                String itemIdStr = req.getParameter("itemId");
+                if (itemIdStr != null && !itemIdStr.trim().isEmpty()) {
+                    int itemId = Integer.parseInt(itemIdStr.trim());
+                    int qty = 1;
+                    try { qty = Integer.parseInt(req.getParameter("quantity")); } catch (Exception ignored) {}
+                    if (qty <= 0) qty = 1;
+                    MenuItem item = messService.getCatalog().findById(itemId);
+                    if (item == null) {
+                        resp.sendRedirect("/dashboard?role=student&error=" + URLEncoder.encode("Item not found.", StandardCharsets.UTF_8));
+                        return;
+                    }
+                    items.add(new OrderItem(item.getItemId(), item.getItemName(), qty, item.getPrice(), item.getCalories()));
+                }
+            }
+
+            if (items.isEmpty()) {
+                resp.sendRedirect("/dashboard?role=student&error=" + URLEncoder.encode("Your food tray is empty. Please add items before placing an order.", StandardCharsets.UTF_8));
                 return;
             }
 
-            List<OrderItem> items = Collections.singletonList(new OrderItem(item.getItemId(), item.getItemName(), qty, item.getPrice(), item.getCalories()));
-            String roomAddr = student != null ? student.getHostelRoom() : "Block B - Room 304";
-
             BaseOrder order = messService.placeOrder(session.userId, items, isRoom, roomAddr);
-            resp.sendRedirect("/dashboard?role=student&msg=" + URLEncoder.encode("Order #" + order.getOrderId() + " (" + order.getPickupToken() + ") placed successfully!", StandardCharsets.UTF_8));
-        } catch (OutOfStockException e) {
+            Student updatedStudent = messService.getStudentProfile(session.userId);
+            resp.sendRedirect("/dashboard?role=student&msg=" + URLEncoder.encode("Order #" + order.getOrderId() + " (" + order.getPickupToken() + ") placed successfully! Deducted " + order.getTotalAmount() + " Cr. Remaining wallet: " + updatedStudent.getRemainingCredits() + " Cr.", StandardCharsets.UTF_8));
+        } catch (OutOfStockException | InsufficientCreditsException e) {
             resp.sendRedirect("/dashboard?role=student&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
         } catch (Exception e) {
             resp.sendRedirect("/dashboard?role=student&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
@@ -2423,7 +2646,8 @@ public class WebPortalServlet extends HttpServlet {
         try {
             int orderId = Integer.parseInt(req.getParameter("orderId"));
             messService.cancelOrder(orderId, session.userId);
-            resp.sendRedirect("/dashboard?role=student&msg=" + URLEncoder.encode("Order #" + orderId + " cancelled. Full credits refunded.", StandardCharsets.UTF_8));
+            Student updatedStudent = messService.getStudentProfile(session.userId);
+            resp.sendRedirect("/dashboard?role=student&msg=" + URLEncoder.encode("Order #" + orderId + " cancelled. Full credits refunded. Wallet Balance: " + updatedStudent.getRemainingCredits() + " Cr.", StandardCharsets.UTF_8));
         } catch (InvalidOrderStateException e) {
             resp.sendRedirect("/dashboard?role=student&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
         } catch (Exception e) {
@@ -2459,7 +2683,8 @@ public class WebPortalServlet extends HttpServlet {
             String rejectionReason = req.getParameter("reason");
 
             messService.reviewHealthRequest(reqId, approve, rejectionReason, session.name);
-            resp.sendRedirect("/dashboard?role=warden&msg=" + URLEncoder.encode("Request #" + reqId + " " + (approve ? "Approved (Room delivery enabled)" : "Rejected"), StandardCharsets.UTF_8));
+            String destTab = approve ? "approved" : "rejected";
+            resp.sendRedirect("/dashboard?role=warden&tab=" + destTab + "&msg=" + URLEncoder.encode("Request #" + reqId + " " + (approve ? "Approved (Room delivery enabled)" : "Rejected"), StandardCharsets.UTF_8));
         } catch (Exception e) {
             resp.sendRedirect("/dashboard?role=warden&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
         }
@@ -2492,8 +2717,12 @@ public class WebPortalServlet extends HttpServlet {
     private void handleBookPreOrder(HttpServletRequest req, HttpServletResponse resp, SecurityService.Session session) throws IOException {
         try {
             int itemId = Integer.parseInt(req.getParameter("itemId"));
-            messService.placePreOrder(session.userId, itemId, 1, LocalDate.now().plusDays(1));
-            resp.sendRedirect("/dashboard?role=student&msg=" + URLEncoder.encode("Pre-order booked for tomorrow's special portion!", StandardCharsets.UTF_8));
+            int qty = 1;
+            try { qty = Integer.parseInt(req.getParameter("quantity")); } catch (Exception ignored) {}
+            if (qty <= 0) qty = 1;
+            PreOrder po = messService.placePreOrder(session.userId, itemId, qty, LocalDate.now().plusDays(1));
+            Student updatedStudent = messService.getStudentProfile(session.userId);
+            resp.sendRedirect("/dashboard?role=student&msg=" + URLEncoder.encode("⭐ Pre-order booked successfully! Token: " + po.getPickupToken() + " (" + po.getItemName() + " x" + po.getQuantity() + "). Charged " + po.getTotalAmount() + " Cr. Remaining wallet: " + updatedStudent.getRemainingCredits() + " Cr.", StandardCharsets.UTF_8));
         } catch (Exception e) {
             resp.sendRedirect("/dashboard?role=student&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
         }
@@ -2503,7 +2732,8 @@ public class WebPortalServlet extends HttpServlet {
         try {
             int amount = Integer.parseInt(req.getParameter("amount"));
             messService.topUpCredits(session.userId, amount);
-            resp.sendRedirect("/dashboard?role=student&msg=" + URLEncoder.encode("Successfully topped up +" + amount + " Credits via Razorpay.", StandardCharsets.UTF_8));
+            Student updatedStudent = messService.getStudentProfile(session.userId);
+            resp.sendRedirect("/dashboard?role=student&msg=" + URLEncoder.encode("Successfully topped up +" + amount + " Credits via Razorpay. New Wallet Balance: " + updatedStudent.getRemainingCredits() + " Cr.", StandardCharsets.UTF_8));
         } catch (Exception e) {
             resp.sendRedirect("/dashboard?role=student&error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
         }

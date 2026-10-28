@@ -223,8 +223,22 @@ public class MessServiceImpl implements IMessService {
             catalog.addItem(new MenuItem(11, "Fresh Lime Soda", "Beverages", 25, 60, 90,
                     "Chilled sparkling mineral water blended with hand-pressed Kagzi limes, black salt, and organic mint leaves.",
                     "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&auto=format&fit=crop&q=80", 20));
-            catalog.addItem(new SpecialMenuItem(12, "Chef Weekend Royal Biryani", "Dinner", 200, 780, 25,
-                    LocalDate.now().plusDays(1)));
+        }
+
+        // Always guarantee that Next-Day Special Pre-Order dishes exist in the catalog
+        if (catalog.findById(12) == null) {
+            SpecialMenuItem biryani = new SpecialMenuItem(12, "Chef Weekend Royal Biryani", "Dinner", 200, 780, 25,
+                    LocalDate.now().plusDays(1));
+            biryani.setDescription("Slow-cooked dum biryani prepared with aged basmati, whole spices, saffron essence, and garnished with roasted cashews & boiled egg / paneer.");
+            biryani.setImageUrl("https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&auto=format&fit=crop&q=80");
+            catalog.addItem(biryani);
+        }
+        if (catalog.findById(13) == null) {
+            SpecialMenuItem pulao = new SpecialMenuItem(13, "Sunday Shahi Paneer Pulao Feast", "Dinner", 190, 680, 30,
+                    LocalDate.now().plusDays(1));
+            pulao.setDescription("Royal saffron-infused basmati rice layered with charcoal-smoked malai paneer cubes, ghee, fried onions, and served with burani raita.");
+            pulao.setImageUrl("https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=600&auto=format&fit=crop&q=80");
+            catalog.addItem(pulao);
         }
     }
 
@@ -247,7 +261,7 @@ public class MessServiceImpl implements IMessService {
                 }
             } catch (SQLException ignored) {}
         }
-        Student defaultStudent = new Student(studentId, "Rohit Kundu", "rohit.kundu2022@vitstudent.ac.in", "+91 9876543210", "Block B - Room 304", 8700);
+        Student defaultStudent = new Student(studentId, "Rohit Kundu", "rohit.kundu2022@vitstudent.ac.in", "+91 9876543210", "Block B - Room 304", 9000);
         inMemoryStudents.put(studentId, defaultStudent);
         return defaultStudent;
     }
@@ -256,6 +270,11 @@ public class MessServiceImpl implements IMessService {
     public synchronized void registerStudent(Student student) {
         if (student != null) {
             inMemoryStudents.put(student.getId(), student);
+            if (DatabaseConnection.isConfigured()) {
+                try (Connection conn = DatabaseConnection.getConnection()) {
+                    studentDAO.updateCredits(conn, student.getId(), student.getRemainingCredits(), student.getUsedCredits());
+                } catch (Exception ignored) {}
+            }
         }
     }
 
@@ -712,6 +731,11 @@ public class MessServiceImpl implements IMessService {
 
         // Deduct student credits & record transaction
         student.deductCredits(totalAmount);
+        if (DatabaseConnection.isConfigured()) {
+            try (Connection conn = DatabaseConnection.getConnection()) {
+                studentDAO.updateCredits(conn, studentId, student.getRemainingCredits(), student.getUsedCredits());
+            } catch (Exception ignored) {}
+        }
         inMemoryTransactions.add(new TransactionRecord(
                 transactionIdSequence.incrementAndGet(),
                 studentId,
@@ -778,6 +802,11 @@ public class MessServiceImpl implements IMessService {
         // Refund student credits
         Student student = getStudentProfile(studentId);
         student.refundCredits(order.getTotalAmount());
+        if (DatabaseConnection.isConfigured()) {
+            try (Connection conn = DatabaseConnection.getConnection()) {
+                studentDAO.updateCredits(conn, studentId, student.getRemainingCredits(), student.getUsedCredits());
+            } catch (Exception ignored) {}
+        }
         inMemoryTransactions.add(new TransactionRecord(
                 transactionIdSequence.incrementAndGet(),
                 studentId,
@@ -890,13 +919,27 @@ public class MessServiceImpl implements IMessService {
         if (item == null) {
             throw new MenuItemNotFoundException("Pre-order item #" + itemId + " not found.");
         }
+        if (quantity <= 0) quantity = 1;
+        if (item instanceof SpecialMenuItem) {
+            SpecialMenuItem special = (SpecialMenuItem) item;
+            if (special.getRemainingSpecialStock() < quantity) {
+                throw new OutOfStockException("Only " + special.getRemainingSpecialStock() + " portions remaining for " + special.getItemName());
+            }
+            special.setPreOrderCount(special.getPreOrderCount() + quantity);
+        }
         Student student = getStudentProfile(studentId);
         int total = item.getPrice() * quantity;
         if (!student.hasSufficientCredits(total)) {
-            throw new InsufficientCreditsException("Insufficient credits for pre-order.");
+            throw new InsufficientCreditsException(String.format("Insufficient credits for pre-order. Required: %d Cr, Available: %d Cr.", total, student.getRemainingCredits()));
         }
         student.deductCredits(total);
-        PreOrder pre = new PreOrder(preOrderIdSequence.incrementAndGet(), studentId, student.getName(), itemId, item.getItemName(), quantity, total, scheduledDate);
+        if (DatabaseConnection.isConfigured()) {
+            try (Connection conn = DatabaseConnection.getConnection()) {
+                studentDAO.updateCredits(conn, studentId, student.getRemainingCredits(), student.getUsedCredits());
+            } catch (Exception ignored) {}
+        }
+        LocalDate date = scheduledDate != null ? scheduledDate : LocalDate.now().plusDays(1);
+        PreOrder pre = new PreOrder(preOrderIdSequence.incrementAndGet(), studentId, student.getName(), itemId, item.getItemName(), quantity, total, date);
         inMemoryPreOrders.add(pre);
         inMemoryTransactions.add(new TransactionRecord(
                 transactionIdSequence.incrementAndGet(),
@@ -920,6 +963,17 @@ public class MessServiceImpl implements IMessService {
             if (p.getStudentId() == studentId) list.add(p);
         }
         list.sort((a, b) -> Integer.compare(b.getPreOrderId(), a.getPreOrderId()));
+        return list;
+    }
+
+    @Override
+    public synchronized List<SpecialMenuItem> getPreOrderCatalog() {
+        List<SpecialMenuItem> list = new ArrayList<>();
+        for (MenuItem item : catalog.getAllItems()) {
+            if (item instanceof SpecialMenuItem && !item.isArchived()) {
+                list.add((SpecialMenuItem) item);
+            }
+        }
         return list;
     }
 
@@ -1094,6 +1148,11 @@ public class MessServiceImpl implements IMessService {
         if (amount > 0) {
             Student student = getStudentProfile(studentId);
             student.addCredits(amount);
+            if (DatabaseConnection.isConfigured()) {
+                try (Connection conn = DatabaseConnection.getConnection()) {
+                    studentDAO.updateCredits(conn, studentId, student.getRemainingCredits(), student.getUsedCredits());
+                } catch (Exception ignored) {}
+            }
             inMemoryTransactions.add(new TransactionRecord(
                     transactionIdSequence.incrementAndGet(),
                     studentId,

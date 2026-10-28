@@ -44,7 +44,10 @@ public class PreOrderServlet extends HttpServlet {
         List<PreOrder> list = messService.getPreOrders(studentId);
         Map<String, Object> data = new HashMap<>();
         data.put("success", true);
+        data.put("studentId", studentId);
         data.put("preOrders", list);
+        data.put("preorders", list);
+        data.put("specialCatalog", messService.getPreOrderCatalog());
 
         try (PrintWriter out = resp.getWriter()) {
             out.print(gson.toJson(data));
@@ -65,16 +68,42 @@ public class PreOrderServlet extends HttpServlet {
 
         Map<String, Object> responseData = new HashMap<>();
         try {
-            JsonObject json = gson.fromJson(sb.toString(), JsonObject.class);
-            int studentId = json.has("studentId") ? json.get("studentId").getAsInt() : 22;
-            int itemId = json.has("itemId") ? json.get("itemId").getAsInt() : 12;
-            int quantity = json.has("quantity") ? json.get("quantity").getAsInt() : 1;
+            int studentId = 22;
+            int itemId = 12;
+            int quantity = 1;
+
+            if (sb.length() > 0) {
+                try {
+                    JsonObject json = gson.fromJson(sb.toString(), JsonObject.class);
+                    if (json != null) {
+                        if (json.has("studentId")) studentId = json.get("studentId").getAsInt();
+                        if (json.has("itemId")) itemId = json.get("itemId").getAsInt();
+                        if (json.has("quantity")) quantity = json.get("quantity").getAsInt();
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            if (req.getParameter("studentId") != null && !req.getParameter("studentId").isEmpty()) {
+                try { studentId = Integer.parseInt(req.getParameter("studentId")); } catch (Exception ignored) {}
+            }
+            if (req.getParameter("itemId") != null && !req.getParameter("itemId").isEmpty()) {
+                try { itemId = Integer.parseInt(req.getParameter("itemId")); } catch (Exception ignored) {}
+            }
+            if (req.getParameter("quantity") != null && !req.getParameter("quantity").isEmpty()) {
+                try { quantity = Integer.parseInt(req.getParameter("quantity")); } catch (Exception ignored) {}
+            }
 
             PreOrder pre = messService.placePreOrder(studentId, itemId, quantity, LocalDate.now().plusDays(1));
             resp.setStatus(HttpServletResponse.SC_CREATED);
             responseData.put("success", true);
             responseData.put("message", "Next-day pre-order confirmed! Token: " + pre.getPickupToken());
+            responseData.put("token", pre.getPickupToken());
+            responseData.put("pickupToken", pre.getPickupToken());
+            responseData.put("targetDate", pre.getScheduledDate().toString());
+            responseData.put("scheduledDate", pre.getScheduledDate().toString());
             responseData.put("preOrder", pre);
+            responseData.put("preOrders", messService.getPreOrders(studentId));
+            responseData.put("preorders", messService.getPreOrders(studentId));
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             responseData.put("success", false);

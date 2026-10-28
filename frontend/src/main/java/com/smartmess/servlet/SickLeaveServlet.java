@@ -103,20 +103,51 @@ public class SickLeaveServlet extends HttpServlet {
 
         Map<String, Object> responseData = new HashMap<>();
         try {
-            JsonObject json = gson.fromJson(sb.toString(), JsonObject.class);
-            if (json == null) throw new IllegalArgumentException("Payload cannot be empty.");
+            JsonObject json = null;
+            if (sb.length() > 0) {
+                try {
+                    json = gson.fromJson(sb.toString(), JsonObject.class);
+                } catch (Exception ignored) {}
+            }
 
-            String action = json.has("action") ? json.get("action").getAsString() : "submit";
+            String action = "submit";
+            if (json != null && json.has("action")) {
+                action = json.get("action").getAsString();
+            } else if (req.getParameter("action") != null && !req.getParameter("action").isEmpty()) {
+                action = req.getParameter("action");
+            } else if (req.getParameter("decision") != null || req.getParameter("requestId") != null) {
+                action = "review";
+            }
 
             if ("review".equalsIgnoreCase(action)) {
                 // Rule 3: Warden actions are Approve and Reject only
-                int requestId = json.get("requestId").getAsInt();
-                boolean approve = json.has("approve") ? json.get("approve").getAsBoolean()
-                        : (json.has("decision") && json.get("decision").getAsString().toUpperCase().startsWith("APP"));
-                String reason = json.has("rejectionReason") ? json.get("rejectionReason").getAsString().trim()
-                        : (json.has("reason") ? json.get("reason").getAsString().trim() : "");
-                String warden = json.has("wardenName") ? json.get("wardenName").getAsString()
-                        : (json.has("reviewedBy") ? json.get("reviewedBy").getAsString() : "Hostel Warden");
+                int requestId = 0;
+                if (json != null && json.has("requestId")) requestId = json.get("requestId").getAsInt();
+                else if (req.getParameter("requestId") != null) requestId = Integer.parseInt(req.getParameter("requestId"));
+
+                boolean approve = true;
+                if (json != null) {
+                    if (json.has("approve")) approve = json.get("approve").getAsBoolean();
+                    else if (json.has("decision")) approve = json.get("decision").getAsString().toUpperCase().startsWith("APP");
+                } else if (req.getParameter("decision") != null) {
+                    approve = req.getParameter("decision").toUpperCase().startsWith("APP");
+                }
+
+                String reason = "";
+                if (json != null) {
+                    if (json.has("rejectionReason")) reason = json.get("rejectionReason").getAsString().trim();
+                    else if (json.has("reason")) reason = json.get("reason").getAsString().trim();
+                } else if (req.getParameter("reason") != null) {
+                    reason = req.getParameter("reason").trim();
+                }
+
+                String warden = "Hostel Warden";
+                if (json != null) {
+                    if (json.has("wardenName")) warden = json.get("wardenName").getAsString();
+                    else if (json.has("reviewedBy")) warden = json.get("reviewedBy").getAsString();
+                } else if (req.getParameter("wardenName") != null) {
+                    warden = req.getParameter("wardenName");
+                }
 
                 if (!approve && reason.isEmpty()) {
                     throw new IllegalArgumentException("A short rejection reason is required.");
@@ -133,12 +164,31 @@ public class SickLeaveServlet extends HttpServlet {
 
             } else {
                 // Rule 2: Student submitting sick leave request (hostel block, room, reason, date, meals)
-                int studentId = json.has("studentId") ? json.get("studentId").getAsInt() : 22;
-                String hostel = json.has("hostelName") ? json.get("hostelName").getAsString().trim() : "";
-                String room = json.has("roomNumber") ? json.get("roomNumber").getAsString().trim() : "";
-                String reason = json.has("reason") ? json.get("reason").getAsString().trim() : "";
-                String dateStr = json.has("date") ? json.get("date").getAsString().trim() : null;
-                String meals = json.has("mealsNeeded") ? json.get("mealsNeeded").getAsString().trim() : "All Meals (Breakfast, Lunch, Dinner)";
+                int studentId = 22;
+                String hostel = "";
+                String room = "";
+                String reason = "";
+                String dateStr = null;
+                String meals = "All Meals (Breakfast, Lunch, Dinner)";
+
+                if (json != null) {
+                    if (json.has("studentId")) studentId = json.get("studentId").getAsInt();
+                    if (json.has("hostelName")) hostel = json.get("hostelName").getAsString().trim();
+                    if (json.has("roomNumber")) room = json.get("roomNumber").getAsString().trim();
+                    if (json.has("reason")) reason = json.get("reason").getAsString().trim();
+                    if (json.has("date")) dateStr = json.get("date").getAsString().trim();
+                    if (json.has("mealsNeeded")) meals = json.get("mealsNeeded").getAsString().trim();
+                }
+
+                if (req.getParameter("studentId") != null && !req.getParameter("studentId").isEmpty()) {
+                    try { studentId = Integer.parseInt(req.getParameter("studentId")); } catch (Exception ignored) {}
+                }
+                if (req.getParameter("hostelBlock") != null) hostel = req.getParameter("hostelBlock").trim();
+                else if (req.getParameter("hostelName") != null) hostel = req.getParameter("hostelName").trim();
+                if (req.getParameter("roomNumber") != null) room = req.getParameter("roomNumber").trim();
+                if (req.getParameter("reason") != null) reason = req.getParameter("reason").trim();
+                if (req.getParameter("date") != null) dateStr = req.getParameter("date").trim();
+                if (req.getParameter("mealsNeeded") != null) meals = req.getParameter("mealsNeeded").trim();
 
                 if (hostel.isEmpty() || room.isEmpty() || reason.isEmpty()) {
                     throw new IllegalArgumentException("Hostel block, room number, and sick leave reason are all required.");

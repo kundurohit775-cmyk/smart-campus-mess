@@ -62,10 +62,13 @@ public class OrderHistoryServlet extends HttpServlet {
             resp.setCharacterEncoding("UTF-8");
             resp.setStatus(HttpServletResponse.SC_OK);
 
+            List<BaseOrder> orders = messService.getOrderHistory(studentId);
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("success", true);
             responseData.put("studentId", studentId);
             responseData.put("student", messService.getStudentProfile(studentId));
+            responseData.put("orders", orders);
+            responseData.put("totalOrders", orders.size());
 
             try (PrintWriter out = resp.getWriter()) {
                 out.print(gson.toJson(responseData));

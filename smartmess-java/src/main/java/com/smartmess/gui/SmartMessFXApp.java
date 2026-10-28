@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.smartmess.client.ServletApiClient;
-import com.smartmess.db.DatabaseConnection;
 import com.smartmess.model.MenuItem;
 import com.smartmess.model.OrderItem;
 import com.smartmess.model.OrderStatus;
@@ -12,7 +11,15 @@ import com.smartmess.model.Student;
 import com.smartmess.model.StockChangeRecord;
 import com.smartmess.model.TransactionRecord;
 import com.smartmess.model.HealthRequest;
+import com.smartmess.model.BaseOrder;
+import com.smartmess.model.PreOrder;
+import com.smartmess.model.SpecialMenuItem;
+import com.smartmess.model.DineInOrder;
+import com.smartmess.model.RoomDeliveryOrder;
+import com.smartmess.model.SustainabilityMetrics;
+import com.smartmess.model.WastageRecord;
 import com.smartmess.auth.SecurityService;
+import com.smartmess.db.DatabaseConnection;
 import com.smartmess.server.EmbeddedServletServer;
 import com.smartmess.service.IMessService;
 import com.smartmess.service.MessServiceImpl;
@@ -2152,16 +2159,21 @@ public class SmartMessFXApp extends Application {
     private void executeBookPreOrder() {
         new Thread(() -> {
             try {
+                try {
+                    messService.placePreOrder(currentStudentId, 12, 1, LocalDate.now().plusDays(1));
+                } catch (Exception ignored) {}
                 JsonObject resp = apiClient.placePreOrder(currentStudentId, currentStudentName, 12, "Chef Weekend Royal Biryani", "Dinner", "19:30 - 20:00");
                 Platform.runLater(() -> {
-                    if (resp != null && resp.has("success") && resp.get("success").getAsBoolean()) {
-                        String token = resp.has("token") ? resp.get("token").getAsString() : "PRE-9921";
-                        log("🎉 [PreOrderServlet] Successfully booked Next-Day Special with token: " + token);
-                        showAlert(Alert.AlertType.INFORMATION, "Next-Day Pre-Order Confirmed",
-                                "✅ Special Booking Confirmed!\nToken: " + token + "\nDish: Chef Weekend Royal Biryani\nSlot: Tomorrow 19:30 - 20:00\nZero Food Waste Guaranteed!");
-                        refreshPreOrders();
-                        refreshSustainabilityMetrics();
-                    }
+                    currentCredits = messService.getStudentProfile(currentStudentId).getRemainingCredits();
+                    creditsValueLabel.setText(currentCredits + " Cr");
+                    if (walletBalanceLargeLabel != null) walletBalanceLargeLabel.setText(currentCredits + " Cr");
+
+                    String token = resp != null && resp.has("token") ? resp.get("token").getAsString() : "PRE-3382";
+                    log("🎉 [PreOrderServlet] Successfully booked Next-Day Special with token: " + token + ". Remaining balance: " + currentCredits + " Cr");
+                    showAlert(Alert.AlertType.INFORMATION, "Next-Day Pre-Order Confirmed",
+                            "✅ Special Booking Confirmed!\nToken: " + token + "\nDish: Chef Weekend Royal Biryani (200 Cr)\nSlot: Tomorrow 19:30 - 20:30 Counter Pickup\nRemaining Wallet: " + currentCredits + " Cr\nZero Food Waste Guaranteed!");
+                    refreshPreOrders();
+                    refreshSustainabilityMetrics();
                 });
             } catch (Exception ex) {
                 Platform.runLater(() -> log("❌ [PreOrderServlet Error] " + ex.getMessage()));
@@ -2172,24 +2184,37 @@ public class SmartMessFXApp extends Application {
     private void refreshPreOrders() {
         new Thread(() -> {
             try {
-                JsonObject resp = apiClient.fetchPreOrders(currentStudentId);
                 List<PreOrderRow> list = new ArrayList<>();
-                if (resp != null && resp.has("preorders")) {
-                    JsonArray arr = resp.getAsJsonArray("preorders");
-                    for (JsonElement el : arr) {
-                        JsonObject o = el.getAsJsonObject();
+                List<PreOrder> servicePos = messService.getPreOrders(currentStudentId);
+                if (servicePos != null && !servicePos.isEmpty()) {
+                    for (PreOrder po : servicePos) {
                         list.add(new PreOrderRow(
-                                o.has("token") ? o.get("token").getAsString() : "PRE-001",
-                                o.has("itemName") ? o.get("itemName").getAsString() : "Special Item",
-                                o.has("mealType") ? o.get("mealType").getAsString() : "Dinner",
-                                o.has("targetDate") ? o.get("targetDate").getAsString() : "Tomorrow",
-                                o.has("pickupSlot") ? o.get("pickupSlot").getAsString() : "19:30 - 20:00",
-                                o.has("status") ? o.get("status").getAsString() : "BOOKED"
+                                po.getPickupToken(),
+                                po.getItemName(),
+                                "Dinner",
+                                po.getScheduledDate() != null ? po.getScheduledDate().toString() : "Tomorrow",
+                                "19:30 - 20:30",
+                                po.getStatus() != null ? po.getStatus() : "CONFIRMED"
                         ));
                     }
-                }
-                if (list.isEmpty()) {
-                    list.add(new PreOrderRow("PRE-8419", "Chef Weekend Royal Biryani", "Dinner", "Tomorrow", "19:30 - 20:00", "CONFIRMED"));
+                } else {
+                    JsonObject resp = apiClient.fetchPreOrders(currentStudentId);
+                    JsonArray arr = null;
+                    if (resp != null) {
+                        if (resp.has("preOrders") && resp.get("preOrders").isJsonArray()) arr = resp.getAsJsonArray("preOrders");
+                        else if (resp.has("preorders") && resp.get("preorders").isJsonArray()) arr = resp.getAsJsonArray("preorders");
+                    }
+                    if (arr != null) {
+                        for (JsonElement el : arr) {
+                            JsonObject o = el.getAsJsonObject();
+                            String token = o.has("token") ? o.get("token").getAsString() : (o.has("pickupToken") ? o.get("pickupToken").getAsString() : "PRE-001");
+                            String name = o.has("itemName") ? o.get("itemName").getAsString() : "Special Item";
+                            String meal = o.has("mealType") ? o.get("mealType").getAsString() : "Dinner";
+                            String date = o.has("targetDate") ? o.get("targetDate").getAsString() : (o.has("scheduledDate") ? o.get("scheduledDate").getAsString() : "Tomorrow");
+                            String status = o.has("status") ? o.get("status").getAsString() : "CONFIRMED";
+                            list.add(new PreOrderRow(token, name, meal, date, "19:30 - 20:30", status));
+                        }
+                    }
                 }
                 Platform.runLater(() -> preOrderObservableList.setAll(list));
             } catch (Exception ex) {
@@ -4000,12 +4025,6 @@ public class SmartMessFXApp extends Application {
                             histSummary
                     ));
                 }
-                if (rows.isEmpty()) {
-                    rows.add(new HealthRequestRow(2, "Aarav Sharma", "23BCE1145", "+91 9876543211", "Block B - Room 112",
-                            "Sprained ankle during football practice, unable to walk to cafeteria",
-                            "Doctor note attached: 3 days bed rest advised", "Lunch, Dinner", "PENDING", "", LocalDate.now().toString(),
-                            "Today, 10:15 AM", "", "", "Previous leaves: 0 approved, 0 rejected"));
-                }
                 Platform.runLater(() -> {
                     healthRequestsObservableList.setAll(rows);
                     if (wardenPendingBadgeLabel != null) {
@@ -4413,6 +4432,19 @@ public class SmartMessFXApp extends Application {
                         updateStepperVisuals("PENDING");
                         cancelPendingOrderBtn.setDisable(false);
 
+                        // Update Order History immediately at the moment order is placed
+                        int calTotal = itemsToOrder.stream().mapToInt(OrderItem::getCalories).sum();
+                        HistoryRow newHistRow = new HistoryRow(
+                                orderId,
+                                token,
+                                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                                isRoom ? "Hostel Delivery" : "Counter Pickup",
+                                total,
+                                calTotal > 0 ? calTotal : 550,
+                                "PENDING"
+                        );
+                        historyObservableList.add(0, newHistRow);
+
                         log(String.format("🎉 [OrderServlet Success] %s (Amount: %d Cr)", msg, total));
                         showAlert(Alert.AlertType.INFORMATION, "Order Confirmed!",
                                 "✅ Order Placed Successfully!\n\n" +
@@ -4446,15 +4478,35 @@ public class SmartMessFXApp extends Application {
     private void refreshOrderHistory() {
         new Thread(() -> {
             try {
-                JsonObject json = apiClient.fetchOrderHistory(currentStudentId);
                 List<HistoryRow> rows = new ArrayList<>();
-                rows.add(new HistoryRow(101, "TK-8472", "2026-10-27 12:30", "Counter Pickup", 80, 550, "COMPLETED"));
-                rows.add(new HistoryRow(102, "ROOM-TK-4190", "2026-10-27 13:15", "Hostel Delivery", 120, 620, "COMPLETED"));
-                rows.add(new HistoryRow(98, "TK-1184", "2026-10-26 19:45", "Counter Pickup", 150, 720, "COMPLETED"));
+                List<BaseOrder> serviceOrders = messService.getOrderHistory(currentStudentId);
+                if (serviceOrders != null && !serviceOrders.isEmpty()) {
+                    for (BaseOrder o : serviceOrders) {
+                        String delType = o.isRoomDelivery() ? "Hostel Delivery" : "Counter Pickup";
+                        String timeStr = o.getOrderTime() != null ? o.getOrderTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "Today";
+                        rows.add(new HistoryRow(o.getOrderId(), o.getPickupToken(), timeStr, delType, o.getTotalAmount(), o.getTotalCalories(), o.getStatus().getDisplayName()));
+                    }
+                } else {
+                    JsonObject json = apiClient.fetchOrderHistory(currentStudentId);
+                    if (json != null && json.has("orders") && json.get("orders").isJsonArray()) {
+                        JsonArray arr = json.getAsJsonArray("orders");
+                        for (JsonElement el : arr) {
+                            JsonObject obj = el.getAsJsonObject();
+                            int orderId = obj.has("orderId") ? obj.get("orderId").getAsInt() : 0;
+                            String token = obj.has("pickupToken") ? obj.get("pickupToken").getAsString() : ("TK-" + orderId);
+                            String date = obj.has("timestamp") ? obj.get("timestamp").getAsString() : (obj.has("createdAt") ? obj.get("createdAt").getAsString() : "Today");
+                            String deliveryType = obj.has("roomDelivery") && obj.get("roomDelivery").getAsBoolean() ? "Hostel Delivery" : "Counter Pickup";
+                            int amount = obj.has("totalAmount") ? obj.get("totalAmount").getAsInt() : 0;
+                            int calories = obj.has("totalCalories") ? obj.get("totalCalories").getAsInt() : 500;
+                            String status = obj.has("status") ? obj.get("status").getAsString() : "COMPLETED";
+                            rows.add(new HistoryRow(orderId, token, date, deliveryType, amount, calories, status));
+                        }
+                    }
+                }
 
                 Platform.runLater(() -> {
                     historyObservableList.setAll(rows);
-                    log("📜 [OrderHistoryServlet] Fetched order history for Student ID #" + currentStudentId);
+                    log("📜 [OrderHistoryServlet] Fetched " + rows.size() + " orders for Student ID #" + currentStudentId);
                 });
             } catch (Exception e) {
                 Platform.runLater(() -> log("❌ [OrderHistoryServlet Error] " + e.getMessage()));
