@@ -524,6 +524,10 @@ public class SmartMessFXApp extends Application {
                 activeUserName = res.session.name;
                 activeUserEmail = res.session.email;
                 activeUserExtra = res.session.extra;
+                try {
+                    Student sp = messService.getStudentProfile(currentStudentId);
+                    if (sp != null) currentCredits = sp.getRemainingCredits();
+                } catch (Exception ignored) {}
                 log("🎓 [Student Auth] Signed in as " + activeUserName + " (" + activeUserEmail + ")");
                 showDashboardForRole("student");
             } else {
@@ -1086,6 +1090,10 @@ public class SmartMessFXApp extends Application {
         divider.setStyle("-fx-text-fill: #64748b;");
 
         if ("student".equalsIgnoreCase(role)) {
+            try {
+                Student sp = messService.getStudentProfile(currentStudentId);
+                if (sp != null) currentCredits = sp.getRemainingCredits();
+            } catch (Exception ignored) {}
             Label creditsLabel = new Label("Balance: ");
             creditsLabel.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 12px;");
             creditsValueLabel.setText(currentCredits + " Cr");
@@ -4413,8 +4421,14 @@ public class SmartMessFXApp extends Application {
                         int total = orderObj.has("totalAmount") ? orderObj.get("totalAmount").getAsInt() : 0;
                         int orderId = orderObj.has("orderId") ? orderObj.get("orderId").getAsInt() : 105;
 
-                        // Deduct local balance
-                        currentCredits = Math.max(0, currentCredits - total);
+                        // Deduct balance and sync with profile
+                        try {
+                            Student sp = messService.getStudentProfile(currentStudentId);
+                            if (sp != null) currentCredits = sp.getRemainingCredits();
+                            else currentCredits = Math.max(0, currentCredits - total);
+                        } catch (Exception ignored) {
+                            currentCredits = Math.max(0, currentCredits - total);
+                        }
                         creditsValueLabel.setText(currentCredits + " Cr");
                         if (walletBalanceLargeLabel != null) walletBalanceLargeLabel.setText(currentCredits + " Cr");
 

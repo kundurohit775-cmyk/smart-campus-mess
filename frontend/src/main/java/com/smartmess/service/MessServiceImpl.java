@@ -93,20 +93,17 @@ public class MessServiceImpl implements IMessService {
     }
 
     private void seedDefaultState() {
-        // 1. Seed diverse campus students
-        registerStudent(new Student(22, "Rohit Kundu", "rohit.kundu2022@vitstudent.ac.in", "+91 9876543210", "22BCE1022", "Block B", "Room 304", 8700, 9000));
-        registerStudent(new Student(23, "Aarav Sharma", "aarav.sharma2023@vitstudent.ac.in", "+91 9876543211", "23BCE1145", "Block B", "Room 112", 8200, 9000));
+        // 1. Seed diverse campus students with standard 9,000 monthly allowance
+        registerStudent(new Student(22, "Rohit Kundu", "rohit.kundu2022@vitstudent.ac.in", "+91 9876543210", "22BCE1022", "Block B", "Room 304", 9000, 9000));
+        registerStudent(new Student(23, "Aarav Sharma", "aarav.sharma2023@vitstudent.ac.in", "+91 9876543211", "23BCE1145", "Block B", "Room 112", 9000, 9000));
         registerStudent(new Student(24, "Priya Patel", "priya.patel2022@vitstudent.ac.in", "+91 9876543212", "22BEE1089", "Block A", "Room 205", 9000, 9000));
-        registerStudent(new Student(25, "Karan Verma", "karan.verma2021@vitstudent.ac.in", "+91 9876543213", "21BCS1004", "Block C", "Room 410", 6400, 9500));
-        registerStudent(new Student(26, "Ananya Iyer", "ananya.iyer2023@vitstudent.ac.in", "+91 9876543214", "23BIT1056", "Block D", "Room 108", 7800, 9000));
+        registerStudent(new Student(25, "Karan Verma", "karan.verma2021@vitstudent.ac.in", "+91 9876543213", "21BCS1004", "Block C", "Room 410", 9000, 9500));
+        registerStudent(new Student(26, "Ananya Iyer", "ananya.iyer2023@vitstudent.ac.in", "+91 9876543214", "23BIT1056", "Block D", "Room 108", 9000, 9000));
         registerStudent(new Student(27, "Devansh Mehta", "devansh.mehta2022@vitstudent.ac.in", "+91 9876543215", "22BME1033", "Block A", "Room 318", 9000, 9000));
 
         // 2. Seed initial credit ledger transactions
         inMemoryTransactions.add(new TransactionRecord(transactionIdSequence.incrementAndGet(), 22, "Rohit Kundu", "22BCE1022", 9000, "MONTHLY_ALLOWANCE", 9000, "Monthly campus allowance credit", "SYSTEM"));
-        inMemoryTransactions.add(new TransactionRecord(transactionIdSequence.incrementAndGet(), 22, "Rohit Kundu", "22BCE1022", -120, "DEBIT_ORDER", 8880, "Order #68 - Masala Dosa", "STUDENT"));
-        inMemoryTransactions.add(new TransactionRecord(transactionIdSequence.incrementAndGet(), 22, "Rohit Kundu", "22BCE1022", -180, "DEBIT_ORDER", 8700, "Order #70 - Paneer Butter Masala", "STUDENT"));
         inMemoryTransactions.add(new TransactionRecord(transactionIdSequence.incrementAndGet(), 23, "Aarav Sharma", "23BCE1145", 9000, "MONTHLY_ALLOWANCE", 9000, "Monthly campus allowance credit", "SYSTEM"));
-        inMemoryTransactions.add(new TransactionRecord(transactionIdSequence.incrementAndGet(), 23, "Aarav Sharma", "23BCE1145", -800, "DEBIT_ORDER", 8200, "Order #69 - Cafeteria Lunch Platter", "STUDENT"));
         inMemoryTransactions.add(new TransactionRecord(transactionIdSequence.incrementAndGet(), 25, "Karan Verma", "21BCS1004", 9500, "MONTHLY_ALLOWANCE", 9500, "Special research scholar monthly allowance", "admin@campus.edu"));
 
         // 3. Seed historical & current health/sick-leave requests
@@ -699,6 +696,13 @@ public class MessServiceImpl implements IMessService {
             if (dish.getAvailableQuantity() < oi.getQuantity()) {
                 throw new OutOfStockException("Item '" + dish.getItemName() + "' only has " +
                         dish.getAvailableQuantity() + " remaining. Cannot order " + oi.getQuantity() + " portions.");
+            }
+
+            // Always enforce canonical catalog price, dish name, and nutritional calories
+            oi.setItemName(dish.getItemName());
+            oi.setPrice(dish.getPrice());
+            if (oi.getCalories() == null || oi.getCalories() <= 0) {
+                oi.setCalories(dish.getCalories());
             }
         }
 

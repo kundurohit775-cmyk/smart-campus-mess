@@ -1324,6 +1324,49 @@ public class WebPortalServlet extends HttpServlet {
         out.println("      </div>");
         out.println("    </div>");
 
+        // 6b. MY WALLET TRANSACTION LEDGER
+        List<TransactionRecord> myTransactions = messService.getTransactions(session.userId);
+        out.println("    <div class='dash-card' style='margin-top:20px;'>");
+        out.println("      <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;'>");
+        out.println("        <div>");
+        out.println("          <h3 style='margin:0; font-size:17px; font-weight:700;'>💳 My Wallet Transactions (" + myTransactions.size() + ")</h3>");
+        out.println("          <p style='margin:2px 0 0; font-size:12px; color:#6B6560;'>Detailed audit ledger of every credit deduction, allowance, and top-up.</p>");
+        out.println("        </div>");
+        out.println("        <span class='badge badge-green' style='font-size:13px; font-weight:700;'>Current Balance: " + String.format("%,d", credits) + " Cr</span>");
+        out.println("      </div>");
+        out.println("      <div class='data-table-wrapper'>");
+        out.println("        <table class='data-table'>");
+        out.println("          <thead>");
+        out.println("            <tr><th>Tx ID</th><th>Type</th><th>Amount</th><th>Balance After</th><th>Description / Note</th><th>Timestamp</th></tr>");
+        out.println("          </thead>");
+        out.println("          <tbody>");
+        if (myTransactions.isEmpty()) {
+            out.println("            <tr><td colspan='6' style='text-align:center; padding:24px; color:#6B6560;'>No wallet transactions recorded yet. Place an order to see your transaction history!</td></tr>");
+        } else {
+            for (TransactionRecord tx : myTransactions) {
+                String amtStr = (tx.getAmount() > 0 ? "+" : "") + tx.getAmount() + " Cr";
+                String amtColor = tx.getAmount() < 0 ? "#EF4444" : "#10B981";
+                String typeBadgeClass = "badge-blue";
+                if ("DEBIT_ORDER".equalsIgnoreCase(tx.getType()) || "DEBIT_PREORDER".equalsIgnoreCase(tx.getType())) {
+                    typeBadgeClass = "badge-orange";
+                } else if ("CREDIT_REFUND".equalsIgnoreCase(tx.getType()) || "TOPUP".equalsIgnoreCase(tx.getType()) || "RECHARGE".equalsIgnoreCase(tx.getType())) {
+                    typeBadgeClass = "badge-green";
+                }
+                out.println("            <tr>");
+                out.println("              <td>#" + tx.getTransactionId() + "</td>");
+                out.println("              <td><span class='badge " + typeBadgeClass + "'>" + escapeHtml(tx.getType()) + "</span></td>");
+                out.println("              <td><strong style='color:" + amtColor + ";'>" + amtStr + "</strong></td>");
+                out.println("              <td><strong style='color:#10B981;'>" + String.format("%,d", tx.getBalanceAfter()) + " Cr</strong></td>");
+                out.println("              <td>" + escapeHtml(tx.getReason()) + "</td>");
+                out.println("              <td>" + tx.getTimestamp() + "</td>");
+                out.println("            </tr>");
+            }
+        }
+        out.println("          </tbody>");
+        out.println("        </table>");
+        out.println("      </div>");
+        out.println("    </div>");
+
         // 7. INLINE REAL-TIME COUNTDOWN, MULTI-ITEM TRAY LOGIC & SSE RECONNECT SCRIPT
         out.println("    <script>");
         out.println("    var studentWalletBalance = " + credits + ";");

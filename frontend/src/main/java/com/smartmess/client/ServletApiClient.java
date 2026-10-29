@@ -121,7 +121,9 @@ public class ServletApiClient {
         for (OrderItem item : items) {
             JsonObject itemObj = new JsonObject();
             itemObj.addProperty("itemId", item.getItemId());
+            itemObj.addProperty("itemName", item.getItemName());
             itemObj.addProperty("quantity", item.getQuantity());
+            itemObj.addProperty("price", item.getPrice());
             itemsArray.add(itemObj);
         }
         payload.add("items", itemsArray);

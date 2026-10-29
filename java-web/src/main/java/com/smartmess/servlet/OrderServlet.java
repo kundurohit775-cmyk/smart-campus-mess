@@ -162,7 +162,11 @@ public class OrderServlet extends HttpServlet {
                         JsonObject itemObj = el.getAsJsonObject();
                         int itemId = itemObj.get("itemId").getAsInt();
                         int qty = itemObj.has("quantity") ? itemObj.get("quantity").getAsInt() : 1;
-                        items.add(new OrderItem(itemId, "", qty, 0, 0));
+                        com.smartmess.model.MenuItem mi = messService.getCatalog().findById(itemId);
+                        int price = (mi != null) ? mi.getPrice() : (itemObj.has("price") ? itemObj.get("price").getAsInt() : 0);
+                        String name = (mi != null) ? mi.getItemName() : (itemObj.has("itemName") ? itemObj.get("itemName").getAsString() : "Meal Dish #" + itemId);
+                        int cal = (mi != null && mi.getCalories() != null) ? mi.getCalories() : (itemObj.has("calories") ? itemObj.get("calories").getAsInt() : 350);
+                        items.add(new OrderItem(itemId, name, qty, price, cal));
                     }
                 }
 
